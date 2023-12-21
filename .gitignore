@@ -40,3 +40,15 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+/.idea/.gitignore
+/.idea/.name
+/.idea/aws.xml
+/.idea/dataSources.xml
+/.idea/encodings.xml
+/.idea/gradle.xml
+/gradlew
+/gradlew.bat
+/.idea/misc.xml
+/.idea/sqldialects.xml
+/.idea/uiDesigner.xml
+/.idea/vcs.xml
