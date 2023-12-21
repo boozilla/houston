@@ -1,0 +1,95 @@
+plugins {
+    id 'java-library'
+    id 'com.google.protobuf'
+}
+
+group = rootProject.group
+version = rootProject.version
+
+sourceSets {
+    main {
+        proto {
+            srcDir rootProject.sourceSets.main.proto.srcDirs
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+        reactor {
+            artifact = "com.salesforce.servicelibs:reactor-grpc:${reactorGrpcVersion}"
+        }
+    }
+
+    generateProtoTasks {
+        ofSourceSet("main")*.plugins {
+            grpc {}
+            reactor {}
+        }
+    }
+}
+
+tasks.every { task ->
+    task.dependsOn ':extractProto'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            from components.java
+        }
+    }
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    api project(':api')
+
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation "io.projectreactor:reactor-tools:${reactorVersion}"
+
+    runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    implementation "io.grpc:grpc-api:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    implementation "com.salesforce.servicelibs:reactor-grpc-stub:${reactorGrpcVersion}"
+
+    implementation "org.springframework:spring-context:${springVersion}"
+    implementation "org.springframework.data:spring-data-relational:${springBootVersion}"
+
+    implementation "com.googlecode.cqengine:cqengine:${cqengineVersion}"
+}
+
+test {
+    useJUnitPlatform()
+}

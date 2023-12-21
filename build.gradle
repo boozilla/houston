@@ -1,0 +1,116 @@
+plugins {
+    id 'java'
+    id 'com.google.protobuf'
+}
+
+subprojects {
+    apply plugin: 'maven-publish'
+}
+
+group = 'boozilla.houston'
+version = '1.0.0'
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/proto-internal'
+            srcDir 'src/main/proto-public'
+        }
+    }
+}
+
+processResources {
+    filesMatching('**/application.yml') {
+        expand(project.properties)
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+        reactor {
+            artifact = "com.salesforce.servicelibs:reactor-grpc:${reactorGrpcVersion}"
+        }
+    }
+
+    generateProtoTasks {
+        ofSourceSet("main")*.plugins {
+            grpc {}
+            reactor {}
+        }
+
+        all().each { task ->
+            task.generateDescriptorSet = true
+            task.descriptorSetOptions.includeSourceInfo = true
+            task.descriptorSetOptions.includeImports = true
+            task.descriptorSetOptions.path =
+                    "${layout.buildDirectory.getAsFile().get().path}/resources/main/META-INF/armeria/grpc/service-name.dsc"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':api')
+    implementation project(':container')
+
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    ["armeria",
+     "armeria-dropwizard2",
+     "armeria-logback",
+     "armeria-spring-boot3-autoconfigure",
+     "armeria-grpc",
+     "armeria-grpc-protocol",
+     "armeria-protobuf"].each {
+        implementation "com.linecorp.armeria:${it}:1.26.3"
+    }
+
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation "io.projectreactor:reactor-tools:${reactorVersion}"
+
+    implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-data-r2dbc:${springBootVersion}"
+
+    implementation 'io.micrometer:micrometer-core:1.12.0'
+    implementation 'io.micrometer:micrometer-registry-cloudwatch2:1.12.0'
+
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    implementation "com.salesforce.servicelibs:reactor-grpc-stub:${reactorGrpcVersion}"
+
+    implementation 'com.github.jasync-sql:jasync-mysql:2.2.0'
+    implementation 'com.github.jasync-sql:jasync-r2dbc-mysql:2.2.0'
+    implementation "com.googlecode.cqengine:cqengine:${cqengineVersion}"
+
+    implementation 'org.dhatim:fastexcel-reader:0.16.4'
+
+    implementation 'software.amazon.awssdk:dynamodb-enhanced:2.21.37'
+    implementation 'software.amazon.awssdk:secretsmanager:2.21.37'
+    implementation 'software.amazon.awssdk:kms:2.21.37'
+    implementation 'software.amazon.awssdk:s3:2.21.37'
+
+    implementation 'com.auth0:java-jwt:4.4.0'
+
+    implementation 'info.picocli:picocli:4.7.5'
+
+    implementation 'org.gitlab4j:gitlab4j-api:5.3.0'
+}
+
+test {
+    useJUnitPlatform()
+}

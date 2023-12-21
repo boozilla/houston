@@ -1,0 +1,66 @@
+plugins {
+    id 'java-library'
+    id 'com.google.protobuf'
+}
+
+group = rootProject.group
+version = rootProject.version
+
+sourceSets {
+    main {
+        proto {
+            srcDir rootProject.sourceSets.main.proto.srcDirs
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+}
+
+tasks.every { task ->
+    task.dependsOn ':extractProto'
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            from components.java
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation "io.projectreactor:reactor-tools:${reactorVersion}"
+
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "com.google.protobuf:protobuf-java-util:${protobufVersion}"
+}
+
+test {
+    useJUnitPlatform()
+}

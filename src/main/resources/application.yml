@@ -1,0 +1,29 @@
+project:
+  name: ${project.name}
+  version: ${project.version}
+
+server:
+  shutdown: graceful
+
+logging:
+  level:
+    root: info
+
+armeria:
+  ports:
+    - port: 8080
+      protocols: HTTP
+  cors:
+    origins:
+      - "*"
+  grpc:
+    use-blocking-task-executor: false
+    enable-unframed-requests: true
+    enable-reflection: true
+
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        exclude: "*"

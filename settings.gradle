@@ -1,0 +1,18 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+
+    plugins {
+        id 'com.google.protobuf' version "${protobufPluginVersion}"
+        id 'com.gradle.plugin-publish' version '1.2.1'
+    }
+}
+
+rootProject.name = 'houston'
+include 'api'
+include 'gradle-plugin'
+include 'verifier'
+include 'container'

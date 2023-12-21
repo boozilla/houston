@@ -1,0 +1,90 @@
+plugins {
+    id 'java-library'
+    id 'com.google.protobuf'
+    id 'java-gradle-plugin'
+    id 'com.gradle.plugin-publish'
+}
+
+group = rootProject.group
+version = rootProject.version
+
+sourceSets {
+    main {
+        proto {
+            srcDir rootProject.sourceSets.main.proto.srcDirs
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+        reactor {
+            artifact = "com.salesforce.servicelibs:reactor-grpc:${reactorGrpcVersion}"
+        }
+    }
+
+    generateProtoTasks {
+        ofSourceSet("main")*.plugins {
+            grpc {}
+            reactor {}
+        }
+    }
+}
+
+tasks.every { task ->
+    task.dependsOn ':extractProto'
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+gradlePlugin {
+    website = 'https://github.com/Boozilla/houston-gradle-plugin'
+    vcsUrl = 'https://github.com/Boozilla/houston-gradle-plugin.git'
+
+    plugins {
+        houston {
+            id = 'boozilla.houston'
+            implementationClass = 'boozilla.houston.gradle.HoustonPlugin'
+            displayName = 'houston'
+            description = 'A protobuf structure synchronization helper plugin that works with the Houston asset server'
+            tags.set(['houston', 'asset', 'sync'])
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation project(':api')
+
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation "io.projectreactor:reactor-tools:${reactorVersion}"
+
+    runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    implementation "io.grpc:grpc-api:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+    implementation "com.salesforce.servicelibs:reactor-grpc-stub:${reactorGrpcVersion}"
+
+    implementation "org.springframework:spring-core:${springVersion}"
+}
+
+test {
+    useJUnitPlatform()
+}

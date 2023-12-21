@@ -1,0 +1,3 @@
+[submodule "houston-proto"]
+	path = src/main/proto-public
+	url = https://github.com/Boozilla/houston-proto.git
