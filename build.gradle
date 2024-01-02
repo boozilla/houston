@@ -74,6 +74,7 @@ dependencies {
     ["armeria",
      "armeria-dropwizard2",
      "armeria-logback",
+     "armeria-spring-boot3-webflux-starter",
      "armeria-spring-boot3-autoconfigure",
      "armeria-grpc",
      "armeria-grpc-protocol",

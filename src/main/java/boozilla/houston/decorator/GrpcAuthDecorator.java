@@ -1,6 +1,6 @@
 package boozilla.houston.decorator;
 
-import boozilla.houston.decorator.auth.GrpcAuthorizer;
+import boozilla.houston.decorator.auth.HttpAuthorizer;
 import com.linecorp.armeria.common.HttpHeaderNames;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.common.HttpResponse;
@@ -24,7 +24,7 @@ import java.util.function.Function;
 public class GrpcAuthDecorator implements ServiceDecorator {
     private final Function<? super HttpService, AuthService> service;
 
-    public GrpcAuthDecorator(final List<GrpcAuthorizer> authorizers)
+    public GrpcAuthDecorator(final List<HttpAuthorizer> authorizers)
     {
         this.service = AuthService.builder()
                 .add(authorizers)

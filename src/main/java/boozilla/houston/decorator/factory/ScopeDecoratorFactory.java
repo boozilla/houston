@@ -3,7 +3,7 @@ package boozilla.houston.decorator.factory;
 import boozilla.houston.annotation.ScopeService;
 import boozilla.houston.asset.Scope;
 import boozilla.houston.context.ScopeContext;
-import boozilla.houston.decorator.auth.GrpcAuthorizer;
+import boozilla.houston.decorator.auth.HttpAuthorizer;
 import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.server.HttpService;
 import com.linecorp.armeria.server.annotation.DecoratorFactoryFunction;
@@ -18,10 +18,10 @@ import java.util.function.Function;
 public final class ScopeDecoratorFactory implements DecoratorFactoryFunction<@NotNull ScopeService> {
     private static final String SCOPE_HEADER_NAME = "x-houston-scope";
 
-    private final GrpcAuthorizer grpcAuthorizer;
+    private final HttpAuthorizer grpcAuthorizer;
 
     public ScopeDecoratorFactory(@Nullable final DocServiceBuilder docServiceBuilder,
-                                 final GrpcAuthorizer grpcAuthorizer)
+                                 final HttpAuthorizer grpcAuthorizer)
     {
         if(Objects.nonNull(docServiceBuilder))
             docServiceBuilder.exampleHeaders(HttpHeaders.of(SCOPE_HEADER_NAME, Scope.CLIENT.name()));

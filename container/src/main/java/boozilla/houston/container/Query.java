@@ -117,7 +117,17 @@ public record Query(
     public Flux<AssetData> result(final AssetQuery assetQuery, final List<Descriptors.FieldDescriptor> fieldDescriptor)
     {
         return Flux.using(() -> assetQuery.query(sql()),
-                        result -> Flux.fromStream(result.stream())
+                        result -> Flux.fromStream(() -> {
+                                    var stream = result.stream();
+
+                                    if(offset() > 0)
+                                        stream = stream.skip(offset());
+
+                                    if(limit() > 0)
+                                        stream = stream.limit(limit());
+
+                                    return stream;
+                                })
                                 .parallel()
                                 .map(message -> {
                                     if(allColumns())

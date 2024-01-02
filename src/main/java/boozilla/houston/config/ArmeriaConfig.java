@@ -1,13 +1,12 @@
 package boozilla.houston.config;
 
-import boozilla.houston.decorator.ServiceDecorator;
 import com.linecorp.armeria.common.HttpHeaderNames;
 import com.linecorp.armeria.server.ClientAddressSource;
-import com.linecorp.armeria.server.HttpServiceWithRoutes;
 import com.linecorp.armeria.server.docs.DocService;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.healthcheck.HealthCheckService;
 import com.linecorp.armeria.server.logging.AccessLogWriter;
+import com.linecorp.armeria.server.logging.LoggingService;
 import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.channel.ChannelOption;
@@ -16,18 +15,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 import java.time.Duration;
-import java.util.List;
 
 @Configuration
 public class ArmeriaConfig {
     @Bean
     public ArmeriaServerConfigurator configure(final AccessLogWriter logger,
-                                               final HttpServiceWithRoutes grpcServices,
-                                               final List<ServiceDecorator> decorators,
                                                final MeterRegistry meterRegistry)
     {
-        return serverBuilder -> serverBuilder.service(grpcServices, decorators)
+        return serverBuilder -> serverBuilder
                 .service("/health", HealthCheckService.of())
+                .decorator(LoggingService.newDecorator())
                 .accessLogWriter(logger, true)
                 .channelOption(ChannelOption.SO_REUSEADDR, true)
                 .clientAddressSources(ClientAddressSource.ofHeader(HttpHeaderNames.X_FORWARDED_FOR))

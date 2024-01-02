@@ -18,7 +18,7 @@ import java.util.concurrent.CompletionStage;
 
 @Slf4j
 @Component
-public class AdminAuthorizer implements GrpcAuthorizer {
+public class AdminAuthorizer implements HttpAuthorizer {
     private static final String TOKEN_HEADER_NAME = "x-houston-token";
 
     private final AdminApiKey adminApiKey;

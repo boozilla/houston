@@ -1,14 +1,17 @@
 package boozilla.houston.config;
 
 import boozilla.houston.decorator.GrpcAuthDecorator;
+import boozilla.houston.decorator.ServiceDecorator;
 import boozilla.houston.decorator.auth.AdminAuthorizer;
-import boozilla.houston.decorator.auth.GrpcAuthorizer;
+import boozilla.houston.decorator.auth.HttpAuthorizer;
 import boozilla.houston.decorator.factory.ScopeDecoratorFactory;
 import boozilla.houston.decorator.factory.SecureDecoratorFactory;
 import boozilla.houston.properties.GrpcProperties;
+import boozilla.houston.rest.RestService;
 import com.linecorp.armeria.server.HttpServiceWithRoutes;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.grpc.GrpcService;
+import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.grpc.BindableService;
 import io.grpc.protobuf.services.ProtoReflectionService;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-public class GrpcConfig {
+public class RouteConfig {
     @Bean
     public HttpServiceWithRoutes grpcService(final List<BindableService> services, final GrpcProperties grpcProperties)
     {
@@ -33,7 +36,21 @@ public class GrpcConfig {
     }
 
     @Bean
-    public SecureDecoratorFactory secureDecoratorFactory(final List<GrpcAuthorizer> grpcAuthorizer)
+    public ArmeriaServerConfigurator grpcServiceConfigure(final HttpServiceWithRoutes grpcServices,
+                                                          final List<ServiceDecorator> decorators)
+    {
+        return serverBuilder -> serverBuilder
+                .service(grpcServices, decorators);
+    }
+
+    @Bean
+    public ArmeriaServerConfigurator restServiceConfigure(final List<RestService> restServices)
+    {
+        return serverBuilder -> restServices.forEach(serverBuilder::annotatedService);
+    }
+
+    @Bean
+    public SecureDecoratorFactory secureDecoratorFactory(final List<HttpAuthorizer> grpcAuthorizer)
     {
         return new SecureDecoratorFactory(new GrpcAuthDecorator(grpcAuthorizer));
     }
