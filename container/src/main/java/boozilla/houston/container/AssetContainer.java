@@ -42,16 +42,10 @@ public class AssetContainer {
         if(!this.query.containsKey(query.from()))
             return Flux.empty();
 
-        final var resultFlux = query.result(
-                        this.query.get(query.from()),
-                        descriptors.get(query.from()).getFields()
-                )
-                .skip(query.offset());
-
-        if(query.limit() == 0)
-            return resultFlux;
-
-        return resultFlux.take(query.limit());
+        return query.result(
+                this.query.get(query.from()),
+                descriptors.get(query.from()).getFields()
+        );
     }
 
     void add(final AssetSheet sheet, final List<Any> data)
