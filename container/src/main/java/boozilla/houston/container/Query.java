@@ -79,6 +79,8 @@ public record Query(
 
         if(!orderBy.isEmpty())
             sql = sql.concat(" ORDER BY %s".formatted(orderBy));
+        else
+            sql = sql.concat(" ORDER BY code ASC");
 
         if(Objects.nonNull(groupBy))
             throw new RuntimeException("GROUP BY is not supported");

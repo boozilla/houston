@@ -162,12 +162,6 @@ public class AssetQuery {
                         throw new RuntimeException("An error occurred while indexing asset data", e);
                     }
                 })
-                .sorted((x, y) -> {
-                    final var xCode = (Long) x.getField(sheetDescriptor.findFieldByName("code"));
-                    final var yCode = (Long) y.getField(sheetDescriptor.findFieldByName("code"));
-
-                    return xCode.compareTo(yCode);
-                })
                 .toList();
 
         indexedCollection.addAll(rows);
