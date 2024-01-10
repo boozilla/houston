@@ -37,7 +37,7 @@ publishing {
             groupId = "io.github.boozilla"
             artifactId = "houston-${project.name}"
 
-            from project(':api').components.java
+            from components.java
 
             pom {
                 name = project.name
