@@ -1,8 +1,6 @@
 plugins {
     id 'java-library'
     id 'com.google.protobuf'
-    id 'maven-publish'
-    id 'signing'
 }
 
 group = rootProject.group
@@ -26,71 +24,13 @@ tasks.every { task ->
     task.dependsOn ':extractProto'
 }
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 publishing {
     publications {
-        api(MavenPublication) {
-            groupId = "io.github.boozilla"
-            artifactId = "houston-${project.name}"
-
-            from components.java
-
+        "$project.name"(MavenPublication) {
             pom {
-                name = project.name
-                description = 'houston common module'
-                url = 'https://github.com/boozilla/houston'
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'https://opensource.org/licenses/MIT'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'boozilla'
-                        name = 'Chanhwi Kim'
-                        email = 'io.async@gmail.com'
-                    }
-                }
-                scm {
-                    connection = 'scm:git:git://github.com/boozilla/houston.git'
-                    developerConnection = 'scm:git:ssh://github.com/boozilla/houston.git'
-                    url = 'https://github.com/boozilla/houston.git'
-                }
+                description = "houston common API"
             }
         }
-    }
-
-    repositories {
-        maven {
-            name = "sonatype"
-
-            def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
-            def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots"
-
-            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-
-            credentials {
-                username = System.getenv("OSSRH_USERNAME")
-                password = System.getenv("OSSRH_PASSWORD")
-            }
-        }
-    }
-}
-
-signing {
-    useGpgCmd()
-
-    sign publishing.publications
-}
-
-javadoc {
-    if(JavaVersion.current().isJava9Compatible()) {
-        options.addBooleanOption('html5', true)
     }
 }
 
