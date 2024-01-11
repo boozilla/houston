@@ -61,7 +61,7 @@ protobuf {
 }
 
 jib {
-    def targetArchitecture = project.hasProperty('architecture') ? project.property('architecture') : "x86_64";
+    def targetArchitecture = project.hasProperty('architecture') ? project.property('architecture') : "amd64";
 
     from {
         image = "azul/zulu-openjdk:20-latest"

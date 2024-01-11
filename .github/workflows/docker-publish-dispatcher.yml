@@ -12,7 +12,6 @@ on:
         options:
           - arm64
           - amd64
-          - x86_64
 
 jobs:
   dispatch:

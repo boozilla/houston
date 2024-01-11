@@ -17,9 +17,3 @@ jobs:
     with:
       architecture: arm64
     secrets: inherit
-
-  x86_64:
-    uses: ./.github/workflows/docker-publish-workflow.yml
-    with:
-      architecture: x86_64
-    secrets: inherit
