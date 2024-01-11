@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'com.google.protobuf'
+    id 'com.google.cloud.tools.jib' version '3.4.0'
 }
 
 subprojects {
@@ -56,6 +57,31 @@ protobuf {
             task.descriptorSetOptions.path =
                     "${layout.buildDirectory.getAsFile().get().path}/resources/main/META-INF/armeria/grpc/service-name.dsc"
         }
+    }
+}
+
+jib {
+    def targetArchitecture = project.hasProperty('architecture') ? project.property('architecture') : "x86_64";
+
+    from {
+        image = "azul/zulu-openjdk:20-latest"
+
+        platforms {
+            platform {
+                architecture = targetArchitecture
+                os = "linux"
+            }
+        }
+    }
+
+    to {
+        tags = ["${project.version}", "${targetArchitecture}", "latest"]
+    }
+
+    container {
+        mainClass = "boozilla.houston.Application"
+        creationTime = "USE_CURRENT_TIMESTAMP"
+        ports = ["8080"]
     }
 }
 

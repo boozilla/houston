@@ -1,0 +1,20 @@
+name: Docker publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      architecture:
+        description: 'architecture'
+        required: true
+        type: choice
+        options:
+          - arm64
+          - amd64
+          - x86_64
+
+jobs:
+  publish:
+    uses: ./.github/workflows/docker-publish-workflow.yml
+    with:
+      architecture: ${{ inputs.architecture }}
+    secrets: inherit
