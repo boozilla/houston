@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +35,9 @@ jobs:
           java-version: 20
 
       - name: Build with Gradle
-        uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+        uses: gradle/gradle-build-action@v2
         with:
-          arguments: publishAllPublicationsToSonatypeRepository
+          gradle-version: 8.5
+
+      - name: Publish all
+        run: ./gradlew publishAllPublicationsToSonatypeRepository
