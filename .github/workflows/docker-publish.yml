@@ -6,19 +6,19 @@ on:
     types: [ published ]
 
 jobs:
-  publish-arm64:
+  arm64:
     uses: ./.github/workflows/docker-publish-workflow.yml
     with:
       architecture: arm64
     secrets: inherit
 
-  publish-amd64:
+  amd64:
     uses: ./.github/workflows/docker-publish-workflow.yml
     with:
       architecture: arm64
     secrets: inherit
 
-  publish-x86_64:
+  x86_64:
     uses: ./.github/workflows/docker-publish-workflow.yml
     with:
       architecture: x86_64
