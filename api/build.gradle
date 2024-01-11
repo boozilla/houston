@@ -24,19 +24,12 @@ tasks.every { task ->
     task.dependsOn ':extractProto'
 }
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 publishing {
     publications {
-        maven(MavenPublication) {
-            groupId = project.group
-            artifactId = project.name
-            version = project.version
-
-            from components.java
+        "$project.name"(MavenPublication) {
+            pom {
+                description = "houston common API"
+            }
         }
     }
 }

@@ -40,25 +40,18 @@ tasks.every { task ->
     task.dependsOn ':extractProto'
 }
 
-repositories {
-    mavenCentral()
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
-
 publishing {
     publications {
-        maven(MavenPublication) {
-            groupId = project.group
-            artifactId = project.name
-            version = project.version
-
-            from components.java
+        "$project.name"(MavenPublication) {
+            pom {
+                description = "houston asset container"
+            }
         }
     }
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {

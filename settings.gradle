@@ -7,7 +7,6 @@ pluginManagement {
 
     plugins {
         id 'com.google.protobuf' version "${protobufPluginVersion}"
-        id 'com.gradle.plugin-publish' version '1.2.1'
     }
 }
 

@@ -1,0 +1,76 @@
+afterEvaluate {
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    javadoc {
+        if (JavaVersion.current().isJava9Compatible()) {
+            options.addBooleanOption('html5', true)
+        }
+
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
+
+    publishing {
+        publications {
+            "$project.name"(MavenPublication) {
+                groupId = "io.github.boozilla"
+                artifactId = "houston.${project.name}"
+
+                from components.java
+
+                pom {
+                    name = project.name
+                    url = 'https://github.com/boozilla/houston'
+
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'https://opensource.org/licenses/MIT'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = 'boozilla'
+                            name = 'Chanhwi Kim'
+                            email = 'io.async@gmail.com'
+                        }
+                    }
+
+                    scm {
+                        connection = 'scm:git:git://github.com/boozilla/houston.git'
+                        developerConnection = 'scm:git:ssh://github.com/boozilla/houston.git'
+                        url = 'https://github.com/boozilla/houston.git'
+                    }
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                name = "sonatype"
+
+                def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
+                def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots"
+
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+                credentials {
+                    username = System.getenv("OSSRH_USERNAME")
+                    password = System.getenv("OSSRH_PASSWORD")
+                }
+            }
+        }
+    }
+
+    signing {
+        def signingKey = Objects.requireNonNullElse(System.getenv("SIGNING_KEY"), "")
+        def signingPassword = System.getenv("SIGNING_PASSWORD")
+
+        useInMemoryPgpKeys(new String(signingKey.decodeBase64()), signingPassword)
+
+        sign publishing.publications
+    }
+}
