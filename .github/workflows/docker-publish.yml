@@ -15,5 +15,5 @@ jobs:
   amd64:
     uses: ./.github/workflows/docker-publish-workflow.yml
     with:
-      architecture: arm64
+      architecture: amd64
     secrets: inherit
