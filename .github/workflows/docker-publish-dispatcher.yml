@@ -1,5 +1,7 @@
 name: Docker publish dispatcher
 
+run-name: Docker publish (${{ inputs.architecture }})
+
 on:
   workflow_dispatch:
     inputs:

@@ -9,8 +9,6 @@ on:
     secrets:
       SSH_PRIVATE_KEY:
         required: true
-      SSH_KNOWN_HOSTS:
-        required: true
       TO_IMAGE:
         required: true
       DOCKER_HUB_USERNAME:
@@ -35,7 +33,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           submodules: true
 
       - name: Set up JDK 20
