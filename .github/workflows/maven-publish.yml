@@ -2,8 +2,8 @@ name: Maven publish
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main" ]
+  release:
+    types: [ published ]
 
 env:
   OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
