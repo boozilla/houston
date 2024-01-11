@@ -17,9 +17,6 @@ public class Application {
 
     public static void main(final String... args)
     {
-        // TODO
-        //  gradle-plugin, watcher maven publish 간소화 방법 고민
-        //  빌드 자동화
         context = SpringApplication.run(Application.class, args);
     }
 
