@@ -75,7 +75,7 @@ jib {
     }
 
     to {
-        tags = ["${project.version}", "${targetArchitecture}", "latest"]
+        tags = ["${project.version}", "latest"]
     }
 
     container {
