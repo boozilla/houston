@@ -29,4 +29,4 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Publish
-        run: ./gradlew publishPlugins -Dgradle.publish.key=${{ env.GRADLE_PUBLISH_KEY }} -Dgradle.publish.secret=${{ env.GRADLE_PUBLISH_SECRET }}
+        run: ./gradlew publishPlugins -Dgradle.publish.key=${{ secrets.GRADLE_PUBLISH_KEY }} -Dgradle.publish.secret=${{ secrets.GRADLE_PUBLISH_SECRET }}
