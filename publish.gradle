@@ -16,7 +16,7 @@ afterEvaluate {
         publications {
             "$project.name"(MavenPublication) {
                 groupId = "io.github.boozilla"
-                artifactId = "houston-${project.name}"
+                artifactId = "houston.${project.name}"
 
                 from components.java
 
