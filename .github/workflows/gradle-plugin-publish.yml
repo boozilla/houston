@@ -1,4 +1,4 @@
-name: Docker publish
+name: Gradle plugin publish
 
 on:
   workflow_dispatch:
@@ -29,4 +29,4 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Publish
-        run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=${{ secrets.TO_IMAGE }} -Djib.to.auth.username=${{ secrets.DOCKER_HUB_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_HUB_PASSWORD }}
+        run: ./gradlew publishPlugins -Dgradle.publish.key=${{ env.GRADLE_PUBLISH_KEY }} -Dgradle.publish.secret=${{ env.GRADLE_PUBLISH_SECRET }}

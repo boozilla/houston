@@ -5,7 +5,7 @@ plugins {
 }
 
 subprojects {
-    if (['api', 'container', 'gradle-plugin'].contains(name)) {
+    if (['api', 'container'].contains(name)) {
         apply plugin: 'maven-publish'
         apply plugin: 'signing'
         apply from: "$rootDir/publish.gradle"

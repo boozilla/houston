@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'com.google.protobuf'
+    id 'com.gradle.plugin-publish' version '1.2.1'
 }
 
 group = rootProject.group
@@ -40,12 +41,32 @@ tasks.every { task ->
     task.dependsOn ':extractProto'
 }
 
-publishing {
-    publications {
-        "$project.name"(MavenPublication) {
-            pom {
-                description = "houston gradle plugin"
-            }
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+javadoc {
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+gradlePlugin {
+    website = 'https://github.com/boozilla/houston'
+    vcsUrl = 'https://github.com/boozilla/houston.git'
+
+    plugins {
+        houston {
+            group = 'io.github.boozilla'
+            id = "${group}.houston.${project.name}"
+            displayName = 'houston'
+            description = 'This is a plugin that helps work with the houston server'
+            implementationClass = 'boozilla.houston.gradle.HoustonPlugin'
+
+            tags.set(['houston', 'asset', 'sync'])
         }
     }
 }
