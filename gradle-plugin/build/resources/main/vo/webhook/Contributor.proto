@@ -1,0 +1,14 @@
+syntax = "proto3";
+package houston.vo.webhook;
+
+option java_package = "houston.vo.webhook";
+option java_multiple_files = true;
+
+// 기여자 정보
+message Contributor
+{
+  string name = 1;
+  string email = 2;
+  string title = 3;
+  string commitId = 4;
+}

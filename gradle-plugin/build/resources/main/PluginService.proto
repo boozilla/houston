@@ -1,0 +1,36 @@
+syntax = "proto3";
+package houston.service;
+
+option java_package = "houston.grpc.service";
+option java_multiple_files = true;
+
+import "google/protobuf/empty.proto";
+
+// 플러그인 서비스
+service PluginService
+{
+  // 스키마
+  rpc schema (google.protobuf.Empty) returns (stream AssetSchema);
+
+  // 무결성 검사 실행
+  rpc runVerifier (UploadVerifierRequest) returns (stream RunVerifierResponse);
+}
+
+message AssetSchema
+{
+  string name = 1;
+  string schema = 2;
+}
+
+// 무결성 검사 실행 응답
+message RunVerifierResponse
+{
+  string stacktrace = 1;
+}
+
+// 무결성 검사 업로드
+message UploadVerifierRequest
+{
+  string className = 1;
+  bytes verifierByteCode = 2;
+}
