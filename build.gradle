@@ -148,3 +148,8 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+tasks.register('generateAdminToken', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'boozilla.houston.AdminTokenGenerator'
+}
