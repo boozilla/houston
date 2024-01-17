@@ -1,3 +1,0 @@
-[submodule "src/main/proto"]
-	path = src/main/proto
-	url = git@github.com:Boozilla/houston-proto.git

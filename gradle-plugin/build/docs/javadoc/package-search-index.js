@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"boozilla.houston.gradle"},{"l":"boozilla.houston.gradle.task"},{"l":"houston.grpc.service"},{"l":"houston.grpc.webhook"},{"l":"houston.vo.asset"},{"l":"houston.vo.webhook"},{"l":"houston.vo.webhook.gitlab"}];updateSearchResults();
