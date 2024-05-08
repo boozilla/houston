@@ -53,7 +53,7 @@ public class GrpcAuthDecorator implements ServiceDecorator {
                 .add(HttpHeaderNames.STATUS, GrpcStatus.grpcCodeToHttpStatus(status.getCode()).codeAsText())
                 .add(HttpHeaderNames.CONTENT_TYPE, "application/grpc+proto");
 
-        GrpcTrailersUtil.addStatusMessageToTrailers(headerBuilder, status.getCode().value(), status.getDescription());
+        GrpcTrailersUtil.addStatusMessageToTrailers(headerBuilder, status.getCode().value(), status.getDescription(), new byte[0]);
 
         return HttpResponse.of(headerBuilder.build());
     }

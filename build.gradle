@@ -96,7 +96,7 @@ dependencies {
     implementation project(':api')
     implementation project(':container')
 
-    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation platform("org.junit:junit-bom:${junitVersion}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
