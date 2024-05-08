@@ -52,7 +52,7 @@ public class AssetContainerWatcher {
                         .filter(container::different)
                         .flatMap(data -> Mono.defer(() -> downloadArchive(data))
                                 .doOnRequest(request -> log.info("Downloading archive (commitId = {}, sheetName = {}, partitionName = {}, scope = {})",
-                                        data.getCommitId(), data.getSheetName(), data.getPartitionName(), data.getScope()))
+                                        data.getCommitId(), data.getSheetName(), data.getPartitionName().orElse(Strings.EMPTY), data.getScope()))
                                 .map(archive -> Tuples.of(data, archive)))
                         .collectList()
                         // 변경된 애셋 데이터 정보를 새 컨테이너에 반영
