@@ -40,10 +40,13 @@ public record Query(
         }
         catch(JSQLParserException e)
         {
-            throw new RuntimeException(value, e);
+            throw Status.INVALID_ARGUMENT.withDescription(e.getLocalizedMessage())
+                    .withCause(e)
+                    .asRuntimeException();
         }
 
-        throw new RuntimeException("Support only 'select' query (%s)".formatted(value));
+        throw Status.INVALID_ARGUMENT.withDescription("Support only 'select' query (%s)".formatted(value))
+                .asRuntimeException();
     }
 
     private static Query of(final Select parser)
