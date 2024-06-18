@@ -5,7 +5,7 @@ import boozilla.houston.grpc.webhook.GitBehavior;
 import java.lang.reflect.InvocationTargetException;
 
 public enum Extension {
-    XLSX_ASSET_WORKBOOK(XlsxWorkbookHandler.class, "xlsx"),
+    XLSX_ASSET_WORKBOOK(XlsxWorkbookHandler.class, "xlsx", ".xml"),
     JSON_MANIFEST(JsonManifestHandler.class, "json");
 
     private final Class<? extends GitFileHandler> handlerClass;

@@ -1,10 +1,7 @@
 package boozilla.houston.grpc.webhook.handler;
 
 import boozilla.houston.Application;
-import boozilla.houston.asset.AssetContainer;
-import boozilla.houston.asset.AssetReader;
-import boozilla.houston.asset.AssetSheet;
-import boozilla.houston.asset.Scope;
+import boozilla.houston.asset.*;
 import boozilla.houston.asset.codec.AssetLinkCodec;
 import boozilla.houston.asset.codec.ProtobufRowCodec;
 import boozilla.houston.asset.codec.ProtobufSchemaSerializer;
@@ -17,10 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.unit.DataSize;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,21 +39,25 @@ public class XlsxWorkbookHandler extends GitFileHandler {
     @Override
     public Mono<XlsxWorkbookHandler> add(final String path, final byte[] bytes)
     {
-        try(final var inputStream = new ByteArrayInputStream(bytes))
-        {
-            return AssetReader.of(inputStream)
-                    // Scope x Sheet 의 Data 엔티티 생성
-                    .flatMapMany(reader -> Flux.fromArray(Scope.values())
-                            .flatMap(scope -> reader.sheets()
-                                    .flatMap(sheet -> toData(commitId, packageName, sheet, scope, sheetExceptions))))
-                    // Sandbox 컨테이너 구성
-                    .flatMap(tuple -> container.add(tuple.getT1(), tuple.getT2()))
-                    .then(Mono.just(this));
-        }
-        catch(IOException e)
-        {
-            return Mono.error(e);
-        }
+        return Mono.usingWhen(AssetInputStream.open(path, bytes),
+                in -> AssetReader.of(in)
+                        // Scope x Sheet 의 Data 엔티티 생성
+                        .flatMapMany(reader -> Flux.fromArray(Scope.values())
+                                .flatMap(scope -> reader.sheets()
+                                        .flatMap(sheet -> toData(commitId, packageName, sheet, scope, sheetExceptions))))
+                        // Sandbox 컨테이너 구성
+                        .flatMap(tuple -> container.add(tuple.getT1(), tuple.getT2()))
+                        .then(Mono.just(this)),
+                in -> Mono.fromRunnable(() -> {
+                    try
+                    {
+                        in.close();
+                    }
+                    catch(IOException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                }).subscribeOn(Schedulers.boundedElastic()));
     }
 
     @Override
