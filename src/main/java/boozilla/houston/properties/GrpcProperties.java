@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GrpcProperties(
         boolean useBlockingTaskExecutor,
         boolean enableUnframedRequests,
-        boolean enableReflection
+        boolean enableReflection,
+        boolean autoCompression
 ) {
 
 }

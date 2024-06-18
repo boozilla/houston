@@ -25,6 +25,7 @@ public class RouteConfig {
     public HttpServiceWithRoutes grpcService(final List<BindableService> services, final GrpcProperties grpcProperties)
     {
         final var builder = GrpcService.builder()
+                .autoCompression(grpcProperties.autoCompression())
                 .useBlockingTaskExecutor(grpcProperties.useBlockingTaskExecutor())
                 .enableUnframedRequests(grpcProperties.enableUnframedRequests())
                 .addServices(services);

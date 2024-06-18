@@ -20,6 +20,7 @@ armeria:
     use-blocking-task-executor: false
     enable-unframed-requests: true
     enable-reflection: true
+    auto-compression: true
 
 management:
   endpoints:
