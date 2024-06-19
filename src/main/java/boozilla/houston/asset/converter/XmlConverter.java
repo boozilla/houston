@@ -68,14 +68,6 @@ public class XmlConverter implements AutoCloseable {
                 .mapToObj(i -> (Element) nodeList.item(i));
     }
 
-    private static Stream<Element> elementStream(final Stream<Element> elementStream, final String tag)
-    {
-        final var element = elementStream.findAny()
-                .orElseThrow();
-
-        return elementStream(element.getElementsByTagName(tag));
-    }
-
     private void fillData(final Worksheet worksheet, final Stream<Element> rowStream)
     {
         final var r = new AtomicInteger();
@@ -93,8 +85,10 @@ public class XmlConverter implements AutoCloseable {
     private String version()
     {
         final var properties = elementStream(document.getElementsByTagName("DocumentProperties"));
-        final var version = elementStream(properties, "Version")
-                .limit(1)
+        final var versionStream = elementStream(properties.findAny()
+                .orElseThrow()
+                .getElementsByTagName("Version"));
+        final var version = versionStream.limit(1)
                 .findAny()
                 .orElseThrow();
 
