@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -70,16 +71,43 @@ public class XmlConverter implements AutoCloseable {
 
     private void fillData(final Worksheet worksheet, final Stream<Element> rowStream)
     {
-        final var r = new AtomicInteger();
+        final var rowIndex = new AtomicInteger();
 
         rowStream.forEach(row -> {
             final var c = new AtomicInteger();
-            final var cellStream = elementStream(row.getElementsByTagName("Data"));
+            final var cellStream = elementStream(row.getElementsByTagName("Cell"));
 
-            cellStream.forEach(cell -> worksheet.value(r.get(), c.getAndIncrement(), cell.getTextContent()));
+            cellStream.forEach(cell -> {
+                final var index = cell.getAttributeNS(NS_SPREAD_SHEET, "Index");
+                if(!index.isEmpty())
+                {
+                    c.set(Integer.parseInt(index) - 1);
+                }
 
-            r.incrementAndGet();
+                final var optData = Optional.ofNullable((Element) cell.getElementsByTagName("Data").item(0));
+                final var data = optData.orElseGet(() -> (Element) cell.getElementsByTagNameNS(NS_SPREAD_SHEET, "Data").item(0));
+                final var columnIndex = c.getAndIncrement();
+
+                if(Objects.nonNull(data))
+                {
+                    worksheet.value(rowIndex.get(), columnIndex, getContent(data));
+                }
+            });
+
+            rowIndex.incrementAndGet();
         });
+    }
+
+    private String getContent(final Element data)
+    {
+        final var type = data.getAttributeNS(NS_SPREAD_SHEET, "Type");
+
+        if(!type.isEmpty() && type.contentEquals("Boolean"))
+        {
+            return data.getTextContent().contentEquals("1") ? "true" : "false";
+        }
+
+        return data.getTextContent();
     }
 
     private String version()

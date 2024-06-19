@@ -113,7 +113,7 @@ public class AssetSheet implements AutoCloseable {
     public Stream<AssetColumn> columns(final Scope scope)
     {
         return columnIndices()
-                .mapToObj(columns::get)
+                .mapToObj(this::column)
                 .filter(column -> column.scope().contains(scope));
     }
 
