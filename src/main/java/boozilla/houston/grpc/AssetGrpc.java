@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 
 @Service
+@ScopeService
 @AllArgsConstructor
 public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     private static final Duration STREAM_EXTEND_TIMEOUT = Duration.ofSeconds(10);
@@ -24,7 +25,6 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     private final Assets assets;
 
     @Override
-    @ScopeService
     public Flux<AssetSheet> list(final Empty request)
     {
         final var requestContext = ServiceRequestContext.current();
@@ -36,7 +36,6 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     }
 
     @Override
-    @ScopeService
     public Mono<AssetSheets> fetchList(final Empty request)
     {
         return list(request).reduce(AssetSheets.newBuilder(), (builder, sheet) -> {
@@ -47,7 +46,6 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     }
 
     @Override
-    @ScopeService
     public Flux<Any> query(final AssetQueryRequest request)
     {
         final var requestContext = ServiceRequestContext.current();
@@ -60,10 +58,8 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     }
 
     @Override
-    @ScopeService
     public Mono<AssetQueryResponse> fetchQuery(final AssetQueryRequest request)
     {
-        // TODO Any 의 url 이 가르키는 Json marshaller 를 동적으로 등록해야 함
         return query(request).reduce(AssetQueryResponse.newBuilder(), (builder, any) -> {
                     builder.addResult(any);
                     return builder;
