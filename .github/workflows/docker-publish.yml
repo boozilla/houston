@@ -26,7 +26,7 @@ jobs:
           java-version: 21
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Publish
         run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=${{ secrets.TO_IMAGE }} -Djib.to.auth.username=${{ secrets.DOCKER_HUB_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_HUB_PASSWORD }}
