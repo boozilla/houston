@@ -7,7 +7,9 @@ import houston.vo.asset.Archive;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -15,15 +17,18 @@ import reactor.util.function.Tuples;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @AllArgsConstructor
-public class AssetContainerWatcher {
+public class AssetContainerWatcher implements DisposableBean {
     private final Assets assets;
     private final Vaults vaults;
     private final DataRepository repository;
+
+    private Disposable watcherDisposable;
 
     @PostConstruct
     private void watch()
@@ -74,7 +79,7 @@ public class AssetContainerWatcher {
                                     });
                         }));
 
-        watcher.doFinally(signal -> watcher.repeat()
+        watcher.doFinally(signal -> watcherDisposable = watcher.repeat()
                         .delayUntil(currentContainer -> Mono.delay(Duration.ofSeconds(1)))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe(
@@ -94,5 +99,14 @@ public class AssetContainerWatcher {
                     log.error("Archive file not found [path=%s]".formatted(path));
                     return Mono.empty();
                 });
+    }
+
+    @Override
+    public void destroy()
+    {
+        if(Objects.nonNull(watcherDisposable) && !watcherDisposable.isDisposed())
+        {
+            watcherDisposable.dispose();
+        }
     }
 }

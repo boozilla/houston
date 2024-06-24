@@ -7,9 +7,6 @@ spring:
     virtual:
       enabled: true
 
-server:
-  shutdown: graceful
-
 logging:
   level:
     root: info
@@ -26,6 +23,8 @@ armeria:
     enable-unframed-requests: true
     enable-reflection: true
     auto-compression: true
+  graceful-shutdown-quiet-period-millis: 3000
+  graceful-shutdown-timeout-millis: 10000
 
 management:
   endpoints:

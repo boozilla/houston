@@ -8,14 +8,15 @@ import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.healthcheck.HealthCheckService;
 import com.linecorp.armeria.server.logging.AccessLogWriter;
 import com.linecorp.armeria.server.logging.LoggingService;
+import com.linecorp.armeria.spring.ArmeriaBeanPostProcessor;
 import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.channel.ChannelOption;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
@@ -26,15 +27,19 @@ public class ArmeriaConfig {
                                                final ScheduledExecutorService scheduledExecutorService)
     {
         return serverBuilder -> serverBuilder
-                .startStopExecutor(scheduledExecutorService)
                 .blockingTaskExecutor(BlockingTaskExecutor.of(scheduledExecutorService), true)
                 .service("/health", HealthCheckService.of())
                 .decorator(LoggingService.newDecorator())
                 .accessLogWriter(logger, true)
                 .channelOption(ChannelOption.SO_REUSEADDR, true)
                 .clientAddressSources(ClientAddressSource.ofHeader(HttpHeaderNames.X_FORWARDED_FOR))
-                .meterRegistry(meterRegistry)
-                .gracefulShutdownTimeout(Duration.ofSeconds(3), Duration.ofSeconds(10));
+                .meterRegistry(meterRegistry);
+    }
+
+    @Bean
+    public static ArmeriaBeanPostProcessor armeriaBeanPostProcessor(final ApplicationContext applicationContext)
+    {
+        return new ArmeriaBeanPostProcessor(applicationContext.getAutowireCapableBeanFactory());
     }
 
     @Bean

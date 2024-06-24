@@ -8,6 +8,7 @@ import houston.grpc.service.AssetQueryRequest;
 import houston.grpc.service.AssetSheet;
 import houston.grpc.service.ReactorAssetServiceGrpc;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -25,6 +26,8 @@ import java.util.stream.Collectors;
 public class AssetContainerWatcher implements AutoCloseable {
     private final HoustonChannel channel;
     private final Map<String, UpdateInterceptor<?>> interceptors;
+
+    private Disposable watcherDisposable;
 
     public AssetContainerWatcher(final HoustonChannel channel, final Set<UpdateInterceptor<?>> interceptors)
     {
@@ -62,7 +65,7 @@ public class AssetContainerWatcher implements AutoCloseable {
                     return Mono.empty();
                 });
 
-        watcher.doFinally(signal -> watcher.repeat()
+        watcher.doFinally(signal -> watcherDisposable = watcher.repeat()
                         .delayUntil(container -> Mono.delay(Duration.ofSeconds(1)))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe())
@@ -72,6 +75,11 @@ public class AssetContainerWatcher implements AutoCloseable {
     @Override
     public void close()
     {
+        if(Objects.nonNull(watcherDisposable) && !watcherDisposable.isDisposed())
+        {
+            watcherDisposable.dispose();
+        }
+
         if(Objects.nonNull(channel))
         {
             channel.close();
