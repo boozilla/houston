@@ -7,7 +7,7 @@ import boozilla.houston.decorator.auth.HttpAuthorizer;
 import boozilla.houston.decorator.factory.ScopeDecoratorFactory;
 import boozilla.houston.decorator.factory.SecureDecoratorFactory;
 import boozilla.houston.properties.GrpcProperties;
-import boozilla.houston.rest.RestService;
+import boozilla.houston.unframed.UnframedService;
 import com.linecorp.armeria.server.HttpServiceWithRoutes;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.grpc.GrpcService;
@@ -45,7 +45,7 @@ public class RouteConfig {
     }
 
     @Bean
-    public ArmeriaServerConfigurator restServiceConfigure(final List<RestService> restServices)
+    public ArmeriaServerConfigurator restServiceConfigure(final List<UnframedService> restServices)
     {
         return serverBuilder -> restServices.forEach(serverBuilder::annotatedService);
     }

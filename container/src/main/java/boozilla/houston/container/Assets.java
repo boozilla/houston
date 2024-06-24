@@ -4,7 +4,7 @@ import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.sql.Select;
 import boozilla.houston.asset.sql.SqlStatement;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
-import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.GeneratedMessage;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,13 +45,13 @@ public class Assets {
         return container().query(statement);
     }
 
-    public static <T extends GeneratedMessageV3> Flux<T> query(final SqlStatement<?> sql, final Class<T> resultClass)
+    public static <T extends GeneratedMessage> Flux<T> query(final SqlStatement<?> sql, final Class<T> resultClass)
     {
         return query(sql)
                 .map(data -> data.message(resultClass));
     }
 
-    public static <T extends GeneratedMessageV3> Mono<T> single(final long code, final Class<T> resultClass)
+    public static <T extends GeneratedMessage> Mono<T> single(final long code, final Class<T> resultClass)
     {
         return query(Select.all()
                 .from(resultClass)
@@ -61,7 +61,7 @@ public class Assets {
                 .singleOrEmpty();
     }
 
-    public static <T extends GeneratedMessageV3> Flux<T> many(final Class<T> resultClass)
+    public static <T extends GeneratedMessage> Flux<T> many(final Class<T> resultClass)
     {
         return query(Select.all().from(resultClass), resultClass);
     }

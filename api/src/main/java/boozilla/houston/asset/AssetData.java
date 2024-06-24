@@ -34,7 +34,7 @@ public class AssetData {
         return Any.pack(this.message);
     }
 
-    public <T extends GeneratedMessageV3> T message(final Class<T> tClass)
+    public <T extends GeneratedMessage> T message(final Class<T> tClass)
     {
         try
         {

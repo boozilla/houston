@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'com.google.protobuf'
-    id 'com.google.cloud.tools.jib' version '3.4.0'
+    id 'com.google.cloud.tools.jib' version '3.4.3'
 }
 
 subprojects {
@@ -13,7 +13,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.0.0'
+version = '1.0.1'
 
 sourceSets {
     main {
@@ -112,7 +112,7 @@ dependencies {
      "armeria-grpc",
      "armeria-grpc-protocol",
      "armeria-protobuf"].each {
-        implementation "com.linecorp.armeria:${it}:1.28.4"
+        implementation "com.linecorp.armeria:${it}:${armeriaVersion}"
     }
 
     implementation "io.projectreactor:reactor-core:${reactorVersion}"
@@ -121,28 +121,29 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"
     implementation "org.springframework.boot:spring-boot-starter-data-r2dbc:${springBootVersion}"
 
-    implementation 'io.micrometer:micrometer-core:1.12.5'
-    implementation 'io.micrometer:micrometer-registry-cloudwatch2:1.12.5'
+    implementation "io.micrometer:micrometer-core:${micrometerVersion}"
+    implementation "io.micrometer:micrometer-registry-cloudwatch2:${micrometerVersion}"
 
     implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
     implementation "com.salesforce.servicelibs:reactor-grpc-stub:${reactorGrpcVersion}"
 
-    implementation 'com.github.jasync-sql:jasync-mysql:2.2.4'
-    implementation 'com.github.jasync-sql:jasync-r2dbc-mysql:2.2.4'
+    implementation "com.github.jasync-sql:jasync-mysql:${jasyncVersion}"
+    implementation "com.github.jasync-sql:jasync-r2dbc-mysql:${jasyncVersion}"
     implementation "com.googlecode.cqengine:cqengine:${cqengineVersion}"
+    implementation "com.github.jsqlparser:jsqlparser:${jsqlParserVersion}"
 
-    implementation 'org.dhatim:fastexcel:0.18.0'
-    implementation 'org.dhatim:fastexcel-reader:0.18.0'
+    implementation "org.dhatim:fastexcel:${fastexcelVersion}"
+    implementation "org.dhatim:fastexcel-reader:${fastexcelVersion}"
 
-    implementation 'software.amazon.awssdk:secretsmanager:2.25.31'
-    implementation 'software.amazon.awssdk:kms:2.25.31'
-    implementation 'software.amazon.awssdk:s3:2.25.31'
+    implementation "software.amazon.awssdk:secretsmanager:${awssdkVersion}"
+    implementation "software.amazon.awssdk:kms:${awssdkVersion}"
+    implementation "software.amazon.awssdk:s3:${awssdkVersion}"
 
-    implementation 'com.auth0:java-jwt:4.4.0'
+    implementation "com.auth0:java-jwt:${javaJwtVersion}"
 
-    implementation 'info.picocli:picocli:4.7.6'
+    implementation "info.picocli:picocli:${picocliVersion}"
 
-    implementation 'org.gitlab4j:gitlab4j-api:5.5.0'
+    implementation "org.gitlab4j:gitlab4j-api:${gitlab4jVersion}"
 }
 
 test {

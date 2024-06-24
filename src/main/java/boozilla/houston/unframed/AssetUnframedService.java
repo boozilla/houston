@@ -1,4 +1,4 @@
-package boozilla.houston.rest;
+package boozilla.houston.unframed;
 
 import boozilla.houston.annotation.ScopeService;
 import boozilla.houston.asset.AssetData;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @AllArgsConstructor
-public class AssetUnframedService implements RestService {
+public class AssetUnframedService implements UnframedService {
     private final Assets assets;
 
     @ScopeService

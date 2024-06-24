@@ -81,6 +81,7 @@ dependencies {
     implementation "org.springframework.data:spring-data-relational:${springBootVersion}"
 
     implementation "com.googlecode.cqengine:cqengine:${cqengineVersion}"
+    implementation "com.github.jsqlparser:jsqlparser:${jsqlParserVersion}"
 }
 
 test {

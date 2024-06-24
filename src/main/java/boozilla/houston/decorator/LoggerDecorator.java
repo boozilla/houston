@@ -1,5 +1,6 @@
 package boozilla.houston.decorator;
 
+import com.linecorp.armeria.common.logging.LogWriter;
 import com.linecorp.armeria.server.HttpService;
 import com.linecorp.armeria.server.logging.LoggingService;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +15,10 @@ public class LoggerDecorator implements ServiceDecorator {
 
     public LoggerDecorator()
     {
+        final var logWriter = LogWriter.of(log);
+
         this.service = LoggingService.builder()
-                .logger(log)
+                .logWriter(logWriter)
                 .newDecorator();
     }
 

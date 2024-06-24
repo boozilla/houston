@@ -51,7 +51,7 @@ public record Query(
 
     private static Query of(final Select parser)
     {
-        return of(parser.getSelectBody(PlainSelect.class));
+        return of(parser.getPlainSelect());
     }
 
     private static Query of(final PlainSelect parser)
