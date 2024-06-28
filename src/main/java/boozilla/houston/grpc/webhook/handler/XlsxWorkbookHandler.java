@@ -57,7 +57,7 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                     {
                         throw new RuntimeException(e);
                     }
-                }).subscribeOn(Schedulers.boundedElastic()));
+                }).subscribeOn(Schedulers.boundedElastic())).log();
     }
 
     @Override
