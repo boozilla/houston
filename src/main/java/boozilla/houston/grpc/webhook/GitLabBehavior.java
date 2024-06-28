@@ -17,7 +17,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -376,9 +375,7 @@ public class GitLabBehavior implements GitBehavior<GitLabContext> {
 
                                     return outputStream;
                                 })
-                                .map(ByteArrayOutputStream::toByteArray)
-                                .subscribeOn(Schedulers.boundedElastic())
-                                .timeout(Duration.ofSeconds(30));
+                                .map(ByteArrayOutputStream::toByteArray);
                     }
                     catch(GitLabApiException e)
                     {
