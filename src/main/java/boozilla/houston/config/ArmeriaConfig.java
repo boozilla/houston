@@ -1,7 +1,6 @@
 package boozilla.houston.config;
 
 import com.linecorp.armeria.common.HttpHeaderNames;
-import com.linecorp.armeria.common.util.BlockingTaskExecutor;
 import com.linecorp.armeria.server.ClientAddressSource;
 import com.linecorp.armeria.server.docs.DocService;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
@@ -17,17 +16,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import java.util.concurrent.ScheduledExecutorService;
-
 @Configuration
 public class ArmeriaConfig {
     @Bean
     public ArmeriaServerConfigurator configure(final AccessLogWriter logger,
-                                               final MeterRegistry meterRegistry,
-                                               final ScheduledExecutorService scheduledExecutorService)
+                                               final MeterRegistry meterRegistry)
     {
         return serverBuilder -> serverBuilder
-                .blockingTaskExecutor(BlockingTaskExecutor.of(scheduledExecutorService), true)
                 .service("/health", HealthCheckService.of())
                 .decorator(LoggingService.newDecorator())
                 .accessLogWriter(logger, true)
