@@ -2,11 +2,6 @@ project:
   name: ${project.name}
   version: ${project.version}
 
-spring:
-  threads:
-    virtual:
-      enabled: true
-
 logging:
   level:
     root: info
