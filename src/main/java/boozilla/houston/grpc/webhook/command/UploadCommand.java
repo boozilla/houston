@@ -95,7 +95,6 @@ public class UploadCommand implements Command {
 
                                             return handler.add(commitFile, bytes);
                                         })
-                                        .log()
                                         .reduce(new HashSet<GitFileHandler>(), (set, handler) -> {
                                             set.add(handler);
                                             return set;
@@ -196,7 +195,7 @@ public class UploadCommand implements Command {
                             .subscribeOn(Schedulers.boundedElastic())
                             .subscribe();
                 })
-                .flatMap(commitFile -> behavior.openFile(projectId, commitId, commitFile).log()
+                .flatMap(commitFile -> behavior.openFile(projectId, commitId, commitFile)
                         .onErrorMap(Exceptions::isRetryExhausted, Throwable::getCause)
                         .onErrorResume(GitLabApiException.class, error -> {
                             // GitLabApiException 에 따라 다른 메시지 출력
