@@ -22,7 +22,7 @@ public class I18nConfig {
     }
 
     @Bean
-    public MessageSourceAccessor messageSourceAccessor(@Value("spring.messages.locale") final String language)
+    public MessageSourceAccessor messageSourceAccessor(@Value("${spring.messages.locale}") final String language)
     {
         final var locale = Locale.of(language);
         return new MessageSourceAccessor(messageSource(), locale);
