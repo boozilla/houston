@@ -95,6 +95,7 @@ public class UploadCommand implements Command {
 
                                             return handler.add(commitFile, bytes);
                                         })
+                                        .limitRate(Runtime.getRuntime().availableProcessors() / 2)
                                         .reduce(new HashSet<GitFileHandler>(), (set, handler) -> {
                                             set.add(handler);
                                             return set;
