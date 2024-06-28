@@ -15,7 +15,7 @@ public class I18nConfig {
         final var messageSource = new ReloadableResourceBundleMessageSource();
         messageSource.setBasename("classpath:/messages");
         messageSource.setDefaultEncoding("UTF-8");
-        messageSource.setDefaultLocale(Locale.US);
+        messageSource.setDefaultLocale(Locale.getDefault());
         messageSource.setUseCodeAsDefaultMessage(true);
 
         return messageSource;
