@@ -15,6 +15,7 @@ import houston.vo.asset.Archive;
 import houston.vo.asset.NullableFields;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -204,11 +205,15 @@ public class AssetContainer implements AssetAccessor {
         return Flux.fromStream(stream);
     }
 
-    public void initialize()
+    public Mono<AssetContainer> initialize()
     {
-        this.archive.entrySet().stream()
+        return Flux.fromIterable(archive.entrySet())
                 .collect(Collectors.groupingBy(entry -> entry.getKey().toMergeKey(), Collectors.mapping(Map.Entry::getValue, Collectors.toList())))
-                .forEach((mergeKey, archives) -> {
+                .flatMapMany(map -> Flux.fromIterable(map.entrySet()))
+                .doOnNext(entry -> {
+                    final var mergeKey = entry.getKey();
+                    final var archives = entry.getValue();
+
                     if(this.query.containsKey(mergeKey))
                         return;
 
@@ -221,7 +226,9 @@ public class AssetContainer implements AssetAccessor {
                     final var query = new AssetQuery(data, sheetDescriptor, codec.nullableFields());
 
                     this.query.put(mergeKey, query);
-                });
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .then(Mono.just(this));
     }
 
     private NullableFields nullableFields(final Archive archive)

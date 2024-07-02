@@ -66,7 +66,7 @@ public class XlsxWorkbookHandler extends GitFileHandler {
         final var assets = Application.assets();
 
         return Mono.just(this.container)
-                .doOnNext(AssetContainer::initialize)
+                .flatMap(AssetContainer::initialize)
                 .flatMap(container -> {
                     if(!sheetExceptions.isEmpty())
                     {
