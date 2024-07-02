@@ -80,7 +80,7 @@ jib {
     to {
         tags = ["${project.version}"]
     }
-    
+    -XX:MinRAMPercentage=50 -XX:MaxRAMPercentage=80 -XshowSettings:vm -XX:+EnableDynamicAgentLoading -Duser.language=ko -Duser.country=KR -Dfile.encoding=UTF-8 -Djdk.attach.allowAttachSelf=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     container {
         mainClass = "boozilla.houston.Application"
         creationTime = "USE_CURRENT_TIMESTAMP"
@@ -89,7 +89,9 @@ jib {
                 '-XX:+EnableDynamicAgentLoading',
                 '-XshowSettings:vm',
                 '-XX:MinRAMPercentage=50',
-                '-XX:MaxRAMPercentage=80'
+                '-XX:MaxRAMPercentage=80',
+                '-XX:+UseZGC',
+                '-XX:+ZGenerational'
         ]
     }
 }
