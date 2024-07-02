@@ -65,7 +65,7 @@ public class AssetContainerWatcher implements DisposableBean {
                             final var updatedContainer = container.copy();
                             return updatedContainer.addAll(updatedData);
                         })
-                        .doOnNext(AssetContainer::initialize)
+                        .flatMap(AssetContainer::initialize)
                         // 현재 컨테이너를 새 컨테이너로 교체
                         .doOnNext(updatedContainer -> {
                             assets.container(updatedContainer);

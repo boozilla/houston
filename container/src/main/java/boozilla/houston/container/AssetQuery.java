@@ -13,9 +13,6 @@ import com.googlecode.cqengine.index.Index;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.navigable.NavigableIndex;
 import com.googlecode.cqengine.index.radixreversed.ReversedRadixTreeIndex;
-import com.googlecode.cqengine.persistence.Persistence;
-import com.googlecode.cqengine.persistence.composite.CompositePersistence;
-import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.persistence.onheap.OnHeapPersistence;
 import com.googlecode.cqengine.query.option.QueryOptions;
 import com.googlecode.cqengine.query.parser.sql.SQLParser;
@@ -148,7 +145,8 @@ public class AssetQuery {
                                                                           final List<Index<DynamicMessage>> indices,
                                                                           final List<Any> data)
     {
-        final var indexedCollection = new ConcurrentIndexedCollection<>(persistence());
+        final var persistence = OnHeapPersistence.onPrimaryKey(primary);
+        final var indexedCollection = new ConcurrentIndexedCollection<>(persistence);
         indices.forEach(indexedCollection::addIndex);
 
         final var rows = data.stream()
@@ -167,13 +165,5 @@ public class AssetQuery {
         indexedCollection.addAll(rows);
 
         return indexedCollection;
-    }
-
-    private Persistence<DynamicMessage, Long> persistence()
-    {
-        return CompositePersistence.of(
-                OnHeapPersistence.onPrimaryKey(primary),
-                DiskPersistence.onPrimaryKey(primary)
-        );
     }
 }
