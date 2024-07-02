@@ -2,6 +2,7 @@ package boozilla.houston.context;
 
 import boozilla.houston.common.Retry;
 import com.linecorp.armeria.server.ServiceRequestContext;
+import lombok.extern.slf4j.Slf4j;
 import org.gitlab4j.api.Constants;
 import org.gitlab4j.api.GitLabApi;
 import reactor.core.Exceptions;
@@ -11,6 +12,7 @@ import reactor.core.scheduler.Schedulers;
 import java.util.Objects;
 import java.util.function.Function;
 
+@Slf4j
 public class GitLabContext implements GitContext<GitLabApi> {
     private static final String GITLAB_ACCESS_TOKEN_KEY = "x-gitlab-token";
     private static final String GITLAB_URL_KEY = "x-gitlab-instance";
@@ -69,6 +71,7 @@ public class GitLabContext implements GitContext<GitLabApi> {
                 .retryWhen(Retry.defaultBackoff())
                 .onErrorMap(Exceptions::isRetryExhausted, Throwable::getCause)
                 .onErrorStop()
+                .doOnError(error -> log.error("Errors in GitLab API requests", error))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 }
