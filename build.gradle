@@ -80,11 +80,17 @@ jib {
     to {
         tags = ["${project.version}"]
     }
-
+    
     container {
         mainClass = "boozilla.houston.Application"
         creationTime = "USE_CURRENT_TIMESTAMP"
         ports = ["8080"]
+        jvmFlags = [
+                '-XX:+EnableDynamicAgentLoading',
+                '-XshowSettings:vm',
+                '-XX:MinRAMPercentage=50',
+                '-XX:MaxRAMPercentage=80'
+        ]
     }
 }
 
