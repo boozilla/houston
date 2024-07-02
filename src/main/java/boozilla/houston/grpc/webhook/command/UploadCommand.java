@@ -5,6 +5,7 @@ import boozilla.houston.grpc.webhook.StateLabel;
 import boozilla.houston.grpc.webhook.handler.Extension;
 import boozilla.houston.grpc.webhook.handler.GitFileHandler;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.gitlab4j.api.GitLabApiException;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Component
 @AllArgsConstructor
 public class UploadCommand implements Command {
@@ -93,7 +95,10 @@ public class UploadCommand implements Command {
                                             final var commitFile = entry.getKey();
                                             final var bytes = entry.getValue();
 
-                                            return handler.add(commitFile, bytes);
+                                            log.info("Start data handling [name={}, handler={}]", commitFile, handler.getClass().getSimpleName());
+
+                                            return handler.add(commitFile, bytes)
+                                                    .doFinally(signal -> log.info("Complete data handling [name={}, handler={}]", commitFile, handler.getClass().getSimpleName()));
                                         })
                                         .reduce(new HashSet<GitFileHandler>(), (set, handler) -> {
                                             set.add(handler);
@@ -195,7 +200,9 @@ public class UploadCommand implements Command {
                             .subscribeOn(Schedulers.boundedElastic())
                             .subscribe();
                 })
+                .doOnNext(commitFile -> log.info("Start downloading files from git [name={}]", commitFile))
                 .flatMap(commitFile -> behavior.openFile(projectId, commitId, commitFile)
+                        .doOnNext(result -> log.info("Finished downloading files from git [name={}]", commitFile))
                         .onErrorMap(Exceptions::isRetryExhausted, Throwable::getCause)
                         .onErrorResume(GitLabApiException.class, error -> {
                             // GitLabApiException 에 따라 다른 메시지 출력
