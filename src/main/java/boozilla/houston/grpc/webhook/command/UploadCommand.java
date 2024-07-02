@@ -95,7 +95,6 @@ public class UploadCommand implements Command {
 
                                             return handler.add(commitFile, bytes);
                                         })
-                                        .limitRate(Runtime.getRuntime().availableProcessors() / 2)
                                         .reduce(new HashSet<GitFileHandler>(), (set, handler) -> {
                                             set.add(handler);
                                             return set;
@@ -210,7 +209,7 @@ public class UploadCommand implements Command {
                                     .then(Mono.error(new RuntimeException(messageSourceAccessor.getMessage(messageCode)
                                             .formatted(commitId, commitFile))));
                         })
-                        .map(inputStream -> Tuples.of(commitFile, inputStream)))
+                        .map(bytes -> Tuples.of(commitFile, bytes)))
                 .collectMap(Tuple2::getT1, Tuple2::getT2);
     }
 

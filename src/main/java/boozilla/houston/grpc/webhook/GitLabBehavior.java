@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import houston.vo.webhook.Contributor;
 import houston.vo.webhook.UploadPayload;
+import lombok.extern.slf4j.Slf4j;
 import org.gitlab4j.api.Constants;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.IssuesApi;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 public class GitLabBehavior implements GitBehavior<GitLabContext> {
     private final GitLabContext gitContext;
 
@@ -227,6 +229,10 @@ public class GitLabBehavior implements GitBehavior<GitLabContext> {
                     {
                         return Mono.error(e);
                     }
+                    finally
+                    {
+                        log.info("{} [projectId={}, issueIid={}]", message, projectId, issueIid);
+                    }
                 })
                 .publishOn(Schedulers.newSingle("gitlab-comment-sender", true))
                 .then();
@@ -361,25 +367,27 @@ public class GitLabBehavior implements GitBehavior<GitLabContext> {
     public Mono<byte[]> openFile(final long projectId, final String ref, final String path)
     {
         return gitContext().api(client -> {
-            try
-            {
-                final var in = client.getRepositoryFileApi().getRawFile(projectId, ref, path);
+                    try
+                    {
+                        final var in = client.getRepositoryFileApi().getRawFile(projectId, ref, path);
 
-                return DataBufferUtils.readInputStream(() -> in, DefaultDataBufferFactory.sharedInstance, 4096)
-                        .reduce(new ByteArrayOutputStream(), (outputStream, dataBuffer) -> {
-                            final var bytes = new byte[dataBuffer.readableByteCount()];
-                            dataBuffer.read(bytes);
-                            outputStream.writeBytes(bytes);
+                        return DataBufferUtils.readInputStream(() -> in,
+                                        DefaultDataBufferFactory.sharedInstance,
+                                        DefaultDataBufferFactory.DEFAULT_INITIAL_CAPACITY)
+                                .reduce(new ByteArrayOutputStream(), (outputStream, dataBuffer) -> {
+                                    final var bytes = new byte[dataBuffer.readableByteCount()];
+                                    dataBuffer.read(bytes);
+                                    outputStream.writeBytes(bytes);
 
-                            return outputStream;
-                        })
-                        .map(ByteArrayOutputStream::toByteArray);
-            }
-            catch(GitLabApiException e)
-            {
-                return Mono.error(e);
-            }
-        });
+                                    return outputStream;
+                                })
+                                .map(ByteArrayOutputStream::toByteArray);
+                    }
+                    catch(GitLabApiException e)
+                    {
+                        return Mono.error(e);
+                    }
+                });
     }
 
     /**
