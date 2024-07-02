@@ -59,7 +59,7 @@ public class AssetContainer implements AssetAccessor {
         return !currentData.getCommitId().contentEquals(data.getCommitId());
     }
 
-    public Mono<AssetContainer> add(final Data data, final Archive archive)
+    public void add(final Data data, final Archive archive)
     {
         final var key = data.key();
         remove(key);
@@ -93,16 +93,14 @@ public class AssetContainer implements AssetAccessor {
         }
         catch(InvalidProtocolBufferException | Descriptors.DescriptorValidationException e)
         {
-            return Mono.error(new RuntimeException("Errors initialize the protobuf data codec", e));
+            throw new RuntimeException("Errors initialize the protobuf data codec", e);
         }
-
-        return Mono.just(this);
     }
 
     public Mono<AssetContainer> addAll(final Collection<Tuple2<Data, Archive>> updatedData)
     {
         return Flux.fromIterable(updatedData)
-                .flatMap(tuple -> add(tuple.getT1(), tuple.getT2()))
+                .doOnNext(tuple -> add(tuple.getT1(), tuple.getT2()))
                 .then(Mono.just(this));
     }
 

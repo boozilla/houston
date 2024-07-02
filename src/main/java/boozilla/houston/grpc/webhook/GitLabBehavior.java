@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import houston.vo.webhook.Contributor;
 import houston.vo.webhook.UploadPayload;
+import lombok.extern.slf4j.Slf4j;
 import org.gitlab4j.api.Constants;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.IssuesApi;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 public class GitLabBehavior implements GitBehavior<GitLabContext> {
     private final GitLabContext gitContext;
 
@@ -226,6 +228,10 @@ public class GitLabBehavior implements GitBehavior<GitLabContext> {
                     catch(GitLabApiException e)
                     {
                         return Mono.error(e);
+                    }
+                    finally
+                    {
+                        log.info("{} [projectId={}, issueIid={}]", message, projectId, issueIid);
                     }
                 })
                 .publishOn(Schedulers.newSingle("gitlab-comment-sender", true))

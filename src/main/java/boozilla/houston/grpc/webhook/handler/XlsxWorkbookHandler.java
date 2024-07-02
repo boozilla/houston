@@ -46,7 +46,7 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                                 .flatMap(scope -> reader.sheets()
                                         .flatMap(sheet -> toData(commitId, packageName, sheet, scope, sheetExceptions))))
                         // Sandbox 컨테이너 구성
-                        .flatMap(tuple -> container.add(tuple.getT1(), tuple.getT2()))
+                        .doOnNext(tuple -> container.add(tuple.getT1(), tuple.getT2()))
                         .then(Mono.just(this)),
                 in -> Mono.fromRunnable(() -> {
                     try
