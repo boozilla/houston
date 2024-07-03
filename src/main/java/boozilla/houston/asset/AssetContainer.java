@@ -20,6 +20,8 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 
 public class AssetContainer implements AssetAccessor {
@@ -35,13 +37,13 @@ public class AssetContainer implements AssetAccessor {
     AssetContainer(final Vaults vaults)
     {
         this.vaults = vaults;
-        this.data = new HashMap<>();
-        this.archive = new HashMap<>();
-        this.codec = new HashMap<>();
-        this.query = new HashMap<>();
-        this.links = new HashMap<>();
-        this.partitions = new HashMap<>();
-        this.updated = new HashSet<>();
+        this.data = new ConcurrentHashMap<>();
+        this.archive = new ConcurrentHashMap<>();
+        this.codec = new ConcurrentHashMap<>();
+        this.query = new ConcurrentHashMap<>();
+        this.links = new ConcurrentHashMap<>();
+        this.partitions = new ConcurrentHashMap<>();
+        this.updated = new CopyOnWriteArraySet<>();
     }
 
     Set<Key> keys()
