@@ -89,9 +89,7 @@ jib {
                 '-XshowSettings:vm',
                 '-XX:+EnableDynamicAgentLoading',
                 '-XX:MinRAMPercentage=50',
-                '-XX:MaxRAMPercentage=80',
-                '-XX:+UseZGC',
-                '-XX:+ZGenerational'
+                '-XX:MaxRAMPercentage=80'
         ]
     }
 }
