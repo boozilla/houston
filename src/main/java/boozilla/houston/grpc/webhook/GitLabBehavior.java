@@ -31,7 +31,7 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     {
         client = GitLabClient.of(context);
 
-        if(client.uri().compareTo(URI.create(url)) != 0)
+        if(client.uri().getHost().compareTo(URI.create(url).getHost()) != 0)
             throw new IllegalArgumentException("GitLab URL is not matched");
     }
 
