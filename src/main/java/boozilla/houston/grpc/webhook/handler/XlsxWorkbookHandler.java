@@ -27,7 +27,7 @@ public class XlsxWorkbookHandler extends GitFileHandler {
     private final AssetContainer container;
     private final List<Throwable> sheetExceptions;
 
-    public XlsxWorkbookHandler(final long projectId, final long issueId, final String commitId, final String packageName,
+    public XlsxWorkbookHandler(final String projectId, final String issueId, final String commitId, final String packageName,
                                final GitBehavior<?> behavior)
     {
         super(projectId, issueId, commitId, packageName, behavior);

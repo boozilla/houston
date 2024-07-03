@@ -43,7 +43,7 @@ public class AssetVerifier {
                 .distinct();
     }
 
-    private Flux<AssetSheetConstraints> scanConstraints(final GitBehavior<?> behavior, final long projectId, final String ref)
+    private Flux<AssetSheetConstraints> scanConstraints(final GitBehavior<?> behavior, final String projectId, final String ref)
     {
         return behavior.allFiles(projectId, ref)
                 .flatMapMany(Flux::fromIterable)
@@ -73,7 +73,7 @@ public class AssetVerifier {
                 });
     }
 
-    public Flux<Throwable> exceptions(final GitBehavior<?> behavior, final long projectId, final long issueId, final String ref)
+    public Flux<Throwable> exceptions(final GitBehavior<?> behavior, final String projectId, final String issueId, final String ref)
     {
         final var messageAccessor = Application.messageSourceAccessor();
 

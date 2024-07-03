@@ -1,51 +1,51 @@
 package boozilla.houston.grpc.webhook;
 
 import boozilla.houston.Application;
-import boozilla.houston.context.GitContext;
+import boozilla.houston.grpc.webhook.client.GitClient;
+import boozilla.houston.grpc.webhook.client.Issue;
 import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import houston.vo.webhook.UploadPayload;
-import org.gitlab4j.api.models.Issue;
 import reactor.core.publisher.Mono;
 
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public interface GitBehavior<T extends GitContext<?>> {
-    T gitContext();
+public interface GitBehavior<T extends GitClient> {
+    T client();
 
-    Mono<UploadPayload> uploadPayload(final long projectId, final long assignee,
+    Mono<UploadPayload> uploadPayload(final String projectId, final long assignee,
                                       final String ref, final String beforeCommitId, final String afterCommitId);
 
     Mono<Issue> createIssue(final UploadPayload uploadPayload);
 
-    Mono<Issue> getIssue(final long projectId, final long issueId);
+    Mono<Issue> getIssue(final String projectId, final String issueId);
 
-    Mono<Void> linkIssues(final long issueId, final UploadPayload uploadPayload);
+    Mono<Void> linkIssues(final String issueId, final UploadPayload uploadPayload);
 
-    Mono<Void> setState(final long projectId, final long issueId, final StateLabel newLabel);
+    Mono<Void> setState(final String projectId, final String issueId, final StateLabel newLabel);
 
-    Mono<Void> addLabels(final long projectId, final long issueId, final String... labels);
+    Mono<Void> addLabels(final String projectId, final String issueId, final String... labels);
 
-    Mono<Void> commentMessage(final long projectId, final long issueIid, final String message);
+    Mono<Void> commentMessage(final String projectId, final String issueIid, final String message);
 
-    Mono<Void> commentExceptions(final long projectId, final long issueId, final Throwable exception);
+    Mono<Void> commentExceptions(final String projectId, final String issueId, final Throwable exception);
 
-    Mono<Void> commentExceptions(final long projectId, final long issueId, final List<Throwable> exceptions);
+    Mono<Void> commentExceptions(final String projectId, final String issueId, final List<Throwable> exceptions);
 
-    Mono<Void> commentUploadPayload(final long issueId, final UploadPayload uploadPayload);
+    Mono<Void> commentUploadPayload(final String issueId, final UploadPayload uploadPayload);
 
-    Mono<byte[]> openFile(final long projectId, final String ref, final String path);
+    Mono<byte[]> openFile(final String projectId, final String ref, final String path);
 
-    Mono<String> findUploadPayload(final long projectId, final long issueIid);
+    Mono<String> findUploadPayload(final String projectId, final String issueIid);
 
-    Mono<List<String>> allFiles(final long projectId, final String ref);
+    Mono<List<String>> allFiles(final String projectId, final String ref);
 
-    Mono<String> commitId(final long projectId, final String ref);
+    Mono<String> commitId(final String projectId, final String ref);
 
-    Mono<Void> addSpentTime(final long projectId, final long issueId, final int seconds);
+    Mono<Void> addSpentTime(final String projectId, final String issueId, final int seconds);
 
-    Mono<Void> closeIssue(final long projectId, final long issueId);
+    Mono<Void> closeIssue(final String projectId, final String issueId);
 
     /**
      * 이슈 내용을 생성한다.

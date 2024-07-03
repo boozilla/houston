@@ -11,7 +11,7 @@ public interface StereotypeCommand {
 
     String commandTemplate();
 
-    Mono<Void> run(final String packageName, final long projectId, final long issueId,
+    Mono<Void> run(final String packageName, final String projectId, final String issueId,
                    final String targetRef, final String command, final GitBehavior<?> behavior);
 
     default <T extends StereotypeCommand> T getCommand(final Class<T> commandClass)

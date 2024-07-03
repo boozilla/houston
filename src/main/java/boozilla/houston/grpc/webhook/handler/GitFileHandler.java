@@ -7,8 +7,8 @@ import reactor.core.publisher.Mono;
 
 @AllArgsConstructor
 public abstract class GitFileHandler {
-    protected final long projectId;
-    protected final long issueId;
+    protected final String projectId;
+    protected final String issueId;
     protected final String commitId;
     protected final String packageName;
     protected final GitBehavior<?> behavior;

@@ -35,7 +35,7 @@ public class RemoveCommand implements Command {
     }
 
     @Override
-    public Mono<Void> run(final String packageName, final long projectId, final long issueId,
+    public Mono<Void> run(final String packageName, final String projectId, final String issueId,
                           final String targetRef, final String command, final GitBehavior<?> behavior)
     {
         final var args = command.split(" ", 2);

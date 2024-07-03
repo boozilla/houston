@@ -11,5 +11,5 @@ message PushEvent
   string after = 2;
   string ref = 3;
   int64 user_id = 4;
-  int64 project_id = 5;
+  string project_id = 5;
 }

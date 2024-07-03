@@ -12,7 +12,7 @@ message NoteEvent
 
   message Project
   {
-    int64 id = 1;
+    string id = 1;
   }
 
   message ObjectAttributes
@@ -27,7 +27,7 @@ message NoteEvent
       string title = 1;
     }
 
-    int64 iid = 1;
+    string iid = 1;
     repeated Label labels = 2;
   }
 

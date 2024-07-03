@@ -9,7 +9,7 @@ import "vo/webhook/Contributor.proto";
 // 업로드 Payload
 message UploadPayload
 {
-  int64 projectId = 1;
+  string projectId = 1;
   int64 assignee = 2;
   string title = 3;
   string ref = 4;

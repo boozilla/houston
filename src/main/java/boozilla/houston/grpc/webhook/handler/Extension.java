@@ -49,7 +49,7 @@ public enum Extension {
         return extensions;
     }
 
-    public GitFileHandler handler(final long projectId, final long issueId, final String commitId, final String packageName,
+    public GitFileHandler handler(final String projectId, final String issueId, final String commitId, final String packageName,
                                   final GitBehavior<?> behavior)
     {
         try

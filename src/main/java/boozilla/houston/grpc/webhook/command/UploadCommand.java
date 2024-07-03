@@ -6,7 +6,6 @@ import boozilla.houston.grpc.webhook.handler.Extension;
 import boozilla.houston.grpc.webhook.handler.GitFileHandler;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.gitlab4j.api.GitLabApiException;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
@@ -65,7 +64,7 @@ public class UploadCommand implements Command {
     }
 
     @Override
-    public Mono<Void> run(final String packageName, final long projectId, final long issueId,
+    public Mono<Void> run(final String packageName, final String projectId, final String issueId,
                           final String targetRef, final String command, final GitBehavior<?> behavior)
     {
         final var stopWatch = new StopWatch();
@@ -158,7 +157,7 @@ public class UploadCommand implements Command {
      * @param behavior    GitLab API 를 사용하기 위한 동작
      * @return 파일 핸들러
      */
-    private Mono<Map<String, GitFileHandler>> fileHandler(final long projectId, final long issueId, final String commitId, final Collection<String> commitFiles,
+    private Mono<Map<String, GitFileHandler>> fileHandler(final String projectId, final String issueId, final String commitId, final Collection<String> commitFiles,
                                                           final String packageName, final GitBehavior<?> behavior)
     {
         final var handlerMap = new HashMap<Class<?>, GitFileHandler>();
@@ -189,7 +188,7 @@ public class UploadCommand implements Command {
      * @param behavior    GitLab API 를 사용하기 위한 동작
      * @return 파일 bytes
      */
-    private Mono<Map<String, byte[]>> files(final long projectId, final long issueId, final String commitId, final Collection<String> commitFiles,
+    private Mono<Map<String, byte[]>> files(final String projectId, final String issueId, final String commitId, final Collection<String> commitFiles,
                                             final GitBehavior<?> behavior)
     {
         return Flux.fromIterable(commitFiles)
@@ -204,18 +203,9 @@ public class UploadCommand implements Command {
                 .flatMap(commitFile -> behavior.openFile(projectId, commitId, commitFile)
                         .doOnNext(result -> log.info("Finished downloading files from git [name={}]", commitFile))
                         .onErrorMap(Exceptions::isRetryExhausted, Throwable::getCause)
-                        .onErrorResume(GitLabApiException.class, error -> {
-                            // GitLabApiException 에 따라 다른 메시지 출력
-                            final var messageCode = switch(error.getHttpStatus())
-                            {
-                                case 404 -> "EXCEPTION_STEP_DOWNLOAD_FILE_DOES_NOT_EXIST";
-                                default -> "EXCEPTION_STEP_DOWNLOAD_GIT_ERROR";
-                            };
-
-                            return behavior.commentExceptions(projectId, issueId, error)
-                                    .then(Mono.error(new RuntimeException(messageSourceAccessor.getMessage(messageCode)
-                                            .formatted(commitId, commitFile))));
-                        })
+                        .onErrorResume(error -> behavior.commentExceptions(projectId, issueId, error)
+                                .then(Mono.error(new RuntimeException(messageSourceAccessor.getMessage("EXCEPTION_STEP_DOWNLOAD_GIT_ERROR")
+                                        .formatted(commitId, commitFile)))))
                         .map(bytes -> Tuples.of(commitFile, bytes)))
                 .collectMap(Tuple2::getT1, Tuple2::getT2);
     }

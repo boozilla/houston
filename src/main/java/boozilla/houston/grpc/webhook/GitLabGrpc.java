@@ -1,9 +1,9 @@
 package boozilla.houston.grpc.webhook;
 
 import boozilla.houston.annotation.SecuredService;
-import boozilla.houston.context.GitLabContext;
 import boozilla.houston.grpc.webhook.command.Commands;
 import com.google.protobuf.Empty;
+import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.grpc.webhook.ReactorGitLabGrpc;
 import houston.vo.webhook.gitlab.NoteEvent;
 import houston.vo.webhook.gitlab.PushEvent;
@@ -32,7 +32,7 @@ public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
     @Override
     public Mono<Empty> push(final PushEvent request)
     {
-        final var behavior = new GitLabBehavior(GitLabContext.current(gitUrl));
+        final var behavior = new GitLabBehavior(gitUrl, ServiceRequestContext.current());
 
         behavior.uploadPayload(request.getProjectId(), request.getUserId(),
                         request.getRef(), request.getBefore(), request.getAfter())
@@ -48,7 +48,7 @@ public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
     @Override
     public Mono<Empty> note(final Mono<NoteEvent> request)
     {
-        final var behavior = new GitLabBehavior(GitLabContext.current(gitUrl));
+        final var behavior = new GitLabBehavior(gitUrl, ServiceRequestContext.current());
 
         request.filter(req -> req.getIssue().getLabelsList()
                         .stream()
