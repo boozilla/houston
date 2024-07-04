@@ -19,6 +19,7 @@ import com.linecorp.armeria.client.retry.Backoff;
 import com.linecorp.armeria.client.retry.RetryRule;
 import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.common.HttpEntity;
+import com.linecorp.armeria.common.ResponseEntity;
 import com.linecorp.armeria.common.auth.AuthToken;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import org.joda.time.Duration;
@@ -39,12 +40,15 @@ import java.util.function.Function;
 public class GitLabClient implements GitClient {
     private static final String GITLAB_ACCESS_TOKEN_KEY = "x-gitlab-token";
     private static final String GITLAB_URL_KEY = "x-gitlab-instance";
+
     private static final PeriodFormatter periodFormatter = new PeriodFormatterBuilder()
             .appendDays().appendSuffix("d")
             .appendHours().appendSuffix("h")
             .appendMinutes().appendSuffix("m")
             .appendSeconds().appendSuffix("s")
             .toFormatter();
+    private static final Function<? super HttpClient, RetryingClient> retryStrategy = retry();
+    private static final Function<? super HttpClient, CircuitBreakerClient> circuitBreaker = circuitBreaker();
 
     private final RestClient restClient;
 
@@ -53,8 +57,8 @@ public class GitLabClient implements GitClient {
         restClient = RestClient.builder("%s/api/v4".formatted(url))
                 .auth(AuthToken.ofOAuth2(token))
                 .followRedirects()
-                .decorator(retry())
-                .decorator(circuitBreaker())
+                .decorator(retryStrategy)
+                .decorator(circuitBreaker)
                 .build();
     }
 
@@ -111,16 +115,25 @@ public class GitLabClient implements GitClient {
 
     public Flux<RepositoryTreeResponse.Node> tree(final String projectId, final String path, final String ref, final boolean recursive)
     {
+        return tree(projectId, path, ref, recursive, 1);
+    }
+
+    public Flux<RepositoryTreeResponse.Node> tree(final String projectId, final String path, final String ref, final boolean recursive, final int page)
+    {
         final var request = restClient.get("/projects/{id}/repository/tree")
                 .pathParam("id", projectId)
                 .queryParam("path", path)
                 .queryParam("recursive", recursive)
                 .queryParam("ref", ref)
-                .execute(new TypeReference<List<RepositoryTreeResponse.Node>>() {
-                });
+                .queryParam("page", page)
+                .queryParam("order_by", "id")
+                .queryParam("sort", "asc")
+                .queryParam("per_page", 100)
+                .execute(ResponseAs.json(new TypeReference<List<RepositoryTreeResponse.Node>>() {
+                }));
 
         return Mono.fromFuture(request)
-                .flatMapMany(response -> Flux.fromIterable(response.content()));
+                .flatMapMany(response -> pagination(response, page, nextPage -> tree(projectId, path, ref, recursive, nextPage)));
     }
 
     public Mono<byte[]> getRawFile(final String projectId, final String filePath, final String ref, final boolean lfs)
@@ -155,7 +168,6 @@ public class GitLabClient implements GitClient {
 
     public Mono<Void> addSpentTime(final String projectId, final String issueIid, final Duration duration)
     {
-        System.out.println(periodFormatter.print(duration.toPeriod()));
         final var request = restClient.post("/projects/{id}/issues/{issueIid}/add_spent_time")
                 .pathParam("id", projectId)
                 .pathParam("issueIid", issueIid)
@@ -256,6 +268,11 @@ public class GitLabClient implements GitClient {
 
     public Flux<NotesGetResponse.Note> notes(final String projectId, final String issueIid)
     {
+        return notes(projectId, issueIid, 1);
+    }
+
+    public Flux<NotesGetResponse.Note> notes(final String projectId, final String issueIid, final int page)
+    {
         final var request = restClient.get("/projects/{id}/issues/{issueIid}/notes")
                 .pathParam("id", projectId)
                 .pathParam("issueIid", issueIid)
@@ -265,6 +282,20 @@ public class GitLabClient implements GitClient {
                 });
 
         return Mono.fromFuture(request)
-                .flatMapMany(response -> Flux.fromIterable(response.content()));
+                .flatMapMany(response -> pagination(response, page, nextPage -> notes(projectId, issueIid, nextPage)));
+    }
+
+    private <T> Flux<T> pagination(final ResponseEntity<List<T>> response, final int currentPage, final Function<Integer, Flux<T>> next)
+    {
+        final var nextPageHeader = response.headers().get("x-next-page");
+        final var nextPage = Objects.isNull(nextPageHeader) || nextPageHeader.isEmpty() ? currentPage : Integer.parseInt(nextPageHeader);
+
+        if(nextPage == currentPage)
+        {
+            return Flux.fromIterable(response.content());
+        }
+
+        return next.apply(nextPage)
+                .mergeWith(Flux.fromIterable(response.content()));
     }
 }
