@@ -169,6 +169,9 @@ public class GitLabClient implements GitClient {
 
     public Mono<Void> addSpentTime(final String projectId, final String issueIid, final Duration duration)
     {
+        if(duration.getStandardSeconds() <= 0)
+            return Mono.empty();
+
         final var request = restClient.post("/projects/{id}/issues/{issueIid}/add_spent_time")
                 .pathParam("id", projectId)
                 .pathParam("issueIid", issueIid)
