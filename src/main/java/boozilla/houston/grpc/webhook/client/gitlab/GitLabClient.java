@@ -19,7 +19,9 @@ import com.linecorp.armeria.client.retry.Backoff;
 import com.linecorp.armeria.client.retry.RetryRule;
 import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.common.HttpEntity;
+import com.linecorp.armeria.common.ResponseEntity;
 import com.linecorp.armeria.common.auth.AuthToken;
+import com.linecorp.armeria.server.HttpStatusException;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import org.joda.time.Duration;
 import org.joda.time.format.PeriodFormatter;
@@ -50,7 +52,7 @@ public class GitLabClient implements GitClient {
 
     public GitLabClient(final String url, final String token)
     {
-        restClient = RestClient.builder(url)
+        restClient = RestClient.builder("%s/api/v4".formatted(url))
                 .auth(AuthToken.ofOAuth2(token))
                 .followRedirects()
                 .decorator(retry())
@@ -163,7 +165,7 @@ public class GitLabClient implements GitClient {
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
-                .then();
+                .flatMap(this::ignoreResponse);
     }
 
     public Mono<Issue> createIssue(final String projectId, final String title, final String description,
@@ -192,7 +194,7 @@ public class GitLabClient implements GitClient {
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
-                .then();
+                .flatMap(this::ignoreResponse);
     }
 
     public Mono<Issue> getIssue(final String projectId, final String issueIid)
@@ -227,7 +229,7 @@ public class GitLabClient implements GitClient {
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
-                .then();
+                .flatMap(this::ignoreResponse);
     }
 
     public Mono<Void> closeIssue(final String projectId, final String issueIid)
@@ -239,7 +241,7 @@ public class GitLabClient implements GitClient {
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
-                .then();
+                .flatMap(this::ignoreResponse);
     }
 
     public Mono<Void> createIssueNote(final String projectId, final String issueIid, final String message)
@@ -251,7 +253,7 @@ public class GitLabClient implements GitClient {
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
-                .then();
+                .flatMap(this::ignoreResponse);
     }
 
     public Flux<NotesGetResponse.Note> notes(final String projectId, final String issueIid)
@@ -266,5 +268,15 @@ public class GitLabClient implements GitClient {
 
         return Mono.fromFuture(request)
                 .flatMapMany(response -> Flux.fromIterable(response.content()));
+    }
+
+    public Mono<Void> ignoreResponse(final ResponseEntity<?> responseEntity)
+    {
+        if(responseEntity.status().isError())
+        {
+            return Mono.error(HttpStatusException.of(responseEntity.status()));
+        }
+
+        return Mono.empty();
     }
 }
