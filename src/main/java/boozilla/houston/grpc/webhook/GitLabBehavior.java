@@ -205,9 +205,9 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     }
 
     @Override
-    public Mono<Void> addSpentTime(final String projectId, final String issueId, final int seconds)
+    public Mono<Void> addSpentTime(final String projectId, final String issueId, final long millis)
     {
-        return client.addSpentTime(projectId, issueId, Duration.standardSeconds(seconds));
+        return client.addSpentTime(projectId, issueId, Duration.millis(millis));
     }
 
     @Override

@@ -43,7 +43,7 @@ public interface GitBehavior<T extends GitClient> {
 
     Mono<String> commitId(final String projectId, final String ref);
 
-    Mono<Void> addSpentTime(final String projectId, final String issueId, final int seconds);
+    Mono<Void> addSpentTime(final String projectId, final String issueId, final long millis);
 
     Mono<Void> closeIssue(final String projectId, final String issueId);
 

@@ -140,7 +140,7 @@ public class UploadCommand implements Command {
                         // Issue 닫음
                         .and(behavior.closeIssue(projectId, issueId))
                         // 진행 시간 등록
-                        .and(behavior.addSpentTime(projectId, issueId, (int) stopWatch.getTotalTimeSeconds()))
+                        .and(Mono.defer(() -> behavior.addSpentTime(projectId, issueId, stopWatch.getTotalTimeMillis())))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe())
                 .then();
