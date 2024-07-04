@@ -6,9 +6,9 @@ import boozilla.houston.grpc.webhook.handler.Extension;
 import boozilla.houston.grpc.webhook.handler.GitFileHandler;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.joda.time.Period;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -67,9 +67,7 @@ public class UploadCommand implements Command {
     public Mono<Void> run(final String packageName, final String projectId, final String issueId,
                           final String targetRef, final String command, final GitBehavior<?> behavior)
     {
-        final var stopWatch = new StopWatch();
-        stopWatch.start();
-
+        final var startAt = System.currentTimeMillis();
         final var args = Arrays.stream(command.split(" ", 3))
                 .map(String::trim)
                 .toList();
@@ -131,8 +129,7 @@ public class UploadCommand implements Command {
                                         .subscribeOn(Schedulers.boundedElastic())
                                         .subscribe())
                                 .then(commitId)))
-                .doOnSuccess(commit -> Mono.fromRunnable(stopWatch::stop)
-                        .and(behavior.addLabels(projectId, issueId, commit.substring(0, 8)))
+                .doOnSuccess(commit -> behavior.addLabels(projectId, issueId, commit.substring(0, 8))
                         // 라벨 달기
                         .and(behavior.setState(projectId, issueId, StateLabel.INACTIVE))
                         // 업로드 완료 코멘트
@@ -140,7 +137,7 @@ public class UploadCommand implements Command {
                         // Issue 닫음
                         .and(behavior.closeIssue(projectId, issueId))
                         // 진행 시간 등록
-                        .and(Mono.defer(() -> behavior.addSpentTime(projectId, issueId, stopWatch.getTotalTimeMillis())))
+                        .and(Mono.defer(() -> behavior.addSpentTime(projectId, issueId, new Period(startAt, System.currentTimeMillis()))))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe())
                 .then();

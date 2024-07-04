@@ -11,7 +11,7 @@ import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.vo.webhook.Contributor;
 import houston.vo.webhook.UploadPayload;
 import lombok.extern.slf4j.Slf4j;
-import org.joda.time.Duration;
+import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -205,9 +205,9 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     }
 
     @Override
-    public Mono<Void> addSpentTime(final String projectId, final String issueId, final long millis)
+    public Mono<Void> addSpentTime(final String projectId, final String issueId, final Period period)
     {
-        return client.addSpentTime(projectId, issueId, Duration.millis(millis));
+        return client.addSpentTime(projectId, issueId, period);
     }
 
     @Override

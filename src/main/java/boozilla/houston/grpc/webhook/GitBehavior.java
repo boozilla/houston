@@ -5,6 +5,7 @@ import boozilla.houston.grpc.webhook.client.GitClient;
 import boozilla.houston.grpc.webhook.client.Issue;
 import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import houston.vo.webhook.UploadPayload;
+import org.joda.time.Period;
 import reactor.core.publisher.Mono;
 
 import java.util.Base64;
@@ -43,7 +44,7 @@ public interface GitBehavior<T extends GitClient> {
 
     Mono<String> commitId(final String projectId, final String ref);
 
-    Mono<Void> addSpentTime(final String projectId, final String issueId, final long millis);
+    Mono<Void> addSpentTime(final String projectId, final String issueId, final Period period);
 
     Mono<Void> closeIssue(final String projectId, final String issueId);
 

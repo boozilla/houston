@@ -1,5 +1,6 @@
 package boozilla.houston.grpc.webhook.client.gitlab;
 
+import boozilla.houston.common.PeriodFormatter;
 import boozilla.houston.grpc.webhook.client.GitClient;
 import boozilla.houston.grpc.webhook.client.Issue;
 import boozilla.houston.grpc.webhook.client.gitlab.issue.IssueCreateResponse;
@@ -22,9 +23,7 @@ import com.linecorp.armeria.common.HttpEntity;
 import com.linecorp.armeria.common.ResponseEntity;
 import com.linecorp.armeria.common.auth.AuthToken;
 import com.linecorp.armeria.server.ServiceRequestContext;
-import org.joda.time.Duration;
-import org.joda.time.format.PeriodFormatter;
-import org.joda.time.format.PeriodFormatterBuilder;
+import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,13 +39,6 @@ import java.util.function.Function;
 public class GitLabClient implements GitClient {
     private static final String GITLAB_ACCESS_TOKEN_KEY = "x-gitlab-token";
     private static final String GITLAB_URL_KEY = "x-gitlab-instance";
-
-    private static final PeriodFormatter periodFormatter = new PeriodFormatterBuilder()
-            .appendDays().appendSuffix("d")
-            .appendHours().appendSuffix("h")
-            .appendMinutes().appendSuffix("m")
-            .appendSeconds().appendSuffix("s")
-            .toFormatter();
     private static final Function<? super HttpClient, RetryingClient> retryStrategy = retry();
     private static final Function<? super HttpClient, CircuitBreakerClient> circuitBreaker = circuitBreaker();
 
@@ -167,15 +159,12 @@ public class GitLabClient implements GitClient {
                 });
     }
 
-    public Mono<Void> addSpentTime(final String projectId, final String issueIid, final Duration duration)
+    public Mono<Void> addSpentTime(final String projectId, final String issueIid, final Period period)
     {
-        if(duration.getStandardSeconds() <= 0)
-            return Mono.empty();
-
         final var request = restClient.post("/projects/{id}/issues/{issueIid}/add_spent_time")
                 .pathParam("id", projectId)
                 .pathParam("issueIid", issueIid)
-                .queryParam("duration", periodFormatter.print(duration.toPeriod()))
+                .queryParam("duration", PeriodFormatter.print(period))
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
