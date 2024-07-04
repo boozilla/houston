@@ -55,6 +55,7 @@ public class GitLabClient implements GitClient {
     public GitLabClient(final String url, final String token)
     {
         restClient = RestClient.builder("%s/api/v4".formatted(url))
+                .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(token))
                 .followRedirects()
                 .decorator(retryStrategy)
