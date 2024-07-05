@@ -47,7 +47,8 @@ public class FindCommand implements Command {
 
         final var findStartMessage = messageSourceAccessor.getMessage("FIND_COMMAND_START_MESSAGE")
                 .formatted(found.keySet().stream()
-                                .collect(Collectors.joining(" ", "`", "`")),
+                                .map("`%s`"::formatted)
+                                .collect(Collectors.joining(" ")),
                         found.size());
 
         return behavior.commentMessage(projectId, issueId, findStartMessage)
