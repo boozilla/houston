@@ -21,6 +21,7 @@ public class KmsRsaAlgorithm extends Algorithm {
     private final Algorithm verifyAlgorithm;
     private final String keyId;
 
+    // Note: KMS key rotation is not supported
     public KmsRsaAlgorithm(final String keyId, final KmsAsyncClient kmsAsyncClient)
     {
         super("AWS-KMS-RSA256", "ID: " + keyId);
