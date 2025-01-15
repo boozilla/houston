@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;
@@ -38,11 +37,9 @@ public class AdminAuthorizer implements HttpAuthorizer {
     {
         final var header = Optional.ofNullable(httpRequest.headers().get(TOKEN_HEADER_NAME));
         final var query = Optional.ofNullable(ctx.queryParam("token"));
+        final var token = header.isEmpty() ? query : header;
 
-        final var verify = (header.isEmpty() ? query : header)
-                .map(adminApiKey::verify)
-                .orElse(false);
-
-        return Mono.just(verify).toFuture();
+        return adminApiKey.verify(token)
+                .toFuture();
     }
 }

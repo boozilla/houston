@@ -2,7 +2,7 @@ package boozilla.houston.config;
 
 import boozilla.houston.properties.AwsProperties;
 import boozilla.houston.properties.KmsProperties;
-import boozilla.houston.security.KmsRsaAlgorithm;
+import boozilla.houston.security.KmsAlgorithm;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -53,8 +53,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public KmsRsaAlgorithm adminJwtAlgorithm(final KmsProperties kmsProperties, final KmsAsyncClient kmsAsyncClient)
+    public KmsAlgorithm jwtAlgorithm(final KmsProperties kmsProperties, final KmsAsyncClient kmsAsyncClient)
     {
-        return new KmsRsaAlgorithm(kmsProperties.adminKey(), kmsAsyncClient);
+        return new KmsAlgorithm(kmsProperties.adminKey(), kmsAsyncClient);
     }
 }

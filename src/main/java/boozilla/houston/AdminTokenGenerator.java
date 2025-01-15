@@ -1,6 +1,6 @@
 package boozilla.houston;
 
-import boozilla.houston.security.KmsRsaAlgorithm;
+import boozilla.houston.security.KmsAlgorithm;
 import boozilla.houston.token.AdminApiKey;
 import lombok.AccessLevel;
 import lombok.Setter;
@@ -31,8 +31,8 @@ public class AdminTokenGenerator implements Runnable {
     @Override
     public void run()
     {
-        final var kmsRsaAlgorithm = new KmsRsaAlgorithm(keyId, KmsAsyncClient.create());
-        final var adminApiKey = new AdminApiKey(issuer, kmsRsaAlgorithm);
+        final var kmsAlgorithm = new KmsAlgorithm(keyId, KmsAsyncClient.create());
+        final var adminApiKey = new AdminApiKey(issuer, kmsAlgorithm);
         final var adminToken = adminApiKey.create(askUsername())
                 .block();
 
