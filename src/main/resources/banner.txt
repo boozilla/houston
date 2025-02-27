@@ -1,6 +1,4 @@
 
  |_   _       _ _|_  _  ._
- | | (_) |_| _>  |_ (_) | |
-
-${project.name} ${project.version}
+ | | (_) |_| _>  |_ (_) | | ${project.version}
 Spring Boot ${spring-boot.version}

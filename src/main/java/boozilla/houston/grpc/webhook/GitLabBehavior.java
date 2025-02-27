@@ -16,7 +16,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -27,12 +26,9 @@ import java.util.stream.Stream;
 public class GitLabBehavior implements GitBehavior<GitLabClient> {
     private final GitLabClient client;
 
-    public GitLabBehavior(final String url, final ServiceRequestContext context)
+    public GitLabBehavior(final ServiceRequestContext context)
     {
         client = GitLabClient.of(context);
-
-        if(client.uri().getHost().compareTo(URI.create(url).getHost()) != 0)
-            throw new IllegalArgumentException("GitLab URL is not matched");
     }
 
     @Override

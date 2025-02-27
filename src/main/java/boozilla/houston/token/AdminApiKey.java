@@ -35,13 +35,14 @@ public class AdminApiKey {
                         .withIssuer(issuer)
                         .withSubject(username)
                         .sign(kmsAlgorithm))
-                .publishOn(Schedulers.boundedElastic());
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     public Mono<Boolean> verify(final Optional<String> token)
     {
         return Mono.justOrEmpty(token)
                 .map(t -> Objects.nonNull(verifier.verify(t)))
-                .defaultIfEmpty(false);
+                .defaultIfEmpty(false)
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }
