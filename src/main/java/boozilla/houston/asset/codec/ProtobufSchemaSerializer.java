@@ -15,7 +15,7 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
             syntax = "proto3";
             package %s;
             option java_multiple_files = true;
-                        
+            
             message %s {%s}
             """;
 
@@ -43,12 +43,12 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
 
         Stream.concat(sheet.columns(scope), partitionColumn)
                 .forEach(column -> {
-                    final var optional = !column.array() && column.isNullable() ? "optional " : "required ";
+                    final var optional = !column.array() && column.isNullable() ? "optional " : "";
                     final var repeated = column.array() ? "repeated " : "";
                     final var type = protoType(column);
                     final var comment = Optional.ofNullable(column.comment())
                             .map("""
-                                                                    
+                                    
                                     \t// %s
                                     \t"""::formatted)
                             .orElse(Strings.EMPTY);

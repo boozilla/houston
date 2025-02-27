@@ -99,13 +99,6 @@ public class XlsxWorkbookHandler extends GitFileHandler {
         final var repository = Application.repository(DataRepository.class);
 
         return Flux.fromIterable(this.container.updatedData())
-                .filterWhen(tuple -> {
-                    final var data = tuple.getT1();
-
-                    return repository.findByCommitIdAndScopeAndName(data.getCommitId(), data.getScope(), data.getName())
-                            .map(Objects::isNull)
-                            .switchIfEmpty(Mono.just(true));
-                })
                 .flatMap(tuple -> {
                     final var vaults = Application.vaults();
                     final var data = tuple.getT1();
@@ -115,6 +108,7 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                             .flatMap(key -> {
                                 data.setSha256(key);
 
+                                // TODO 이미 동일한 레코드 등록 시도로 에러 발생함
                                 return repository.save(data)
                                         .onErrorResume(error -> {
                                             final var dataSize = DataSize.ofBytes(archive.toByteArray().length);

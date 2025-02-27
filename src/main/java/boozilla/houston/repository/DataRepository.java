@@ -11,8 +11,6 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 
 public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
-    Mono<Data> findByCommitIdAndScopeAndName(final String commitId, final Scope scope, final String name);
-
     default Flux<Data> findByLatest()
     {
         return findByLatest(LocalDateTime.now());
