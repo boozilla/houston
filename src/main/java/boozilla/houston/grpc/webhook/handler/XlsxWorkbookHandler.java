@@ -21,7 +21,6 @@ import reactor.util.function.Tuples;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class XlsxWorkbookHandler extends GitFileHandler {
     private final AssetContainer container;
@@ -108,16 +107,17 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                             .flatMap(key -> {
                                 data.setSha256(key);
 
-                                // TODO 이미 동일한 레코드 등록 시도로 에러 발생함
-                                return repository.save(data)
-                                        .onErrorResume(error -> {
-                                            final var dataSize = DataSize.ofBytes(archive.toByteArray().length);
+                                return repository.existsByCommitIdAndScopeAndNameAndSha256(data.getCommitId(), data.getScope(), data.getName(), data.getSha256())
+                                        .filter(result -> !result)
+                                        .flatMap(result -> repository.save(data)
+                                                .onErrorResume(error -> {
+                                                    final var dataSize = DataSize.ofBytes(archive.toByteArray().length);
 
-                                            return behavior.commentExceptions(projectId, issueId, error)
-                                                    .then(Mono.error(new RuntimeException(Application.messageSourceAccessor()
-                                                            .getMessage("EXCEPTION_STEP_SAVE_DATA")
-                                                            .formatted(data.getCommitId(), data.getScope(), data.getName(), dataSize.toMegabytes()))));
-                                        });
+                                                    return behavior.commentExceptions(projectId, issueId, error)
+                                                            .then(Mono.error(new RuntimeException(Application.messageSourceAccessor()
+                                                                    .getMessage("EXCEPTION_STEP_SAVE_DATA")
+                                                                    .formatted(data.getCommitId(), data.getScope(), data.getName(), dataSize.toMegabytes()))));
+                                                }));
                             });
                 })
                 .then();

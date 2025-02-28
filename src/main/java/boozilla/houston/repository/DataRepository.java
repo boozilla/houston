@@ -38,4 +38,6 @@ public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
             DELETE FROM data WHERE name LIKE :NAME
             """)
     Mono<Integer> deleteByNameStartsWith(final String name);
+
+    Mono<Boolean> existsByCommitIdAndScopeAndNameAndSha256(String commitId, Scope scope, String name, String sha256);
 }
