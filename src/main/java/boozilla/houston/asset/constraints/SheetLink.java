@@ -7,6 +7,7 @@ import boozilla.houston.exception.AssetVerifyException;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -84,14 +85,30 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
                                     .where(":COLUMN IN :VALUES")
                                     .parameter("COLUMN", link.getColumnName())
                                     .parameter("VALUES", nonExists))
-                            .map(data -> {
+                            .flatMap(data -> {
                                 final var value = data.value(link.getColumnName(), Object.class);
                                 final var partition = data.value("partition", String.class);
                                 final var sheetName = Stream.of(link.getSheetName(), partition)
                                         .filter(Objects::nonNull)
                                         .collect(Collectors.joining("#"));
 
-                                return new AssetVerifyException(message("CONSTRAINTS_ERROR_LINKED"), sheetName, link.getColumnName(), value);
+                                final Stream<?> stream;
+
+                                if(value instanceof Collection<?> collection)
+                                {
+                                    stream = collection.stream();
+                                }
+                                else
+                                {
+                                    stream = Stream.of(value);
+                                }
+
+                                return Flux.fromStream(stream)
+                                        .map(v -> new AssetVerifyException(
+                                                message("CONSTRAINTS_ERROR_LINKED"),
+                                                sheetName,
+                                                link.getColumnName(),
+                                                v));
                             });
                 });
     }

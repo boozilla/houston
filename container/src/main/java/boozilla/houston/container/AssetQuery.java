@@ -61,7 +61,7 @@ public class AssetQuery {
         return fieldDescriptors.stream()
                 .<Attribute<DynamicMessage, ?>>map(fieldDescriptor -> {
                     final var attributeName = fieldDescriptor.getName();
-                    final var typeClass = (Class<Object>) fieldDescriptor.getDefaultValue().getClass();
+                    final var typeClass = (Class<Object>) typeClass(fieldDescriptor.getJavaType());
 
                     if(fieldDescriptor.isRepeated())
                     {
@@ -107,6 +107,19 @@ public class AssetQuery {
                             attribute(DynamicMessage.class, typeClass, attributeName, valueFunc);
                 })
                 .collect(Collectors.toMap(Attribute::getAttributeName, Function.identity()));
+    }
+
+    private Class<?> typeClass(final Descriptors.FieldDescriptor.JavaType javaType)
+    {
+        return switch(javaType)
+        {
+            case LONG -> Long.class;
+            case INT -> Integer.class;
+            case DOUBLE -> Double.class;
+            case STRING -> String.class;
+            case BOOLEAN -> Boolean.class;
+            default -> throw new RuntimeException("Unknown type");
+        };
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
