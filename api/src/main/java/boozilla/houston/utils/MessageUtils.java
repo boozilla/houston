@@ -1,14 +1,12 @@
 package boozilla.houston.utils;
 
 import com.google.protobuf.DynamicMessage;
-import lombok.experimental.UtilityClass;
 
 import java.util.Optional;
 
-@UtilityClass
 public class MessageUtils {
     @SuppressWarnings("unchecked")
-    public <T> Optional<T> extractValue(final Object row)
+    public static <T> Optional<T> extractValue(final Object row)
     {
         final Optional<T> value;
 
