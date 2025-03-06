@@ -79,11 +79,11 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
     {
         return switch(column.type())
         {
-            case LONG, DATE -> optional ? "Int64Value" : "int64";
-            case INTEGER -> optional ? "Int32Value" : "int32";
-            case DOUBLE -> optional ? "DoubleValue" : "double";
-            case STRING -> optional ? "StringValue" : "string";
-            case BOOLEAN -> optional ? "BoolValue" : "bool";
+            case LONG, DATE -> optional ? "google.protobuf.Int64Value" : "int64";
+            case INTEGER -> optional ? "google.protobuf.Int32Value" : "int32";
+            case DOUBLE -> optional ? "google.protobuf.DoubleValue" : "double";
+            case STRING -> optional ? "google.protobuf.StringValue" : "string";
+            case BOOLEAN -> optional ? "google.protobuf.BoolValue" : "bool";
             default -> throw new RuntimeException("Unknown type");
         };
     }
