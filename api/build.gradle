@@ -49,7 +49,7 @@ dependencies {
     testCompileOnly libs.lombok
     testAnnotationProcessor libs.lombok
 
-    implementation libs.reactor.core
+    api libs.reactor.core
     implementation libs.reactor.tools
 
     implementation libs.grpc.stub
