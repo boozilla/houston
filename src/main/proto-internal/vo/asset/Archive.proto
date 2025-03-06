@@ -11,5 +11,4 @@ message Archive
   bytes descriptorBytes = 2;
   bytes dataBytes = 3;
   bytes linkBytes = 4;
-  bytes nullableBytes = 5;
 }

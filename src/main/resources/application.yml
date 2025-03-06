@@ -5,6 +5,7 @@ project:
 logging:
   level:
     root: info
+    com.google.protobuf.util.JsonFormat: ERROR
 
 armeria:
   ports:

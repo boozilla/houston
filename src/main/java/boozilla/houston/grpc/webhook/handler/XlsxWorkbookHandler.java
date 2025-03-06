@@ -144,7 +144,6 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                             .setDescriptorBytes(sheetCodec.getFileDescriptor().toProto().toByteString())
                             .setDataBytes(ByteString.copyFrom(sheetCodec.serialize(sheet)))
                             .setLinkBytes(ByteString.copyFrom(linkCodec.serialize(sheet)))
-                            .setNullableBytes(sheetCodec.nullableFields().toByteString())
                             .build();
 
                     exceptionContainer.addAll(sheet.exceptions());

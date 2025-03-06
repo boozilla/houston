@@ -4,6 +4,7 @@ import boozilla.houston.asset.AssetLink;
 import boozilla.houston.asset.sql.Select;
 import boozilla.houston.exception.AssetTypeMismatchException;
 import boozilla.houston.exception.AssetVerifyException;
+import boozilla.houston.utils.MessageUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -60,7 +61,10 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
 
         return accessor.query(link, Select.columns(link.getColumnName())
                         .from(link.getSheetName()))
-                .flatMap(data -> Flux.fromStream(data.stream(link.getColumnName(), Object.class)))
+                .flatMap(data -> Flux.fromStream(data.stream(link.getColumnName(), Object.class))
+                        .flatMap(row -> MessageUtils.extractValue(row)
+                                .map(Flux::just)
+                                .orElse(Flux.empty())))
                 .collect(Collectors.toUnmodifiableSet())
                 .filter(targetRows -> !targetRows.isEmpty())
                 .flatMapMany(linkedValues -> {
@@ -94,7 +98,7 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
 
                                 final Stream<?> stream;
 
-                                if(value instanceof Collection<?> collection)
+                                if(value instanceof final Collection<?> collection)
                                 {
                                     stream = collection.stream();
                                 }

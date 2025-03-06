@@ -1,5 +1,6 @@
 package boozilla.houston.container;
 
+import boozilla.houston.utils.MessageUtils;
 import com.google.protobuf.Any;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
@@ -17,7 +18,6 @@ import com.googlecode.cqengine.persistence.onheap.OnHeapPersistence;
 import com.googlecode.cqengine.query.option.QueryOptions;
 import com.googlecode.cqengine.query.parser.sql.SQLParser;
 import com.googlecode.cqengine.resultset.ResultSet;
-import houston.vo.asset.NullableFields;
 
 import java.util.List;
 import java.util.Map;
@@ -34,10 +34,10 @@ public class AssetQuery {
 
     private SimpleAttribute<DynamicMessage, Long> primary;
 
-    public AssetQuery(final List<Any> data, final Descriptors.Descriptor sheetDescriptor, final NullableFields nullableFields)
+    public AssetQuery(final List<Any> data, final Descriptors.Descriptor sheetDescriptor)
     {
-        final var attributes = attributes(sheetDescriptor.getFields(), nullableFields);
-        final var indices = indices(sheetDescriptor.getFields(), nullableFields, attributes);
+        final var attributes = attributes(sheetDescriptor.getFields());
+        final var indices = indices(sheetDescriptor.getFields(), attributes);
 
         this.indexedCollection = indexedCollection(sheetDescriptor, indices, data);
         this.sqlParser = SQLParser.forPojoWithAttributes(DynamicMessage.class, attributes);
@@ -55,13 +55,12 @@ public class AssetQuery {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Attribute<DynamicMessage, ?>> attributes(final List<Descriptors.FieldDescriptor> fieldDescriptors,
-                                                                 final NullableFields nullableFields)
+    private Map<String, Attribute<DynamicMessage, ?>> attributes(final List<Descriptors.FieldDescriptor> fieldDescriptors)
     {
         return fieldDescriptors.stream()
                 .<Attribute<DynamicMessage, ?>>map(fieldDescriptor -> {
                     final var attributeName = fieldDescriptor.getName();
-                    final var typeClass = (Class<Object>) typeClass(fieldDescriptor.getJavaType());
+                    final var typeClass = (Class<Object>) typeClass(fieldDescriptor);
 
                     if(fieldDescriptor.isRepeated())
                     {
@@ -92,39 +91,51 @@ public class AssetQuery {
                         @Override
                         public Object apply(final DynamicMessage dynamicMessage)
                         {
-                            final var isNullable = nullableFields.getFieldNumberList().contains(fieldDescriptor.getNumber());
-
-                            if(!isNullable && !dynamicMessage.hasField(fieldDescriptor))
+                            if(!isNullable(fieldDescriptor) && !dynamicMessage.hasField(fieldDescriptor))
                                 return fieldDescriptor.getDefaultValue();
                             else if(dynamicMessage.hasField(fieldDescriptor))
-                                return dynamicMessage.getField(fieldDescriptor);
+                                return MessageUtils.extractValue(dynamicMessage.getField(fieldDescriptor))
+                                        .orElse(null);
 
                             return null;
                         }
                     };
 
-                    return fieldDescriptor.isOptional() ? nullableAttribute(DynamicMessage.class, typeClass, attributeName, valueFunc) :
+                    return isNullable(fieldDescriptor) ? nullableAttribute(DynamicMessage.class, typeClass, attributeName, valueFunc) :
                             attribute(DynamicMessage.class, typeClass, attributeName, valueFunc);
                 })
                 .collect(Collectors.toMap(Attribute::getAttributeName, Function.identity()));
     }
 
-    private Class<?> typeClass(final Descriptors.FieldDescriptor.JavaType javaType)
+    private boolean isNullable(final Descriptors.FieldDescriptor fieldDescriptor)
     {
-        return switch(javaType)
+        return fieldDescriptor.getType() == Descriptors.FieldDescriptor.Type.MESSAGE;
+    }
+
+    private Class<?> typeClass(final Descriptors.FieldDescriptor fieldDescriptor)
+    {
+        return switch(fieldDescriptor.getJavaType())
         {
             case LONG -> Long.class;
             case INT -> Integer.class;
             case DOUBLE -> Double.class;
             case STRING -> String.class;
             case BOOLEAN -> Boolean.class;
+            case MESSAGE -> switch(fieldDescriptor.toProto().getTypeName())
+            {
+                case "Int64Value" -> Long.class;
+                case "Int32Value" -> Integer.class;
+                case "DoubleValue" -> Double.class;
+                case "StringValue" -> String.class;
+                case "BoolValue" -> Boolean.class;
+                default -> throw new RuntimeException("Unknown type");
+            };
             default -> throw new RuntimeException("Unknown type");
         };
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private List<Index<DynamicMessage>> indices(final List<Descriptors.FieldDescriptor> fieldDescriptors,
-                                                final NullableFields nullableFields,
                                                 final Map<String, Attribute<DynamicMessage, ?>> attributes)
     {
         return fieldDescriptors.stream()
@@ -137,7 +148,7 @@ public class AssetQuery {
                         return HashIndex.onAttribute((Attribute<DynamicMessage, List<?>>) attribute);
                     }
 
-                    if(nullableFields.getFieldNumberList().contains(fieldDescriptor.getNumber()))
+                    if(isNullable(fieldDescriptor))
                     {
                         return HashIndex.onAttribute((Attribute<DynamicMessage, ?>) attribute);
                     }
