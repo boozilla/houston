@@ -49,6 +49,7 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
         Stream.concat(sheet.columns(scope), partitionColumn)
                 .forEach(column -> {
                     final var optional = !column.array() && column.isNullable();
+                    final var optionalString = optional ? "optional " : "";
                     final var repeated = column.array() ? "repeated " : "";
                     final var type = protoType(optional, column);
                     final var comment = Optional.ofNullable(column.comment())
@@ -59,8 +60,8 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
                             .orElse(Strings.EMPTY);
 
                     fieldString.append("""
-                                %s%s%s %s = %d;
-                            """.formatted(comment, repeated, type, column.name(), column.index()));
+                                %s%s%s%s %s = %d;
+                            """.formatted(comment, optionalString, repeated, type, column.name(), column.index()));
 
                     if(optional)
                     {
