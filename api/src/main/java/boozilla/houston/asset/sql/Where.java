@@ -17,7 +17,7 @@ public class Where implements SqlStatement<From> {
         this.params = new HashMap<>();
     }
 
-    public static Where is(final From from, final String condition)
+    static Where is(final From from, final String condition)
     {
         final var where = new Where();
         where.from = from;
