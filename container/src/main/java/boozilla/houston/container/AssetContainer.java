@@ -65,6 +65,9 @@ public class AssetContainer {
 
     void remove(final AssetSheet sheet)
     {
+        if(!this.sheets.containsKey(sheet.getName()))
+            return;
+
         this.sheets.remove(sheet.getName());
         this.query.remove(sheet.getName());
         this.descriptors.remove(sheet.getName());
