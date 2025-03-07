@@ -154,12 +154,11 @@ public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
         final var wrapperType = wrapperDescriptor(column.type());
         final var builder = DynamicMessage.newBuilder(wrapperType);
 
-        if(Objects.nonNull(value))
-        {
-            builder.setField(wrapperType.findFieldByName("value"), value);
-        }
+        if(Objects.isNull(value))
+            return null;
 
-        return builder.build();
+        return builder.setField(wrapperType.findFieldByName("value"), value)
+                .build();
     }
 
     public Descriptors.FileDescriptor getFileDescriptor()
