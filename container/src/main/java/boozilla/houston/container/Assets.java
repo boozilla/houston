@@ -65,4 +65,9 @@ public class Assets {
     {
         return query(Select.all().from(resultClass), resultClass);
     }
+
+    public static String version(final Class<? extends AbstractMessage> targetClass)
+    {
+        return container().commitId(targetClass.getSimpleName());
+    }
 }

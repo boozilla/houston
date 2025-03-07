@@ -17,9 +17,7 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
             syntax = "proto3";
             package %s;
             option java_multiple_files = true;
-            
             %s
-            
             message %s {%s}
             """;
 
@@ -70,7 +68,7 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
                 });
 
         final var dependencyString = dependencies.stream()
-                .map("import \"%s\";"::formatted)
+                .map("\nimport \"%s\";\n"::formatted)
                 .collect(Collectors.joining("\n"));
 
         return PROTOBUF_TEMPLATE.formatted(protoPackage, dependencyString, sheet.sheetName(), fieldString.toString());

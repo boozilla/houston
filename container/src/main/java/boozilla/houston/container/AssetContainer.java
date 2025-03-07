@@ -108,4 +108,10 @@ public class AssetContainer {
     {
         return sheets.values();
     }
+
+    String commitId(final String name)
+    {
+        return sheets.get(name)
+                .getCommitId();
+    }
 }
