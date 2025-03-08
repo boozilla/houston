@@ -36,7 +36,9 @@ public class JsonManifestHandler extends GitFileHandler {
         try(final var reader = new InputStreamReader(new ByteArrayInputStream(bytes)))
         {
             final var builder = Manifest.newBuilder();
-            JsonFormat.parser().merge(reader, builder);
+            JsonFormat.parser()
+                    .ignoringUnknownFields()
+                    .merge(reader, builder);
 
             return Mono.fromRunnable(() -> {
                         final var data = builder.build().toByteArray();

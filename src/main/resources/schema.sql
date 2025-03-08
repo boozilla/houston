@@ -8,7 +8,7 @@ CREATE TABLE `data`
     `apply_at`  DATETIME(6)  NULL,
     PRIMARY KEY (`id`),
     INDEX `IDX_data_findByName` (`scope` ASC, `name` ASC, `apply_at` ASC) VISIBLE,
-    UNIQUE INDEX `UNIQ_data` (`commit_id` ASC, `scope` ASC, `name` ASC) VISIBLE
+    UNIQUE INDEX `UNIQ_data` (`commit_id` ASC, `scope` ASC, `name` ASC, `sha256` ASC) VISIBLE
 );
 
 CREATE TABLE `manifest`

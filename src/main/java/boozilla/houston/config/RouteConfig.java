@@ -1,5 +1,7 @@
 package boozilla.houston.config;
 
+import boozilla.houston.asset.Assets;
+import boozilla.houston.asset.codec.DynamicJsonMarshaller;
 import boozilla.houston.decorator.GrpcAuthDecorator;
 import boozilla.houston.decorator.ServiceDecorator;
 import boozilla.houston.decorator.auth.AdminAuthorizer;
@@ -22,11 +24,14 @@ import java.util.List;
 @Configuration
 public class RouteConfig {
     @Bean
-    public HttpServiceWithRoutes grpcService(final List<BindableService> services, final GrpcProperties grpcProperties)
+    public HttpServiceWithRoutes grpcService(final List<BindableService> services,
+                                             final GrpcProperties grpcProperties,
+                                             final Assets assets)
     {
         final var builder = GrpcService.builder()
                 .autoCompression(grpcProperties.autoCompression())
                 .useBlockingTaskExecutor(grpcProperties.useBlockingTaskExecutor())
+                .jsonMarshallerFactory(serviceDescriptor -> DynamicJsonMarshaller.of(serviceDescriptor, assets))
                 .enableUnframedRequests(grpcProperties.enableUnframedRequests())
                 .addServices(services);
 

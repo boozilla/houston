@@ -7,34 +7,41 @@ import boozilla.houston.asset.DataType;
 import boozilla.houston.asset.Scope;
 import boozilla.houston.exception.AssetSheetException;
 import com.google.protobuf.*;
-import houston.vo.asset.NullableFields;
 import org.springframework.util.FastByteArrayOutputStream;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
     private final static String PARTITION_FIELD_NAME = "partition";
 
-    private NullableFields.Builder nullableFields = NullableFields.newBuilder();
     private Supplier<DynamicMessage.Builder> builder;
     private Descriptors.FileDescriptor fileDescriptor;
     private List<Descriptors.FieldDescriptor> fieldDescriptors;
 
     public ProtobufRowCodec(final String protoPackage, final AssetSheet sheet, final Scope scope)
     {
-        final var fieldProto = sheet.columns(scope)
+        final var dependencies = new HashSet<String>();
+        final var messageTypes = new HashMap<String, DescriptorProtos.DescriptorProto>();
+        final var fields = sheet.columns(scope)
+                .peek(column -> {
+                    if(column.isNullable())
+                    {
+                        dependencies.add("google/protobuf/wrappers.proto");
+
+                        final var typeMessage = wrapperDescriptor(column.type());
+                        messageTypes.put(typeMessage.getFullName(), typeMessage.toProto());
+                    }
+                })
                 .map(this::buildField)
                 .toList();
 
         final var sheetName = sheet.sheetName();
         final var descriptorProto = DescriptorProtos.DescriptorProto.newBuilder()
                 .setName(sheetName)
-                .addAllField(fieldProto);
+                .addAllField(fields);
 
         final var partitionName = sheet.partitionName();
         if(partitionName.isPresent())
@@ -52,6 +59,8 @@ public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
                 .setName(sheetName)
                 .setSyntax("proto3")
                 .setPackage(protoPackage)
+                .addAllDependency(dependencies)
+                .addAllMessageType(messageTypes.values())
                 .setOptions(DescriptorProtos.FileOptions.newBuilder()
                         .setJavaMultipleFiles(true))
                 .addMessageType(descriptorProto);
@@ -68,11 +77,9 @@ public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
         }
     }
 
-    public ProtobufRowCodec(final String name, final Descriptors.FileDescriptor fileDescriptor, final NullableFields nullableFields)
+    public ProtobufRowCodec(final String name, final Descriptors.FileDescriptor fileDescriptor)
     {
         initialize(name, fileDescriptor);
-
-        this.nullableFields = nullableFields.toBuilder();
     }
 
     private void initialize(final String name, final Descriptors.FileDescriptor fileDescriptor)
@@ -88,17 +95,22 @@ public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
     private DescriptorProtos.FieldDescriptorProto buildField(final AssetColumn column)
     {
         final var builder = DescriptorProtos.FieldDescriptorProto.newBuilder();
-        final var label = column.array() ? DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED :
-                column.isNullable() ? DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL : null;
-
-        if(column.isNullable())
-            nullableFields.addFieldNumber(column.index());
+        final var label = column.array() ? DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED : null;
 
         if(Objects.nonNull(label))
             builder.setLabel(label);
 
-        return builder.setType(protoType(column))
-                .setName(column.name())
+        if(column.isNullable() && !column.array())
+        {
+            builder.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE)
+                    .setTypeName(protoTypeName(column));
+        }
+        else
+        {
+            builder.setType(protoType(column));
+        }
+
+        return builder.setName(column.name())
                 .setNumber(column.index())
                 .build();
     }
@@ -116,9 +128,37 @@ public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
         };
     }
 
-    public NullableFields nullableFields()
+    private String protoTypeName(final AssetColumn column)
     {
-        return nullableFields.build();
+        return wrapperDescriptor(column.type()).getName();
+    }
+
+    private Descriptors.Descriptor wrapperDescriptor(final DataType type)
+    {
+        return switch(type)
+        {
+            case LONG, DATE -> Int64Value.getDescriptor();
+            case INTEGER -> Int32Value.getDescriptor();
+            case DOUBLE -> DoubleValue.getDescriptor();
+            case STRING -> StringValue.getDescriptor();
+            case BOOLEAN -> BoolValue.getDescriptor();
+            default -> throw new RuntimeException("Unknown type");
+        };
+    }
+
+    private Object extractValue(final AssetColumn column, final Object value)
+    {
+        if(!column.isNullable() || column.array())
+            return value;
+
+        final var wrapperType = wrapperDescriptor(column.type());
+        final var builder = DynamicMessage.newBuilder(wrapperType);
+
+        if(Objects.isNull(value))
+            return null;
+
+        return builder.setField(wrapperType.findFieldByName("value"), value)
+                .build();
     }
 
     public Descriptors.FileDescriptor getFileDescriptor()
@@ -150,7 +190,7 @@ public class ProtobufRowCodec implements AssetCodec<byte[], DynamicMessage> {
 
                     if(fieldDescriptors.containsKey(column.name()))
                     {
-                        final var value = row.value(index);
+                        final var value = extractValue(column, row.value(index));
 
                         if(Objects.nonNull(value))
                         {

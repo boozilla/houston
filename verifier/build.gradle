@@ -12,8 +12,8 @@ repositories {
 dependencies {
     implementation project(':api')
 
-    implementation "io.projectreactor:reactor-core:${reactorVersion}"
-    implementation "io.projectreactor:reactor-tools:${reactorVersion}"
+    implementation libs.reactor.core
+    implementation libs.reactor.tools
 }
 
 test {

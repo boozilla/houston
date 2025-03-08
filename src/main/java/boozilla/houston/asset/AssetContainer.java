@@ -9,10 +9,10 @@ import boozilla.houston.container.Query;
 import boozilla.houston.entity.Data;
 import boozilla.houston.repository.Vaults;
 import com.google.protobuf.*;
+import com.google.protobuf.util.JsonFormat;
 import houston.grpc.service.AssetSchema;
 import houston.grpc.service.AssetSheet;
 import houston.vo.asset.Archive;
-import houston.vo.asset.NullableFields;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -87,10 +87,9 @@ public class AssetContainer implements AssetAccessor {
 
         try
         {
-            final var nullableFields = nullableFields(archive);
             final var fileDescriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(archive.getDescriptorBytes().toByteArray());
             final var fileDescriptor = Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, new Descriptors.FileDescriptor[0]);
-            final var rowCodec = new ProtobufRowCodec(data.getSheetName(), fileDescriptor, nullableFields);
+            final var rowCodec = new ProtobufRowCodec(data.getSheetName(), fileDescriptor);
 
             this.codec.put(key.toMergeKey(), rowCodec);
         }
@@ -131,17 +130,53 @@ public class AssetContainer implements AssetAccessor {
         return copy;
     }
 
+    public Map<Scope, JsonFormat.Printer> jsonPrinters()
+    {
+        final var builders = new HashMap<Scope, JsonFormat.TypeRegistry.Builder>();
+
+        codec.forEach((key, value) -> {
+            final var scope = key.scope();
+            final var builder = builders.computeIfAbsent(scope, k -> JsonFormat.TypeRegistry.newBuilder());
+
+            value.getFileDescriptor()
+                    .getMessageTypes()
+                    .forEach(builder::add);
+        });
+
+        return builders.entrySet().stream()
+                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey,
+                        entry -> JsonFormat.printer()
+                                .usingTypeRegistry(entry.getValue().build())));
+    }
+
     public JavaType columnType(final String sheetName, final String columnName)
     {
         final var scope = columnScope(sheetName, columnName).stream()
                 .findAny()
                 .orElseThrow();
 
-        return this.codec.get(new AssetAccessor.Key(sheetName, scope)).getFieldDescriptor()
+        return this.codec.get(new Key(sheetName, scope)).getFieldDescriptor()
                 .stream()
                 .filter(fieldDescriptor -> fieldDescriptor.getName().contentEquals(columnName))
                 .findAny()
-                .map(fieldDescriptor -> JavaType.valueOf(fieldDescriptor.getJavaType().name()))
+                .map(fieldDescriptor -> {
+                    final var type = JavaType.valueOf(fieldDescriptor.getJavaType().name());
+
+                    if(type == JavaType.MESSAGE)
+                    {
+                        return switch(fieldDescriptor.toProto().getTypeName())
+                        {
+                            case "Int64Value" -> JavaType.LONG;
+                            case "Int32Value" -> JavaType.INT;
+                            case "DoubleValue" -> JavaType.DOUBLE;
+                            case "StringValue" -> JavaType.STRING;
+                            case "BoolValue" -> JavaType.BOOLEAN;
+                            default -> throw new RuntimeException("Unknown type");
+                        };
+                    }
+
+                    return type;
+                })
                 .orElse(JavaType.VOID);
     }
 
@@ -192,14 +227,12 @@ public class AssetContainer implements AssetAccessor {
                     final var codec = this.codec.get(key.toMergeKey());
 
                     final var fileDescriptor = codec.getFileDescriptor();
-                    final var nullableFields = codec.nullableFields();
 
                     return AssetSheet.newBuilder()
                             .setSize(query.size())
                             .setCommitId(data.getCommitId())
                             .setName(data.getName())
                             .setStructure(fileDescriptor.toProto().toByteString())
-                            .setNullableFields(nullableFields.toByteString())
                             .addAllPartition(partitions(key.sheetName()))
                             .build();
                 });
@@ -225,24 +258,12 @@ public class AssetContainer implements AssetAccessor {
                             .map(Any::pack)
                             .toList();
 
-                    final var query = new AssetQuery(data, sheetDescriptor, codec.nullableFields());
+                    final var query = new AssetQuery(data, sheetDescriptor);
 
                     this.query.put(mergeKey, query);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .then(Mono.just(this));
-    }
-
-    private NullableFields nullableFields(final Archive archive)
-    {
-        try
-        {
-            return NullableFields.parseFrom(archive.getNullableBytes());
-        }
-        catch(InvalidProtocolBufferException e)
-        {
-            throw new RuntimeException("Error creating nullable fields information", e);
-        }
     }
 
     public Flux<AssetLink> links(final String sheetName)

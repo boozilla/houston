@@ -62,6 +62,9 @@ public class AssetContainerWatcher implements DisposableBean {
                         .collectList()
                         // 변경된 애셋 데이터 정보를 새 컨테이너에 반영
                         .flatMap(updatedData -> {
+                            if(updatedData.isEmpty())
+                                return Mono.empty();
+
                             final var updatedContainer = container.copy();
                             return updatedContainer.addAll(updatedData);
                         })

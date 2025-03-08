@@ -4,10 +4,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-
-    plugins {
-        id 'com.google.protobuf' version "${protobufPluginVersion}"
-    }
 }
 
 rootProject.name = 'houston'

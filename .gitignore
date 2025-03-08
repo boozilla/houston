@@ -54,3 +54,4 @@ bin/
 /.idea/sqldialects.xml
 /.idea/uiDesigner.xml
 /.idea/vcs.xml
+/gradle.properties

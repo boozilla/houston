@@ -1,6 +1,6 @@
 package boozilla.houston.asset.sql;
 
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.AbstractMessage;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,7 +30,7 @@ public class Select implements RootSqlStatement, SelectAll {
         return instance;
     }
 
-    public From from(final Class<? extends GeneratedMessage> sheet)
+    public From from(final Class<? extends AbstractMessage> sheet)
     {
         return from(sheet.getSimpleName());
     }

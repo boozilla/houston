@@ -11,8 +11,6 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 
 public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
-    Mono<Data> findByCommitIdAndScopeAndName(final String commitId, final Scope scope, final String name);
-
     default Flux<Data> findByLatest()
     {
         return findByLatest(LocalDateTime.now());
@@ -40,4 +38,6 @@ public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
             DELETE FROM data WHERE name LIKE :NAME
             """)
     Mono<Integer> deleteByNameStartsWith(final String name);
+
+    Mono<Boolean> existsByCommitIdAndScopeAndNameAndSha256(String commitId, Scope scope, String name, String sha256);
 }

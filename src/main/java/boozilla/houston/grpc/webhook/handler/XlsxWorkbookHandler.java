@@ -21,7 +21,6 @@ import reactor.util.function.Tuples;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class XlsxWorkbookHandler extends GitFileHandler {
     private final AssetContainer container;
@@ -99,13 +98,6 @@ public class XlsxWorkbookHandler extends GitFileHandler {
         final var repository = Application.repository(DataRepository.class);
 
         return Flux.fromIterable(this.container.updatedData())
-                .filterWhen(tuple -> {
-                    final var data = tuple.getT1();
-
-                    return repository.findByCommitIdAndScopeAndName(data.getCommitId(), data.getScope(), data.getName())
-                            .map(Objects::isNull)
-                            .switchIfEmpty(Mono.just(true));
-                })
                 .flatMap(tuple -> {
                     final var vaults = Application.vaults();
                     final var data = tuple.getT1();
@@ -115,15 +107,17 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                             .flatMap(key -> {
                                 data.setSha256(key);
 
-                                return repository.save(data)
-                                        .onErrorResume(error -> {
-                                            final var dataSize = DataSize.ofBytes(archive.toByteArray().length);
+                                return repository.existsByCommitIdAndScopeAndNameAndSha256(data.getCommitId(), data.getScope(), data.getName(), data.getSha256())
+                                        .filter(result -> !result)
+                                        .flatMap(result -> repository.save(data)
+                                                .onErrorResume(error -> {
+                                                    final var dataSize = DataSize.ofBytes(archive.toByteArray().length);
 
-                                            return behavior.commentExceptions(projectId, issueId, error)
-                                                    .then(Mono.error(new RuntimeException(Application.messageSourceAccessor()
-                                                            .getMessage("EXCEPTION_STEP_SAVE_DATA")
-                                                            .formatted(data.getCommitId(), data.getScope(), data.getName(), dataSize.toMegabytes()))));
-                                        });
+                                                    return behavior.commentExceptions(projectId, issueId, error)
+                                                            .then(Mono.error(new RuntimeException(Application.messageSourceAccessor()
+                                                                    .getMessage("EXCEPTION_STEP_SAVE_DATA")
+                                                                    .formatted(data.getCommitId(), data.getScope(), data.getName(), dataSize.toMegabytes()))));
+                                                }));
                             });
                 })
                 .then();
@@ -150,7 +144,6 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                             .setDescriptorBytes(sheetCodec.getFileDescriptor().toProto().toByteString())
                             .setDataBytes(ByteString.copyFrom(sheetCodec.serialize(sheet)))
                             .setLinkBytes(ByteString.copyFrom(linkCodec.serialize(sheet)))
-                            .setNullableBytes(sheetCodec.nullableFields().toByteString())
                             .build();
 
                     exceptionContainer.addAll(sheet.exceptions());

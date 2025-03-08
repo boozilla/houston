@@ -6,7 +6,9 @@ import boozilla.houston.asset.DataType;
 import boozilla.houston.asset.Scope;
 import org.apache.logging.log4j.util.Strings;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ProtobufSchemaSerializer implements AssetSerializer<String> {
@@ -15,7 +17,7 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
             syntax = "proto3";
             package %s;
             option java_multiple_files = true;
-                        
+            %s
             message %s {%s}
             """;
 
@@ -31,6 +33,7 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
     @Override
     public String serialize(final AssetSheet sheet)
     {
+        final var dependencies = new HashSet<String>();
         final var fieldString = new StringBuilder();
 
         final var partitionName = sheet.partitionName();
@@ -43,33 +46,43 @@ public class ProtobufSchemaSerializer implements AssetSerializer<String> {
 
         Stream.concat(sheet.columns(scope), partitionColumn)
                 .forEach(column -> {
-                    final var optional = !column.array() && column.isNullable() ? "optional " : "required ";
+                    final var optional = !column.array() && column.isNullable();
+                    final var optionalString = optional ? "optional " : "";
                     final var repeated = column.array() ? "repeated " : "";
-                    final var type = protoType(column);
+                    final var type = protoType(optional, column);
                     final var comment = Optional.ofNullable(column.comment())
                             .map("""
-                                                                    
+                                    
                                     \t// %s
                                     \t"""::formatted)
                             .orElse(Strings.EMPTY);
 
                     fieldString.append("""
                                 %s%s%s%s %s = %d;
-                            """.formatted(comment, optional, repeated, type, column.name(), column.index()));
+                            """.formatted(comment, optionalString, repeated, type, column.name(), column.index()));
+
+                    if(optional)
+                    {
+                        dependencies.add("google/protobuf/wrappers.proto");
+                    }
                 });
 
-        return PROTOBUF_TEMPLATE.formatted(protoPackage, sheet.sheetName(), fieldString.toString());
+        final var dependencyString = dependencies.stream()
+                .map("\nimport \"%s\";\n"::formatted)
+                .collect(Collectors.joining("\n"));
+
+        return PROTOBUF_TEMPLATE.formatted(protoPackage, dependencyString, sheet.sheetName(), fieldString.toString());
     }
 
-    private String protoType(final AssetColumn column)
+    private String protoType(final boolean optional, final AssetColumn column)
     {
         return switch(column.type())
         {
-            case LONG, DATE -> "int64";
-            case INTEGER -> "int32";
-            case DOUBLE -> "double";
-            case STRING -> "string";
-            case BOOLEAN -> "bool";
+            case LONG, DATE -> optional ? "google.protobuf.Int64Value" : "int64";
+            case INTEGER -> optional ? "google.protobuf.Int32Value" : "int32";
+            case DOUBLE -> optional ? "google.protobuf.DoubleValue" : "double";
+            case STRING -> optional ? "google.protobuf.StringValue" : "string";
+            case BOOLEAN -> optional ? "google.protobuf.BoolValue" : "bool";
             default -> throw new RuntimeException("Unknown type");
         };
     }

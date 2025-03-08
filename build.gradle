@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'com.google.protobuf'
-    id 'com.google.cloud.tools.jib' version '3.4.3'
+    alias libs.plugins.protobuf
+    alias libs.plugins.jib
 }
 
 subprojects {
@@ -13,7 +13,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.0.2'
+version = '1.0.3'
 
 sourceSets {
     main {
@@ -31,6 +31,10 @@ processResources {
 }
 
 protobuf {
+    def protobufVersion = libs.versions.protobuf.asProvider().get()
+    def grpcVersion = libs.versions.grpc.get()
+    def reactorGrpcVersion = libs.versions.reactor.grpc.get()
+
     protoc {
         artifact = "com.google.protobuf:protoc:${protobufVersion}"
     }
@@ -102,52 +106,50 @@ dependencies {
     implementation project(':api')
     implementation project(':container')
 
-    testImplementation platform("org.junit:junit-bom:${junitVersion}")
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+    testCompileOnly libs.lombok
+    testAnnotationProcessor libs.lombok
 
-    compileOnly "org.projectlombok:lombok:${lombokVersion}"
-    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
-    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
-    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
 
-    ["armeria",
-     "armeria-dropwizard2",
-     "armeria-logback",
-     "armeria-spring-boot3-webflux-starter",
-     "armeria-spring-boot3-autoconfigure",
-     "armeria-grpc",
-     "armeria-grpc-protocol",
-     "armeria-protobuf"].each {
-        implementation "com.linecorp.armeria:${it}:${armeriaVersion}"
-    }
+    implementation libs.armeria
+    implementation libs.armeria.dropwizard2
+    implementation libs.armeria.logback
+    implementation libs.armeria.spring.boot3.webflux.starter
+    implementation libs.armeria.spring.boot3.autoconfigure
+    implementation libs.armeria.grpc
+    implementation libs.armeria.grpc.protocol
+    implementation libs.armeria.protobuf
 
-    implementation "io.projectreactor:reactor-core:${reactorVersion}"
-    implementation "io.projectreactor:reactor-tools:${reactorVersion}"
+    implementation libs.reactor.core
+    implementation libs.reactor.tools
 
-    implementation "org.springframework.boot:spring-boot-starter-actuator:${springBootVersion}"
-    implementation "org.springframework.boot:spring-boot-starter-data-r2dbc:${springBootVersion}"
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.data.r2dbc
 
-    implementation "io.micrometer:micrometer-core:${micrometerVersion}"
-    implementation "io.micrometer:micrometer-registry-cloudwatch2:${micrometerVersion}"
+    implementation libs.micrometer.core
+    implementation libs.micrometer.registry.cloudwatch2
 
-    implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
-    implementation "com.salesforce.servicelibs:reactor-grpc-stub:${reactorGrpcVersion}"
+    implementation libs.protobuf.java
+    implementation libs.reactor.grpc.stub
 
-    implementation "com.github.jasync-sql:jasync-mysql:${jasyncVersion}"
-    implementation "com.github.jasync-sql:jasync-r2dbc-mysql:${jasyncVersion}"
-    implementation "com.googlecode.cqengine:cqengine:${cqengineVersion}"
-    implementation "com.github.jsqlparser:jsqlparser:${jsqlParserVersion}"
+    implementation libs.jasync.mysql
+    implementation libs.jasync.r2dbc.mysql
+    implementation libs.cqengine
+    implementation libs.jsqlparser
 
-    implementation "org.dhatim:fastexcel:${fastexcelVersion}"
-    implementation "org.dhatim:fastexcel-reader:${fastexcelVersion}"
+    implementation libs.fastexcel
+    implementation libs.fastexcel.reader
 
-    implementation "software.amazon.awssdk:secretsmanager:${awssdkVersion}"
-    implementation "software.amazon.awssdk:kms:${awssdkVersion}"
-    implementation "software.amazon.awssdk:s3:${awssdkVersion}"
+    implementation libs.aws.secretsmanager
+    implementation libs.aws.kms
+    implementation libs.aws.s3
 
-    implementation "com.auth0:java-jwt:${javaJwtVersion}"
+    implementation libs.java.jwt
 
-    implementation "info.picocli:picocli:${picocliVersion}"
+    implementation libs.picocli
 }
 
 test {

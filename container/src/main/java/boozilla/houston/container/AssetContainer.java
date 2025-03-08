@@ -4,7 +4,6 @@ import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.sql.SqlStatement;
 import com.google.protobuf.*;
 import houston.grpc.service.AssetSheet;
-import houston.vo.asset.NullableFields;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -53,8 +52,7 @@ public class AssetContainer {
         remove(sheet);
 
         final var sheetDescriptor = sheetDescriptor(sheet.getName(), sheet.getStructure());
-        final var nullableFields = nullableFields(sheet);
-        final var query = new AssetQuery(data, sheetDescriptor, nullableFields);
+        final var query = new AssetQuery(data, sheetDescriptor);
 
         this.sheets.put(sheet.getName(), sheet);
         this.query.put(sheet.getName(), query);
@@ -67,6 +65,9 @@ public class AssetContainer {
 
     void remove(final AssetSheet sheet)
     {
+        if(!this.sheets.containsKey(sheet.getName()))
+            return;
+
         this.sheets.remove(sheet.getName());
         this.query.remove(sheet.getName());
         this.descriptors.remove(sheet.getName());
@@ -91,18 +92,6 @@ public class AssetContainer {
         return newContainer;
     }
 
-    private NullableFields nullableFields(final AssetSheet sheet)
-    {
-        try
-        {
-            return NullableFields.parseFrom(sheet.getNullableFields());
-        }
-        catch(InvalidProtocolBufferException e)
-        {
-            throw new RuntimeException("Error creating nullable fields information", e);
-        }
-    }
-
     private Descriptors.Descriptor sheetDescriptor(final String name, final ByteString fileDescriptorProtoBytes)
     {
         try
@@ -121,5 +110,11 @@ public class AssetContainer {
     Collection<AssetSheet> sheets()
     {
         return sheets.values();
+    }
+
+    String commitId(final String name)
+    {
+        return sheets.get(name)
+                .getCommitId();
     }
 }

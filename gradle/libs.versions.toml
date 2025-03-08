@@ -1,0 +1,99 @@
+[versions]
+armeria = "1.29.0"
+spring-boot = "3.3.1"
+spring = "6.1.10"
+protobuf-plugin = "0.9.4"
+protobuf = "3.25.3"
+grpc = "1.64.0"
+reactor-grpc = "1.2.4"
+reactor = "3.6.7"
+lombok = "1.18.32"
+micrometer = "1.13.1"
+jasync = "2.2.4"
+fastexcel = "0.18.0"
+awssdk = "2.26.7"
+java-jwt = "4.4.0"
+picocli = "4.7.6"
+cqengine = "3.6.0"
+jsqlparser = "4.9"
+gradle-api = "8.6"
+junit = "5.10.2"
+slf4j = "2.0.9"
+jib = "3.4.3"
+publish = "1.2.1"
+
+[plugins]
+protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
+jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
+publish = { id = "com.gradle.plugin-publish", version.ref = "publish" }
+
+[libraries]
+# Armeria
+armeria = { group = "com.linecorp.armeria", name = "armeria", version.ref = "armeria" }
+armeria-dropwizard2 = { group = "com.linecorp.armeria", name = "armeria-dropwizard2", version.ref = "armeria" }
+armeria-logback = { group = "com.linecorp.armeria", name = "armeria-logback", version.ref = "armeria" }
+armeria-spring-boot3-webflux-starter = { group = "com.linecorp.armeria", name = "armeria-spring-boot3-webflux-starter", version.ref = "armeria" }
+armeria-spring-boot3-autoconfigure = { group = "com.linecorp.armeria", name = "armeria-spring-boot3-autoconfigure", version.ref = "armeria" }
+armeria-grpc = { group = "com.linecorp.armeria", name = "armeria-grpc", version.ref = "armeria" }
+armeria-grpc-protocol = { group = "com.linecorp.armeria", name = "armeria-grpc-protocol", version.ref = "armeria" }
+armeria-protobuf = { group = "com.linecorp.armeria", name = "armeria-protobuf", version.ref = "armeria" }
+
+# Reactor
+reactor-core = { group = "io.projectreactor", name = "reactor-core", version.ref = "reactor" }
+reactor-tools = { group = "io.projectreactor", name = "reactor-tools", version.ref = "reactor" }
+
+# Spring
+spring-core = { group = "org.springframework", name = "spring-core", version.ref = "spring" }
+spring-context = { group = "org.springframework", name = "spring-context", version.ref = "spring" }
+spring-data-relational = { group = "org.springframework.data", name = "spring-data-relational", version.ref = "spring-boot" }
+
+# Spring Boot
+spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator", version.ref = "spring-boot" }
+spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc", version.ref = "spring-boot" }
+
+# Micrometer
+micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
+micrometer-registry-cloudwatch2 = { group = "io.micrometer", name = "micrometer-registry-cloudwatch2", version.ref = "micrometer" }
+
+# Protobuf / gRPC
+protobuf-java = { group = "com.google.protobuf", name = "protobuf-java", version.ref = "protobuf" }
+protobuf-java-util = { group = "com.google.protobuf", name = "protobuf-java-util", version.ref = "protobuf" }
+reactor-grpc-stub = { group = "com.salesforce.servicelibs", name = "reactor-grpc-stub", version.ref = "reactor-grpc" }
+grpc-stub = { group = "io.grpc", name = "grpc-stub", version.ref = "grpc" }
+grpc-netty-shaded = { group = "io.grpc", name = "grpc-netty-shaded", version.ref = "grpc" }
+grpc-api = { group = "io.grpc", name = "grpc-api", version.ref = "grpc" }
+grpc-protobuf = { group = "io.grpc", name = "grpc-protobuf", version.ref = "grpc" }
+
+# jasync, CQEngine, JSQLParser
+jasync-mysql = { group = "com.github.jasync-sql", name = "jasync-mysql", version.ref = "jasync" }
+jasync-r2dbc-mysql = { group = "com.github.jasync-sql", name = "jasync-r2dbc-mysql", version.ref = "jasync" }
+cqengine = { group = "com.googlecode.cqengine", name = "cqengine", version.ref = "cqengine" }
+jsqlparser = { group = "com.github.jsqlparser", name = "jsqlparser", version.ref = "jsqlparser" }
+
+# FastExcel
+fastexcel = { group = "org.dhatim", name = "fastexcel", version.ref = "fastexcel" }
+fastexcel-reader = { group = "org.dhatim", name = "fastexcel-reader", version.ref = "fastexcel" }
+
+# AWS SDK
+aws-secretsmanager = { group = "software.amazon.awssdk", name = "secretsmanager", version.ref = "awssdk" }
+aws-kms = { group = "software.amazon.awssdk", name = "kms", version.ref = "awssdk" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version.ref = "awssdk" }
+
+# java-jwt
+java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "java-jwt" }
+
+# picocli
+picocli = { group = "info.picocli", name = "picocli", version.ref = "picocli" }
+
+# Lombok
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
+
+# JUnit
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+
+# SLF4J
+slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
+
+# Gradle API
+gradle-api = { group = "dev.gradleplugins", name = "gradle-api", version.ref = "gradle-api" }

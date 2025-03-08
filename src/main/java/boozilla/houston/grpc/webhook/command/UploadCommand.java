@@ -209,7 +209,10 @@ public class UploadCommand implements Command {
 
     private boolean isAllowedBranch(final String filename, final String targetRef)
     {
-        final var split = filename.split("#");
+        final var excluded = filename.split("\\.");
+        final var split = Arrays.stream(excluded, 0, excluded.length - 1)
+                .collect(Collectors.joining())
+                .split("#");
 
         if(split.length > 1)
         {
