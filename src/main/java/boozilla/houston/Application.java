@@ -1,6 +1,7 @@
 package boozilla.houston;
 
 import boozilla.houston.asset.Assets;
+import boozilla.houston.grpc.webhook.client.github.GitHubClient;
 import boozilla.houston.grpc.webhook.command.StereotypeCommand;
 import boozilla.houston.repository.Vaults;
 import org.springframework.boot.SpringApplication;
@@ -18,6 +19,9 @@ public class Application {
     public static void main(final String... args)
     {
         context = SpringApplication.run(Application.class, args);
+
+        // TODO test code
+        final var client = context.getBean(GitHubClient.class);
     }
 
     public static MessageSourceAccessor messageSourceAccessor()

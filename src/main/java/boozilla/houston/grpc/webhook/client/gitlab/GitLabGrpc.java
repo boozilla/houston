@@ -1,4 +1,4 @@
-package boozilla.houston.grpc.webhook;
+package boozilla.houston.grpc.webhook.client.gitlab;
 
 import boozilla.houston.annotation.SecuredService;
 import boozilla.houston.grpc.webhook.command.Commands;

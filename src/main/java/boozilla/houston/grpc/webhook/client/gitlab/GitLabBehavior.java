@@ -1,7 +1,8 @@
-package boozilla.houston.grpc.webhook;
+package boozilla.houston.grpc.webhook.client.gitlab;
 
+import boozilla.houston.grpc.webhook.GitBehavior;
+import boozilla.houston.grpc.webhook.StateLabel;
 import boozilla.houston.grpc.webhook.client.Issue;
-import boozilla.houston.grpc.webhook.client.gitlab.GitLabClient;
 import boozilla.houston.grpc.webhook.client.gitlab.notes.NotesGetResponse;
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryCompareResponse;
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryTreeResponse;

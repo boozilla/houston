@@ -89,11 +89,6 @@ public class GitLabClient implements GitClient {
         return CircuitBreakerClient.newDecorator(circuitBreaker, rule);
     }
 
-    public URI uri()
-    {
-        return restClient.uri();
-    }
-
     public Mono<RepositoryCompareResponse> compare(final String projectId, final String from, final String to)
     {
         final var request = restClient.get("/projects/{id}/repository/compare")
