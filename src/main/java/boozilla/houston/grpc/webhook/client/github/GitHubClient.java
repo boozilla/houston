@@ -23,7 +23,7 @@ import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.common.HttpEntity;
 import com.linecorp.armeria.common.ResponseEntity;
 import com.linecorp.armeria.common.auth.AuthToken;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,7 +37,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Component
-@ConditionalOnProperty(prefix = "github", name = "access-token")
+@ConditionalOnBean(GitHubGrpc.class)
 public class GitHubClient implements GitClient {
     private static final int DEFAULT_PER_PAGE = 100;
     private static final String GITHUB_API_URL = "https://api.github.com";

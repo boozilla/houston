@@ -8,10 +8,12 @@ import houston.grpc.webhook.ReactorGitHubGrpc;
 import houston.vo.webhook.github.IssueEvent;
 import houston.vo.webhook.github.PushEvent;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @SecuredService
+@ConditionalOnProperty(prefix = "github", name = "access-token")
 public class GitHubGrpc extends ReactorGitHubGrpc.GitHubImplBase {
     private final Commands commands;
     private final String targetBranch;
