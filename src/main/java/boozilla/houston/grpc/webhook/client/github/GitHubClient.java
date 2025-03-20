@@ -1,78 +1,213 @@
 package boozilla.houston.grpc.webhook.client.github;
 
 import boozilla.houston.grpc.webhook.client.GitClient;
+import boozilla.houston.grpc.webhook.client.github.issue.IssueCreateRequest;
+import boozilla.houston.grpc.webhook.client.github.issue.IssueGetCommentResponse;
+import boozilla.houston.grpc.webhook.client.github.issue.IssueGetResponse;
+import boozilla.houston.grpc.webhook.client.github.repository.RepositoryBranchesResponse;
+import boozilla.houston.grpc.webhook.client.github.repository.RepositoryCompareResponse;
+import boozilla.houston.grpc.webhook.client.github.repository.RepositoryTreesResponse;
 import boozilla.houston.properties.GitHubProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linecorp.armeria.client.HttpClient;
+import com.linecorp.armeria.client.ResponseAs;
 import com.linecorp.armeria.client.RestClient;
+import com.linecorp.armeria.client.RestClientPreparation;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreaker;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerClient;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerRule;
 import com.linecorp.armeria.client.retry.Backoff;
 import com.linecorp.armeria.client.retry.RetryRule;
 import com.linecorp.armeria.client.retry.RetryingClient;
+import com.linecorp.armeria.common.HttpEntity;
+import com.linecorp.armeria.common.ResponseEntity;
 import com.linecorp.armeria.common.auth.AuthToken;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Component
 @ConditionalOnProperty(prefix = "github", name = "access-token")
 public class GitHubClient implements GitClient {
+    private static final int DEFAULT_PER_PAGE = 100;
     private static final String GITHUB_API_URL = "https://api.github.com";
     private static final Function<? super HttpClient, RetryingClient> retryStrategy = retry();
     private static final Function<? super HttpClient, CircuitBreakerClient> circuitBreaker = circuitBreaker();
 
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
-    public GitHubClient(final GitHubProperties properties)
+    public GitHubClient(final GitHubProperties properties,
+                        final ObjectMapper objectMapper)
     {
-        restClient = RestClient.builder(GITHUB_API_URL)
+        this.restClient = RestClient.builder(GITHUB_API_URL)
                 .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(properties.accessToken()))
                 .followRedirects()
                 .decorator(retryStrategy)
                 .decorator(circuitBreaker)
                 .build();
+        this.objectMapper = objectMapper;
     }
 
-    // commit compare
-    //  https://docs.github.com/ko/rest/dependency-graph/dependency-review?apiVersion=2022-11-28
+    public Mono<RepositoryCompareResponse> compare(final String owner, final String repo, final String base, final String head)
+    {
+        if(base.contentEquals("0000000000000000000000000000000000000000"))
+            return Mono.empty();
 
-    // repository file tree
-    //  https://docs.github.com/ko/rest/git/trees?apiVersion=2022-11-28
+        return collect(() -> restClient.get("/repos/{owner}/{repo}/compare/{base}...{head}")
+                        .pathParam("owner", owner)
+                        .pathParam("repo", repo)
+                        .pathParam("base", base)
+                        .pathParam("head", head),
+                RepositoryCompareResponse.class);
+    }
 
-    // download raw file
-    //  https://docs.github.com/ko/rest/repos/contents?apiVersion=2022-11-28#get-repository-content
+    public Mono<RepositoryTreesResponse> trees(final String owner, final String repo, final String ref, final boolean recursive)
+    {
+        final var request = restClient.get("/repos/{owner}/{repo}/git/trees/{tree_sha}")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("tree_sha", ref)
+                .queryParam("recursive", recursive)
+                .execute(RepositoryTreesResponse.class, objectMapper);
 
-    // get branch commits
-    //  https://docs.github.com/ko/rest/branches/branches?apiVersion=2022-11-28#get-a-branch
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
 
-    // add spent time(not support)
+    public Mono<byte[]> contents(final String owner, final String repo, final String path, final String ref)
+    {
+        final var request = restClient.get("/repos/{owner}/{repo}/contents/{path}")
+                .header("Accept", "application/vnd.github.raw+json")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("path", path)
+                .queryParam("ref", ref)
+                .execute(ResponseAs.bytes());
 
-    // create issue
-    //  https://docs.github.com/ko/rest/issues/issues?apiVersion=2022-11-28#create-an-issue
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
 
-    // create issue link
-    //  https://docs.github.com/ko/rest/issues/sub-issues?apiVersion=2022-11-28#add-sub-issue
+    public Mono<RepositoryBranchesResponse> branches(final String owner, final String repo, final String branch)
+    {
+        final var request = restClient.get("/repos/{owner}/{repo}/branches/{branch}")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("branch", branch)
+                .execute(RepositoryBranchesResponse.class, objectMapper);
 
-    // get issue
-    //  https://docs.github.com/ko/rest/issues/issues?apiVersion=2022-11-28#get-an-issue
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
 
-    // find issue
-    //  https://docs.github.com/ko/rest/issues/issues?apiVersion=2022-11-28#list-repository-issues
+    public Mono<IssueGetResponse> createIssue(final String owner, final String repo, final IssueCreateRequest payload)
+    {
+        final var request = restClient.post("/repos/{owner}/{repo}/issues")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .contentJson(payload)
+                .execute(IssueGetResponse.class, objectMapper);
 
-    // update issue label
-    //  https://docs.github.com/ko/rest/issues/labels?apiVersion=2022-11-28#about-labels
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
 
-    // close issue
-    //  https://docs.github.com/ko/rest/issues/issues?apiVersion=2022-11-28#lock-an-issue
+    public Mono<Void> createSubIssues(final String owner, final String repo, final long issueNumber, final long subIssueNumber)
+    {
+        final var request = restClient.post("/repos/{owner}/{repo}/issues/{issue_number}/sub_issues")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("issue_number", issueNumber)
+                .contentJson(Map.of("sub_issue_id", subIssueNumber))
+                .execute(ResponseAs.bytes());
 
-    // write issue comment
-    //  https://docs.github.com/ko/rest/issues/comments?apiVersion=2022-11-28#create-an-issue-comment
+        return Mono.fromFuture(request)
+                .then();
+    }
 
-    // list issue comment
-    //  https://docs.github.com/ko/rest/issues/comments?apiVersion=2022-11-28#list-issue-comments
+    public Mono<IssueGetResponse> getIssue(final String owner, final String repo, final long issueNumber)
+    {
+        final var request = restClient.get("/repos/{owner}/{repo}/issues/{issue_number}")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("issue_number", issueNumber)
+                .execute(IssueGetResponse.class, objectMapper);
+
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
+
+    public Flux<IssueGetResponse> findIssue(final String owner, final String repo, final Set<String> labels)
+    {
+        return paginate(() -> restClient.get("/repos/{owner}/{repo}/issues")
+                        .pathParam("owner", owner)
+                        .pathParam("repo", repo)
+                        .queryParam("labels", String.join(",", labels))
+                        .queryParam("sort", "created")
+                        .queryParam("direction", "desc"),
+                request -> request.execute(new TypeReference<>() {
+                }, objectMapper),
+                IssueGetResponse.class);
+    }
+
+    private Mono<Void> updateIssue(final String owner, final String repo, final long issueNumber, final Map<String, Object> payload)
+    {
+        final var request = restClient.patch("/repos/{owner}/{repo}/issues/{issue_number}")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("issue_number", issueNumber)
+                .contentJson(payload)
+                .execute(ResponseAs.bytes());
+
+        return Mono.fromFuture(request)
+                .then();
+    }
+
+    public Mono<Void> updateIssueLabels(final String owner, final String repo, final long issueNumber, final Set<String> labels)
+    {
+        return updateIssue(owner, repo, issueNumber, Map.of("labels", labels));
+    }
+
+    public Mono<Void> closeIssue(final String owner, final String repo, final long issueNumber)
+    {
+        return updateIssue(owner, repo, issueNumber, Map.of("state", "closed"));
+    }
+
+    public Mono<Void> writeIssueComment(final String owner, final String repo, final long issueNumber, final String body)
+    {
+        final var request = restClient.post("/repos/{owner}/{repo}/issues/{issue_number}/comments")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("issue_number", issueNumber)
+                .contentJson(Map.of("body", body))
+                .execute(ResponseAs.bytes());
+
+        return Mono.fromFuture(request)
+                .then();
+    }
+
+    public Flux<IssueGetCommentResponse> getIssueComments(final String owner, final String repo, final long issueNumber)
+    {
+        return paginate(() -> restClient.get("/repos/{owner}/{repo}/issues/{issue_number}/comments")
+                        .pathParam("owner", owner)
+                        .pathParam("repo", repo)
+                        .pathParam("issue_number", issueNumber),
+                request -> request.execute(new TypeReference<>() {
+                }, objectMapper),
+                IssueGetCommentResponse.class);
+    }
 
     private static Function<? super HttpClient, RetryingClient> retry()
     {
@@ -89,5 +224,78 @@ public class GitHubClient implements GitClient {
                 .build();
 
         return CircuitBreakerClient.newDecorator(circuitBreaker, rule);
+    }
+
+    private <T extends PaginationResponse<T>> Mono<T> collect(
+            final Supplier<RestClientPreparation> requestSupplier,
+            final Class<T> resultClass)
+    {
+        return collect(requestSupplier, resultClass, 1, DEFAULT_PER_PAGE);
+    }
+
+    private <T extends PaginationResponse<T>> Mono<T> collect(
+            final Supplier<RestClientPreparation> requestSupplier,
+            final Class<T> resultClass,
+            final int currentPage,
+            final int perPage)
+    {
+        final var request = requestSupplier.get();
+        request.queryParam("page", currentPage);
+        request.queryParam("per_page", perPage);
+
+        return Mono.fromFuture(request.execute(resultClass, objectMapper))
+                .flatMap(response -> {
+                    final var linkHeader = response.headers().get("link");
+                    final var nextPage = Objects.isNull(linkHeader) || !linkHeader.contains("rel=\"next\"") ?
+                            currentPage : currentPage + 1;
+
+                    final var currentContent = response.content();
+
+                    if(nextPage == currentPage)
+                    {
+                        return Mono.just(currentContent);
+                    }
+
+                    return collect(requestSupplier, resultClass, nextPage, perPage)
+                            .cast(resultClass)
+                            .map(currentContent::merge);
+                });
+    }
+
+    private <T> Flux<T> paginate(
+            final Supplier<RestClientPreparation> requestSupplier,
+            final Function<RestClientPreparation, CompletableFuture<ResponseEntity<List<T>>>> requestConsumer,
+            final Class<T> resultClass)
+    {
+        return paginate(requestSupplier, requestConsumer, resultClass, 1, DEFAULT_PER_PAGE);
+    }
+
+    private <T> Flux<T> paginate(
+            final Supplier<RestClientPreparation> requestSupplier,
+            final Function<RestClientPreparation, CompletableFuture<ResponseEntity<List<T>>>> requestConsumer,
+            final Class<T> resultClass,
+            final int currentPage,
+            final int perPage)
+    {
+        final var request = requestSupplier.get();
+        request.queryParam("page", currentPage);
+        request.queryParam("per_page", perPage);
+
+        return Mono.fromFuture(requestConsumer.apply(request))
+                .flatMapMany(response -> {
+                    final var linkHeader = response.headers().get("link");
+                    final var nextPage = Objects.isNull(linkHeader) || !linkHeader.contains("rel=\"next\"") ?
+                            currentPage : currentPage + 1;
+
+                    final var currentContent = response.content();
+
+                    if(nextPage == currentPage)
+                    {
+                        return Flux.fromIterable(currentContent);
+                    }
+
+                    return paginate(requestSupplier, requestConsumer, resultClass, nextPage, perPage)
+                            .cast(resultClass);
+                });
     }
 }

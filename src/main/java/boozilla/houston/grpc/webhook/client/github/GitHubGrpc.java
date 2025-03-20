@@ -1,7 +1,6 @@
 package boozilla.houston.grpc.webhook.client.github;
 
 import boozilla.houston.annotation.SecuredService;
-import boozilla.houston.grpc.webhook.client.gitlab.GitLabBehavior;
 import boozilla.houston.grpc.webhook.command.Commands;
 import com.google.protobuf.Empty;
 import com.linecorp.armeria.server.ServiceRequestContext;

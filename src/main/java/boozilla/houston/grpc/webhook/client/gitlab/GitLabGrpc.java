@@ -2,6 +2,7 @@ package boozilla.houston.grpc.webhook.client.gitlab;
 
 import boozilla.houston.annotation.SecuredService;
 import boozilla.houston.grpc.webhook.command.Commands;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.grpc.webhook.ReactorGitLabGrpc;
@@ -16,20 +17,23 @@ public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
     private final Commands commands;
     private final String targetBranch;
     private final String packageName;
+    private final ObjectMapper objectMapper;
 
     public GitLabGrpc(final Commands commands,
                       @Value("${branch}") final String targetBranch,
-                      @Value("${package-name}") final String packageName)
+                      @Value("${package-name}") final String packageName,
+                      final ObjectMapper objectMapper)
     {
         this.commands = commands;
         this.targetBranch = targetBranch;
         this.packageName = packageName;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public Mono<Empty> push(final PushEvent request)
     {
-        final var behavior = new GitLabBehavior(ServiceRequestContext.current());
+        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
 
         behavior.uploadPayload(request.getProjectId(), request.getUserId(),
                         request.getRef(), request.getBefore(), request.getAfter())
@@ -45,7 +49,7 @@ public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
     @Override
     public Mono<Empty> note(final Mono<NoteEvent> request)
     {
-        final var behavior = new GitLabBehavior(ServiceRequestContext.current());
+        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
 
         request.filter(req -> req.getIssue().getLabelsList()
                         .stream()

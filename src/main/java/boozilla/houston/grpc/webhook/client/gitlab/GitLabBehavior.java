@@ -7,6 +7,7 @@ import boozilla.houston.grpc.webhook.client.gitlab.notes.NotesGetResponse;
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryCompareResponse;
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryTreeResponse;
 import boozilla.houston.grpc.webhook.command.PayloadCommand;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.vo.webhook.Contributor;
@@ -27,9 +28,10 @@ import java.util.stream.Stream;
 public class GitLabBehavior implements GitBehavior<GitLabClient> {
     private final GitLabClient client;
 
-    public GitLabBehavior(final ServiceRequestContext context)
+    public GitLabBehavior(final ServiceRequestContext context,
+                          final ObjectMapper objectMapper)
     {
-        client = GitLabClient.of(context);
+        client = GitLabClient.of(context, objectMapper);
     }
 
     @Override
