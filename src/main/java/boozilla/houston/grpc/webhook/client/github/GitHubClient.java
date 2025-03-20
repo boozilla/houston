@@ -226,14 +226,14 @@ public class GitHubClient implements GitClient {
         return CircuitBreakerClient.newDecorator(circuitBreaker, rule);
     }
 
-    private <T extends PaginationResponse<T>> Mono<T> collect(
+    private <T extends CollectableResponse<T>> Mono<T> collect(
             final Supplier<RestClientPreparation> requestSupplier,
             final Class<T> resultClass)
     {
         return collect(requestSupplier, resultClass, 1, DEFAULT_PER_PAGE);
     }
 
-    private <T extends PaginationResponse<T>> Mono<T> collect(
+    private <T extends CollectableResponse<T>> Mono<T> collect(
             final Supplier<RestClientPreparation> requestSupplier,
             final Class<T> resultClass,
             final int currentPage,
@@ -258,7 +258,7 @@ public class GitHubClient implements GitClient {
 
                     return collect(requestSupplier, resultClass, nextPage, perPage)
                             .cast(resultClass)
-                            .map(currentContent::merge);
+                            .map(currentContent::accumulate);
                 });
     }
 

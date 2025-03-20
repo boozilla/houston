@@ -1,6 +1,6 @@
 package boozilla.houston.grpc.webhook.client.github.repository;
 
-import boozilla.houston.grpc.webhook.client.github.PaginationResponse;
+import boozilla.houston.grpc.webhook.client.github.CollectableResponse;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 public record RepositoryCompareResponse(
         List<Commit> commits,
         List<Diff> diffs
-) implements PaginationResponse<RepositoryCompareResponse> {
+) implements CollectableResponse<RepositoryCompareResponse> {
     @JsonCreator
     public RepositoryCompareResponse(@JsonProperty("commits") List<Commit> commits,
                                      @JsonProperty("files") List<Diff> diffs)
@@ -22,7 +22,7 @@ public record RepositoryCompareResponse(
     }
 
     @Override
-    public RepositoryCompareResponse merge(final RepositoryCompareResponse other)
+    public RepositoryCompareResponse accumulate(final RepositoryCompareResponse other)
     {
         return new RepositoryCompareResponse(Stream.concat(commits.stream(), other.commits.stream()).toList(),
                 Stream.concat(diffs.stream(), other.diffs.stream()).toList());
