@@ -2,7 +2,7 @@ package boozilla.houston;
 
 import boozilla.houston.asset.Assets;
 import boozilla.houston.grpc.webhook.command.StereotypeCommand;
-import boozilla.houston.repository.Vaults;
+import boozilla.houston.repository.vaults.Vaults;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;

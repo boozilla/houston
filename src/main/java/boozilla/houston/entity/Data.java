@@ -18,7 +18,8 @@ public class Data {
     private String commitId;
     private Scope scope;
     private String name;
-    private String sha256;
+    private String path;
+    private String checksum;
     private LocalDateTime applyAt;
 
     public AssetContainer.Key key()

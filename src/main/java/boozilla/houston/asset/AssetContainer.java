@@ -7,7 +7,7 @@ import boozilla.houston.asset.sql.SqlStatement;
 import boozilla.houston.container.AssetQuery;
 import boozilla.houston.container.Query;
 import boozilla.houston.entity.Data;
-import boozilla.houston.repository.Vaults;
+import boozilla.houston.repository.vaults.Vaults;
 import com.google.protobuf.*;
 import com.google.protobuf.util.JsonFormat;
 import houston.grpc.service.AssetSchema;

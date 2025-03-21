@@ -39,5 +39,5 @@ public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
             """)
     Mono<Integer> deleteByNameStartsWith(final String name);
 
-    Mono<Boolean> existsByCommitIdAndScopeAndNameAndSha256(String commitId, Scope scope, String name, String sha256);
+    Mono<Boolean> existsByCommitIdAndScopeAndNameAndChecksum(String commitId, Scope scope, String name, String checksum);
 }

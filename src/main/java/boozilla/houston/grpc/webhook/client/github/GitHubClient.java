@@ -8,6 +8,7 @@ import boozilla.houston.grpc.webhook.client.github.repository.RepositoryBranches
 import boozilla.houston.grpc.webhook.client.github.repository.RepositoryCompareResponse;
 import boozilla.houston.grpc.webhook.client.github.repository.RepositoryTreesResponse;
 import boozilla.houston.properties.GitHubProperties;
+import boozilla.houston.repository.vaults.Vaults;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linecorp.armeria.client.HttpClient;
@@ -23,7 +24,7 @@ import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.common.HttpEntity;
 import com.linecorp.armeria.common.ResponseEntity;
 import com.linecorp.armeria.common.auth.AuthToken;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,7 +38,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Component
-@ConditionalOnBean(GitHubGrpc.class)
+@ConditionalOnProperty(prefix = "github", name = "access-token")
 public class GitHubClient implements GitClient {
     private static final int DEFAULT_PER_PAGE = 100;
     private static final String GITHUB_API_URL = "https://api.github.com";
@@ -207,6 +208,31 @@ public class GitHubClient implements GitClient {
                 request -> request.execute(new TypeReference<>() {
                 }, objectMapper),
                 IssueGetCommentResponse.class);
+    }
+
+    public Mono<Vaults.UploadResult> createBlob(final String owner, final String repo, final byte[] content)
+    {
+        final var request = restClient.post("/repos/{owner}/{repo}/git/blobs")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .contentJson(Map.of("content", content, "encoding", "base64"))
+                .execute(Vaults.UploadResult.class, objectMapper);
+
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
+
+    public Mono<byte[]> getBlob(final String owner, final String repo, final String sha)
+    {
+        final var request = restClient.get("/repos/{owner}/{repo}/git/blobs/{file_sha}")
+                .header("Accept", "application/vnd.github.raw+json")
+                .pathParam("owner", owner)
+                .pathParam("repo", repo)
+                .pathParam("file_sha", sha)
+                .execute(ResponseAs.bytes());
+
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
     }
 
     private static Function<? super HttpClient, RetryingClient> retry()
