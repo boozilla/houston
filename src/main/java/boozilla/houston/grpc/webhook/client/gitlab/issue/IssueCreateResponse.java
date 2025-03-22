@@ -2,20 +2,20 @@ package boozilla.houston.grpc.webhook.client.gitlab.issue;
 
 import boozilla.houston.grpc.webhook.client.Issue;
 
-import java.util.List;
+import java.util.Set;
 
 public record IssueCreateResponse(
         String iid,
-        List<String> labels
+        Set<String> labels
 ) implements Issue {
     @Override
-    public String getIid()
+    public String getId()
     {
         return iid();
     }
 
     @Override
-    public List<String> getLabels()
+    public Set<String> getLabels()
     {
         return labels();
     }

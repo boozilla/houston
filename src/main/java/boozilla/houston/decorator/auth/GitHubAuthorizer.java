@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -39,8 +40,13 @@ public class GitHubAuthorizer implements HttpAuthorizer {
     public @Nonnull CompletionStage<Boolean> authorize(@Nonnull final ServiceRequestContext ctx,
                                                        @Nonnull final HttpRequest httpRequest)
     {
-        final var header = Optional.ofNullable(httpRequest.headers().get(TOKEN_HEADER_NAME));
         final var secret = gitHubProperties.webhookSecret();
+        final var header = Optional.ofNullable(httpRequest.headers().get(TOKEN_HEADER_NAME));
+
+        if(header.isEmpty())
+        {
+            return CompletableFuture.completedFuture(false);
+        }
 
         try
         {
@@ -58,7 +64,7 @@ public class GitHubAuthorizer implements HttpAuthorizer {
 
                 final var expectedSignature = signatureBuilder.toString();
 
-                return expectedSignature.equals(header.orElse(Strings.EMPTY));
+                return MessageDigest.isEqual(expectedSignature.getBytes(), header.get().getBytes());
             });
         }
         catch(Exception e)

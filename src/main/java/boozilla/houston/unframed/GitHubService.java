@@ -38,11 +38,11 @@ public class GitHubService implements UnframedService {
     @Post("/github/push")
     public Mono<Empty> push(final PushEvent request)
     {
-        behavior.uploadPayload(request.repository().fullName(), request.sender().id(),
+        behavior.uploadPayload(request.repository().fullName(), request.sender().login(),
                         request.ref(), request.before(), request.after())
                 .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
-                        .flatMap(issue -> behavior.linkIssues(issue.getIid(), uploadPayload)
-                                .and(behavior.commentUploadPayload(issue.getIid(), uploadPayload))))
+                        .flatMap(issue -> behavior.linkIssues(issue.getId(), uploadPayload)
+                                .and(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
 
@@ -59,7 +59,7 @@ public class GitHubService implements UnframedService {
                 .flatMap(req -> {
                     final var projectId = req.repository().fullName();
                     final var issueNumber = req.issue().number();
-                    final var body = req.issue().body();
+                    final var body = req.comment().body();
                     final var command = commands.find(body);
 
                     if(command.isPresent())

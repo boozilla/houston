@@ -8,7 +8,7 @@ public record PushEvent(
         @JsonProperty("before") String before,
         @JsonProperty("after") String after,
         @JsonProperty("ref") String ref,
-        @JsonProperty("user_id") long userId,
+        @JsonProperty("user_id") String userId,
         @JsonProperty("project_id") String projectId
 ) {
 

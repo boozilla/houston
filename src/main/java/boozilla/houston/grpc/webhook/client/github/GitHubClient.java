@@ -1,7 +1,7 @@
 package boozilla.houston.grpc.webhook.client.github;
 
 import boozilla.houston.grpc.webhook.client.GitClient;
-import boozilla.houston.grpc.webhook.client.github.issue.IssueCreateRequest;
+import boozilla.houston.grpc.webhook.client.Issue;
 import boozilla.houston.grpc.webhook.client.github.issue.IssueGetCommentResponse;
 import boozilla.houston.grpc.webhook.client.github.issue.IssueGetResponse;
 import boozilla.houston.grpc.webhook.client.github.repository.RepositoryBranchesResponse;
@@ -67,7 +67,6 @@ public class GitHubClient implements GitClient {
             return Mono.empty();
 
         return collect(() -> restClient.get("/repos/{repo}/compare/{base}...{head}")
-
                         .pathParam("repo", repo)
                         .pathParam("base", base)
                         .pathParam("head", head),
@@ -107,33 +106,43 @@ public class GitHubClient implements GitClient {
                 .execute(RepositoryBranchesResponse.class, objectMapper);
 
         return Mono.fromFuture(request)
-                .map(HttpEntity::content);
+                .map(HttpEntity::content)
+                .onErrorReturn(new RepositoryBranchesResponse(branch));
     }
 
-    public Mono<IssueGetResponse> createIssue(final String repo, final IssueCreateRequest payload)
+    public Mono<Issue> createIssue(final String repo,
+                                   final String title,
+                                   final String body,
+                                   final String assignee,
+                                   final Set<String> labels)
     {
         final var request = restClient.post("/repos/{repo}/issues")
                 .pathParam("repo", repo)
-                .contentJson(payload)
+                .contentJson(Map.of(
+                        "title", title,
+                        "body", body,
+                        "assignee", assignee,
+                        "labels", labels
+                ))
                 .execute(IssueGetResponse.class, objectMapper);
 
         return Mono.fromFuture(request)
                 .map(HttpEntity::content);
     }
 
-    public Mono<Void> createSubIssues(final String repo, final long issueNumber, final long subIssueNumber)
+    public Mono<Void> createSubIssues(final String repo, final String issueNumber, final long subIssueId)
     {
         final var request = restClient.post("/repos/{repo}/issues/{issue_number}/sub_issues")
                 .pathParam("repo", repo)
                 .pathParam("issue_number", issueNumber)
-                .contentJson(Map.of("sub_issue_id", subIssueNumber))
+                .contentJson(Map.of("sub_issue_id", subIssueId))
                 .execute(ResponseAs.bytes());
 
         return Mono.fromFuture(request)
                 .then();
     }
 
-    public Mono<IssueGetResponse> getIssue(final String repo, final long issueNumber)
+    public Mono<Issue> getIssue(final String repo, final String issueNumber)
     {
         final var request = restClient.get("/repos/{repo}/issues/{issue_number}")
                 .pathParam("repo", repo)
@@ -156,7 +165,7 @@ public class GitHubClient implements GitClient {
                 IssueGetResponse.class);
     }
 
-    private Mono<Void> updateIssue(final String repo, final long issueNumber, final Map<String, Object> payload)
+    private Mono<Void> updateIssue(final String repo, final String issueNumber, final Map<String, Object> payload)
     {
         final var request = restClient.patch("/repos/{repo}/issues/{issue_number}")
                 .pathParam("repo", repo)
@@ -168,17 +177,17 @@ public class GitHubClient implements GitClient {
                 .then();
     }
 
-    public Mono<Void> updateIssueLabels(final String repo, final long issueNumber, final Set<String> labels)
+    public Mono<Void> updateIssueLabels(final String repo, final String issueNumber, final Set<String> labels)
     {
         return updateIssue(repo, issueNumber, Map.of("labels", labels));
     }
 
-    public Mono<Void> closeIssue(final String repo, final long issueNumber)
+    public Mono<Void> closeIssue(final String repo, final String issueNumber)
     {
         return updateIssue(repo, issueNumber, Map.of("state", "closed"));
     }
 
-    public Mono<Void> writeIssueComment(final String repo, final long issueNumber, final String body)
+    public Mono<Void> writeIssueComment(final String repo, final String issueNumber, final String body)
     {
         final var request = restClient.post("/repos/{repo}/issues/{issue_number}/comments")
                 .pathParam("repo", repo)
@@ -190,7 +199,20 @@ public class GitHubClient implements GitClient {
                 .then();
     }
 
-    public Flux<IssueGetCommentResponse> getIssueComments(final String repo, final long issueNumber)
+    public Mono<byte[]> getRawFile(final String repo, final String ref, final String path)
+    {
+        final var request = restClient.get("/repos/{repo}/contents/{path}")
+                .header("Accept", "application/vnd.github.raw+json")
+                .pathParam("repo", repo)
+                .pathParam("path", path)
+                .queryParam("ref", ref)
+                .execute(ResponseAs.bytes());
+
+        return Mono.fromFuture(request)
+                .map(HttpEntity::content);
+    }
+
+    public Flux<IssueGetCommentResponse> getIssueComments(final String repo, final String issueNumber)
     {
         return paginate(() -> restClient.get("/repos/{repo}/issues/{issue_number}/comments")
                         .pathParam("repo", repo)

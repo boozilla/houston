@@ -8,19 +8,25 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record IssueEvent(
         @JsonProperty("issue") Issue issue,
-        @JsonProperty("repository") Repository repository
+        @JsonProperty("repository") Repository repository,
+        @JsonProperty("comment") Comment comment
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Issue(
             @JsonProperty("number") String number,
-            @JsonProperty("labels") List<Label> labels,
-            @JsonProperty("body") String body
+            @JsonProperty("labels") List<Label> labels
     ) {
         @JsonIgnoreProperties(ignoreUnknown = true)
         public record Label(
                 @JsonProperty("name") String name
         ) {
         }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Comment(
+            @JsonProperty("body") String body
+    ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

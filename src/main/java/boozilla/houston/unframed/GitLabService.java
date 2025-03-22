@@ -42,8 +42,8 @@ public class GitLabService implements UnframedService {
         behavior.uploadPayload(request.projectId(), request.userId(),
                         request.ref(), request.before(), request.after())
                 .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
-                        .flatMap(issue -> behavior.linkIssues(issue.getIid(), uploadPayload)
-                                .and(behavior.commentUploadPayload(issue.getIid(), uploadPayload))))
+                        .flatMap(issue -> behavior.linkIssues(issue.getId(), uploadPayload)
+                                .and(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
 

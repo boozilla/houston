@@ -9,7 +9,7 @@ public record IssueGetResponse(
         List<String> labels
 ) implements Issue {
     @Override
-    public String getIid()
+    public String getId()
     {
         return iid();
     }

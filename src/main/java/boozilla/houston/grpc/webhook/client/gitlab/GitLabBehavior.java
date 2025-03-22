@@ -41,7 +41,7 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     }
 
     @Override
-    public Mono<UploadPayload> uploadPayload(final String projectId, final long assignee,
+    public Mono<UploadPayload> uploadPayload(final String projectId, final String assignee,
                                              final String ref, final String beforeCommitId, final String afterCommitId)
     {
         return client.compare(projectId, beforeCommitId, afterCommitId)
@@ -103,14 +103,14 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
         final var linkCommits = uploadPayload.getContributorList()
                 .stream()
                 .map(contributor -> shortCommitId(contributor.getCommitId()))
-                .toList();
+                .collect(Collectors.toUnmodifiableSet());
 
         return Flux.fromIterable(linkCommits)
                 .parallel()
                 .flatMap(label -> client.findIssue(projectId, List.of(label)))
-                .filter(i -> !i.getIid().equals(issueIid))
-                .flatMap(linkIssue -> client.createIssueLink(projectId, issueIid, projectId, linkIssue.getIid())
-                        .then(client.closeIssue(projectId, linkIssue.getIid())))
+                .filter(i -> !i.getId().equals(issueIid))
+                .flatMap(linkIssue -> client.createIssueLink(projectId, issueIid, projectId, linkIssue.getId())
+                        .then(client.closeIssue(projectId, linkIssue.getId())))
                 .then();
     }
 
@@ -176,6 +176,12 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     }
 
     @Override
+    public Mono<byte[]> openFile(final String projectId, final String ref, final String path)
+    {
+        return client.getRawFile(projectId, ref, path, false);
+    }
+
+    @Override
     public Mono<String> findUploadPayload(final String projectId, final String issueIid)
     {
         final var alias = new PayloadCommand().aliases();
@@ -198,7 +204,7 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     @Override
     public Mono<String> commitId(final String projectId, final String ref)
     {
-        return client.getBranch(projectId, ref)
+        return client.getBranches(projectId, ref)
                 .map(branch -> branch.commit().id())
                 .defaultIfEmpty(ref);
     }
@@ -213,21 +219,5 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     public Mono<Void> closeIssue(final String projectId, final String issueId)
     {
         return client.closeIssue(projectId, issueId);
-    }
-
-    public Mono<byte[]> openFile(final String projectId, final String ref, final String path)
-    {
-        return client.getRawFile(projectId, path, ref, false);
-    }
-
-    /**
-     * 브랜치 이름을 가져온다.
-     *
-     * @param ref 레퍼런스
-     * @return 브랜치 이름
-     */
-    private String branchFromRef(final String ref)
-    {
-        return ref.substring(ref.lastIndexOf('/') + 1);
     }
 }

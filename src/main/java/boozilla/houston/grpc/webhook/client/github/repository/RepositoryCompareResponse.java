@@ -3,6 +3,7 @@ package boozilla.houston.grpc.webhook.client.github.repository;
 import boozilla.houston.grpc.webhook.client.github.CollectableResponse;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.logging.log4j.util.Strings;
 
 import java.util.List;
 import java.util.Map;
@@ -31,16 +32,18 @@ public record RepositoryCompareResponse(
     public record Commit(
             String sha,
             String message,
-            String authorName
+            String authorName,
+            String authorEmail
     ) {
         @JsonCreator
+        @SuppressWarnings("unchecked")
         public Commit(@JsonProperty("sha") String sha,
-                      @JsonProperty("commit") Map<String, Object> commit,
-                      @JsonProperty("author") Map<String, Object> author)
+                      @JsonProperty("commit") Map<String, Object> commit)
         {
             this(sha,
-                    Objects.isNull(commit) ? null : (String) commit.get("message"),
-                    Objects.isNull(author) ? null : (String) author.get("login"));
+                    (String) commit.getOrDefault("message", Strings.EMPTY),
+                    (String) ((Map<String, Object>) commit.getOrDefault("author", Map.of())).getOrDefault("name", Strings.EMPTY),
+                    (String) ((Map<String, Object>) commit.getOrDefault("author", Map.of())).getOrDefault("email", Strings.EMPTY));
         }
     }
 

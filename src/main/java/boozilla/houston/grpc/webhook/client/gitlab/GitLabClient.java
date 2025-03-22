@@ -129,7 +129,7 @@ public class GitLabClient implements GitClient {
                 .flatMapMany(response -> pagination(response, page, nextPage -> tree(projectId, path, ref, recursive, nextPage)));
     }
 
-    public Mono<byte[]> getRawFile(final String projectId, final String filePath, final String ref, final boolean lfs)
+    public Mono<byte[]> getRawFile(final String projectId, final String ref, final String filePath, final boolean lfs)
     {
         final var request = restClient.get("/projects/{id}/repository/files/{filePath}/raw")
                 .pathParam("id", projectId)
@@ -142,7 +142,7 @@ public class GitLabClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<RepositoryBranchResponse.Branch> getBranch(final String projectId, final String search)
+    public Mono<RepositoryBranchResponse.Branch> getBranches(final String projectId, final String search)
     {
         final var request = restClient.get("/projects/{id}/repository/branches")
                 .pathParam("id", projectId)
@@ -172,7 +172,7 @@ public class GitLabClient implements GitClient {
     }
 
     public Mono<Issue> createIssue(final String projectId, final String title, final String description,
-                                   final long assigneeId, final String labels, final ZonedDateTime createdAt)
+                                   final String assigneeId, final String labels, final ZonedDateTime createdAt)
     {
         final var request = restClient.post("/projects/{id}/issues")
                 .pathParam("id", projectId)

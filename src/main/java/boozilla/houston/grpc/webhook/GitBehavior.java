@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public interface GitBehavior<T extends GitClient> {
     T client();
 
-    Mono<UploadPayload> uploadPayload(final String projectId, final long assignee,
+    Mono<UploadPayload> uploadPayload(final String projectId, final String assignee,
                                       final String ref, final String beforeCommitId, final String afterCommitId);
 
     Mono<Issue> createIssue(final UploadPayload uploadPayload);
@@ -59,14 +59,14 @@ public interface GitBehavior<T extends GitClient> {
         final var template = """
                 **ref**
                 %s
-                                
+                
                 **head**
                 %s
-                                
+                
                 %s
                 ------
                 %s
-                                
+                
                 %s
                 ------
                 | %s | %s | %s | %s |
@@ -121,5 +121,16 @@ public interface GitBehavior<T extends GitClient> {
     default String shortCommitId(final String commitId)
     {
         return commitId.substring(0, 8);
+    }
+
+    /**
+     * 브랜치 이름을 가져온다.
+     *
+     * @param ref 레퍼런스
+     * @return 브랜치 이름
+     */
+    default String branchFromRef(final String ref)
+    {
+        return ref.substring(ref.lastIndexOf('/') + 1);
     }
 }

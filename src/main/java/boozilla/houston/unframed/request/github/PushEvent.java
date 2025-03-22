@@ -9,18 +9,12 @@ public record PushEvent(
         @JsonProperty("before") String before,
         @JsonProperty("after") String after,
         @JsonProperty("repository") Repository repository,
-        @JsonProperty("sender") Sender sender
+        @JsonProperty("sender") User sender
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Repository(
             @JsonProperty("full_name") String fullName,
             @JsonProperty("owner") User owner
-    ) {
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Sender(
-            @JsonProperty("id") long id
     ) {
     }
 }
