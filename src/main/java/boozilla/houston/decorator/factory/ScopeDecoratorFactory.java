@@ -18,22 +18,22 @@ import java.util.function.Function;
 public final class ScopeDecoratorFactory implements DecoratorFactoryFunction<@NotNull ScopeService> {
     private static final String SCOPE_HEADER_NAME = "x-houston-scope";
 
-    private final HttpAuthorizer grpcAuthorizer;
+    private final HttpAuthorizer authorizer;
 
     public ScopeDecoratorFactory(@Nullable final DocServiceBuilder docServiceBuilder,
-                                 final HttpAuthorizer grpcAuthorizer)
+                                 final HttpAuthorizer authorizer)
     {
         if(Objects.nonNull(docServiceBuilder))
             docServiceBuilder.exampleHeaders(HttpHeaders.of(SCOPE_HEADER_NAME, Scope.CLIENT.name()));
 
-        this.grpcAuthorizer = grpcAuthorizer;
+        this.authorizer = authorizer;
     }
 
     @Override
     public @NotNull Function<? super HttpService, ? extends HttpService> newDecorator(final @NotNull ScopeService parameter)
     {
         return AuthService.builder()
-                .add(grpcAuthorizer)
+                .add(authorizer)
                 .onSuccess((delegate, ctx, req) -> {
                     final var scope = req.headers().get(SCOPE_HEADER_NAME, Scope.SERVER.name());
                     ctx.setAttr(ScopeContext.ATTR_SCOPE_KEY, Scope.valueOf(scope));

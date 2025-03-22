@@ -3,18 +3,16 @@ package boozilla.houston.grpc.webhook.client.github;
 import boozilla.houston.grpc.webhook.GitBehavior;
 import boozilla.houston.grpc.webhook.StateLabel;
 import boozilla.houston.grpc.webhook.client.Issue;
-import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.vo.webhook.UploadPayload;
+import lombok.AllArgsConstructor;
 import org.joda.time.Period;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+@AllArgsConstructor
 public class GitHubBehavior implements GitBehavior<GitHubClient> {
-    public GitHubBehavior(final ServiceRequestContext context)
-    {
-
-    }
+    private final GitHubClient client;
 
     @Override
     public GitHubClient client()

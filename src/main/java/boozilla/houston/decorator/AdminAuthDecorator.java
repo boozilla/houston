@@ -21,10 +21,10 @@ import java.util.Objects;
 import java.util.function.Function;
 
 @Slf4j
-public class GrpcAuthDecorator implements ServiceDecorator {
+public class AdminAuthDecorator implements ServiceDecorator {
     private final Function<? super HttpService, AuthService> service;
 
-    public GrpcAuthDecorator(final List<HttpAuthorizer> authorizers)
+    public AdminAuthDecorator(final List<HttpAuthorizer> authorizers)
     {
         this.service = AuthService.builder()
                 .add(authorizers)

@@ -1,28 +1,32 @@
-package boozilla.houston.grpc.webhook.client.gitlab;
+package boozilla.houston.unframed;
 
 import boozilla.houston.annotation.SecuredService;
+import boozilla.houston.decorator.auth.JwtAdminAuthorizer;
+import boozilla.houston.grpc.webhook.client.gitlab.GitLabBehavior;
 import boozilla.houston.grpc.webhook.command.Commands;
+import boozilla.houston.unframed.request.gitlab.NoteEvent;
+import boozilla.houston.unframed.request.gitlab.PushEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import com.linecorp.armeria.server.ServiceRequestContext;
-import houston.grpc.webhook.ReactorGitLabGrpc;
-import houston.vo.webhook.gitlab.NoteEvent;
-import houston.vo.webhook.gitlab.PushEvent;
+import com.linecorp.armeria.server.annotation.Post;
+import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-@SecuredService
-public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
+@ProducesJson
+@SecuredService(JwtAdminAuthorizer.class)
+public class GitLabService implements UnframedService {
     private final Commands commands;
     private final String targetBranch;
     private final String packageName;
     private final ObjectMapper objectMapper;
 
-    public GitLabGrpc(final Commands commands,
-                      @Value("${branch}") final String targetBranch,
-                      @Value("${package-name}") final String packageName,
-                      final ObjectMapper objectMapper)
+    public GitLabService(final Commands commands,
+                         @Value("${branch}") final String targetBranch,
+                         @Value("${package-name}") final String packageName,
+                         final ObjectMapper objectMapper)
     {
         this.commands = commands;
         this.targetBranch = targetBranch;
@@ -30,13 +34,13 @@ public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
         this.objectMapper = objectMapper;
     }
 
-    @Override
+    @Post("/gitlab/push")
     public Mono<Empty> push(final PushEvent request)
     {
         final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
 
-        behavior.uploadPayload(request.getProjectId(), request.getUserId(),
-                        request.getRef(), request.getBefore(), request.getAfter())
+        behavior.uploadPayload(request.projectId(), request.userId(),
+                        request.ref(), request.before(), request.after())
                 .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
                         .flatMap(issue -> behavior.linkIssues(issue.getIid(), uploadPayload)
                                 .and(behavior.commentUploadPayload(issue.getIid(), uploadPayload))))
@@ -46,18 +50,19 @@ public class GitLabGrpc extends ReactorGitLabGrpc.GitLabImplBase {
         return Mono.just(Empty.getDefaultInstance());
     }
 
-    @Override
-    public Mono<Empty> note(final Mono<NoteEvent> request)
+    @Post("/gitlab/note")
+    public Mono<Empty> note(final NoteEvent request)
     {
         final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
 
-        request.filter(req -> req.getIssue().getLabelsList()
+        Mono.just(request)
+                .filter(req -> req.issue().labels()
                         .stream()
-                        .anyMatch(label -> label.getTitle().equalsIgnoreCase(this.targetBranch)))
+                        .anyMatch(label -> label.title().equalsIgnoreCase(this.targetBranch)))
                 .flatMap(req -> {
-                    final var projectId = req.getProject().getId();
-                    final var issueIid = req.getIssue().getIid();
-                    final var note = req.getObjectAttributes().getNote();
+                    final var projectId = req.project().id();
+                    final var issueIid = req.issue().iid();
+                    final var note = req.objectAttributes().note();
                     final var command = commands.find(note);
 
                     if(command.isPresent())

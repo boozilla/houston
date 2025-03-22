@@ -61,23 +61,22 @@ public class GitHubClient implements GitClient {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<RepositoryCompareResponse> compare(final String owner, final String repo, final String base, final String head)
+    public Mono<RepositoryCompareResponse> compare(final String repo, final String base, final String head)
     {
         if(base.contentEquals("0000000000000000000000000000000000000000"))
             return Mono.empty();
 
-        return collect(() -> restClient.get("/repos/{owner}/{repo}/compare/{base}...{head}")
-                        .pathParam("owner", owner)
+        return collect(() -> restClient.get("/repos/{repo}/compare/{base}...{head}")
+
                         .pathParam("repo", repo)
                         .pathParam("base", base)
                         .pathParam("head", head),
                 RepositoryCompareResponse.class);
     }
 
-    public Mono<RepositoryTreesResponse> trees(final String owner, final String repo, final String ref, final boolean recursive)
+    public Mono<RepositoryTreesResponse> trees(final String repo, final String ref, final boolean recursive)
     {
-        final var request = restClient.get("/repos/{owner}/{repo}/git/trees/{tree_sha}")
-                .pathParam("owner", owner)
+        final var request = restClient.get("/repos/{repo}/git/trees/{tree_sha}")
                 .pathParam("repo", repo)
                 .pathParam("tree_sha", ref)
                 .queryParam("recursive", recursive)
@@ -87,11 +86,10 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<byte[]> contents(final String owner, final String repo, final String path, final String ref)
+    public Mono<byte[]> contents(final String repo, final String path, final String ref)
     {
-        final var request = restClient.get("/repos/{owner}/{repo}/contents/{path}")
+        final var request = restClient.get("/repos/{repo}/contents/{path}")
                 .header("Accept", "application/vnd.github.raw+json")
-                .pathParam("owner", owner)
                 .pathParam("repo", repo)
                 .pathParam("path", path)
                 .queryParam("ref", ref)
@@ -101,10 +99,9 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<RepositoryBranchesResponse> branches(final String owner, final String repo, final String branch)
+    public Mono<RepositoryBranchesResponse> branches(final String repo, final String branch)
     {
-        final var request = restClient.get("/repos/{owner}/{repo}/branches/{branch}")
-                .pathParam("owner", owner)
+        final var request = restClient.get("/repos/{repo}/branches/{branch}")
                 .pathParam("repo", repo)
                 .pathParam("branch", branch)
                 .execute(RepositoryBranchesResponse.class, objectMapper);
@@ -113,10 +110,9 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<IssueGetResponse> createIssue(final String owner, final String repo, final IssueCreateRequest payload)
+    public Mono<IssueGetResponse> createIssue(final String repo, final IssueCreateRequest payload)
     {
-        final var request = restClient.post("/repos/{owner}/{repo}/issues")
-                .pathParam("owner", owner)
+        final var request = restClient.post("/repos/{repo}/issues")
                 .pathParam("repo", repo)
                 .contentJson(payload)
                 .execute(IssueGetResponse.class, objectMapper);
@@ -125,10 +121,9 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<Void> createSubIssues(final String owner, final String repo, final long issueNumber, final long subIssueNumber)
+    public Mono<Void> createSubIssues(final String repo, final long issueNumber, final long subIssueNumber)
     {
-        final var request = restClient.post("/repos/{owner}/{repo}/issues/{issue_number}/sub_issues")
-                .pathParam("owner", owner)
+        final var request = restClient.post("/repos/{repo}/issues/{issue_number}/sub_issues")
                 .pathParam("repo", repo)
                 .pathParam("issue_number", issueNumber)
                 .contentJson(Map.of("sub_issue_id", subIssueNumber))
@@ -138,10 +133,9 @@ public class GitHubClient implements GitClient {
                 .then();
     }
 
-    public Mono<IssueGetResponse> getIssue(final String owner, final String repo, final long issueNumber)
+    public Mono<IssueGetResponse> getIssue(final String repo, final long issueNumber)
     {
-        final var request = restClient.get("/repos/{owner}/{repo}/issues/{issue_number}")
-                .pathParam("owner", owner)
+        final var request = restClient.get("/repos/{repo}/issues/{issue_number}")
                 .pathParam("repo", repo)
                 .pathParam("issue_number", issueNumber)
                 .execute(IssueGetResponse.class, objectMapper);
@@ -150,10 +144,9 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Flux<IssueGetResponse> findIssue(final String owner, final String repo, final Set<String> labels)
+    public Flux<IssueGetResponse> findIssue(final String repo, final Set<String> labels)
     {
-        return paginate(() -> restClient.get("/repos/{owner}/{repo}/issues")
-                        .pathParam("owner", owner)
+        return paginate(() -> restClient.get("/repos/{repo}/issues")
                         .pathParam("repo", repo)
                         .queryParam("labels", String.join(",", labels))
                         .queryParam("sort", "created")
@@ -163,10 +156,9 @@ public class GitHubClient implements GitClient {
                 IssueGetResponse.class);
     }
 
-    private Mono<Void> updateIssue(final String owner, final String repo, final long issueNumber, final Map<String, Object> payload)
+    private Mono<Void> updateIssue(final String repo, final long issueNumber, final Map<String, Object> payload)
     {
-        final var request = restClient.patch("/repos/{owner}/{repo}/issues/{issue_number}")
-                .pathParam("owner", owner)
+        final var request = restClient.patch("/repos/{repo}/issues/{issue_number}")
                 .pathParam("repo", repo)
                 .pathParam("issue_number", issueNumber)
                 .contentJson(payload)
@@ -176,20 +168,19 @@ public class GitHubClient implements GitClient {
                 .then();
     }
 
-    public Mono<Void> updateIssueLabels(final String owner, final String repo, final long issueNumber, final Set<String> labels)
+    public Mono<Void> updateIssueLabels(final String repo, final long issueNumber, final Set<String> labels)
     {
-        return updateIssue(owner, repo, issueNumber, Map.of("labels", labels));
+        return updateIssue(repo, issueNumber, Map.of("labels", labels));
     }
 
-    public Mono<Void> closeIssue(final String owner, final String repo, final long issueNumber)
+    public Mono<Void> closeIssue(final String repo, final long issueNumber)
     {
-        return updateIssue(owner, repo, issueNumber, Map.of("state", "closed"));
+        return updateIssue(repo, issueNumber, Map.of("state", "closed"));
     }
 
-    public Mono<Void> writeIssueComment(final String owner, final String repo, final long issueNumber, final String body)
+    public Mono<Void> writeIssueComment(final String repo, final long issueNumber, final String body)
     {
-        final var request = restClient.post("/repos/{owner}/{repo}/issues/{issue_number}/comments")
-                .pathParam("owner", owner)
+        final var request = restClient.post("/repos/{repo}/issues/{issue_number}/comments")
                 .pathParam("repo", repo)
                 .pathParam("issue_number", issueNumber)
                 .contentJson(Map.of("body", body))
@@ -199,10 +190,9 @@ public class GitHubClient implements GitClient {
                 .then();
     }
 
-    public Flux<IssueGetCommentResponse> getIssueComments(final String owner, final String repo, final long issueNumber)
+    public Flux<IssueGetCommentResponse> getIssueComments(final String repo, final long issueNumber)
     {
-        return paginate(() -> restClient.get("/repos/{owner}/{repo}/issues/{issue_number}/comments")
-                        .pathParam("owner", owner)
+        return paginate(() -> restClient.get("/repos/{repo}/issues/{issue_number}/comments")
                         .pathParam("repo", repo)
                         .pathParam("issue_number", issueNumber),
                 request -> request.execute(new TypeReference<>() {
@@ -210,10 +200,9 @@ public class GitHubClient implements GitClient {
                 IssueGetCommentResponse.class);
     }
 
-    public Mono<Vaults.UploadResult> createBlob(final String owner, final String repo, final byte[] content)
+    public Mono<Vaults.UploadResult> createBlob(final String repo, final byte[] content)
     {
-        final var request = restClient.post("/repos/{owner}/{repo}/git/blobs")
-                .pathParam("owner", owner)
+        final var request = restClient.post("/repos/{repo}/git/blobs")
                 .pathParam("repo", repo)
                 .contentJson(Map.of("content", content, "encoding", "base64"))
                 .execute(Vaults.UploadResult.class, objectMapper);
@@ -222,11 +211,10 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<byte[]> getBlob(final String owner, final String repo, final String sha)
+    public Mono<byte[]> getBlob(final String repo, final String sha)
     {
-        final var request = restClient.get("/repos/{owner}/{repo}/git/blobs/{file_sha}")
+        final var request = restClient.get("/repos/{repo}/git/blobs/{file_sha}")
                 .header("Accept", "application/vnd.github.raw+json")
-                .pathParam("owner", owner)
                 .pathParam("repo", repo)
                 .pathParam("file_sha", sha)
                 .execute(ResponseAs.bytes());
