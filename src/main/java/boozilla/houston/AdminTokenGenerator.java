@@ -16,8 +16,28 @@ import java.util.function.Supplier;
 @Setter(AccessLevel.NONE)
 @CommandLine.Command
 public class AdminTokenGenerator implements Runnable {
+    @CommandLine.Option(names = {"--issuer", "-iss"}, required = true, description = "Token issuer")
+    private String issuer;
+
+    @CommandLine.Option(names = {"--username", "-u"}, interactive = true, description = "Username")
+    private String username;
+
     @CommandLine.ArgGroup(multiplicity = "1")
     KeyOrKmsOption keyOrKmsOption;
+
+    public static void main(final String... args)
+    {
+        new CommandLine(new AdminTokenGenerator())
+                .execute(args);
+    }
+
+    static class KeyOrKmsOption {
+        @CommandLine.Option(names = {"--kms-key-id", "-kms"}, description = "KMS key ID")
+        private String kmsKeyId;
+
+        @CommandLine.ArgGroup(exclusive = false)
+        private KeyOption keyOption;
+    }
 
     @Override
     public void run()
@@ -53,18 +73,6 @@ public class AdminTokenGenerator implements Runnable {
         throw new IllegalArgumentException("No key option");
     }
 
-    @CommandLine.Option(names = {"--app-name", "-a"}, required = true, description = "Token issuer")
-    private String issuer;
-
-    @CommandLine.Option(names = {"--username", "-u"}, interactive = true, description = "Username")
-    private String username;
-
-    public static void main(final String... args)
-    {
-        new CommandLine(new AdminTokenGenerator())
-                .execute(args);
-    }
-
     private Algorithm kmsAlgorithm(final String kmsKeyId)
     {
         return new KmsAlgorithm(kmsKeyId, KmsAsyncClient.create());
@@ -96,29 +104,6 @@ public class AdminTokenGenerator implements Runnable {
         return supplier.get();
     }
 
-    static class KeyOrKmsOption {
-        @CommandLine.Option(names = {"--kms-key-id", "-k"}, description = "KMS key ID")
-        private String kmsKeyId;
-
-        @CommandLine.ArgGroup(exclusive = false)
-        private KeyOption keyOption;
-    }
-
-    static class KeyOption {
-        @CommandLine.ArgGroup(multiplicity = "1")
-        KeyProvideOption keyProvideOption;
-        @CommandLine.Option(names = {"--key-algo", "-g"}, required = true, description = "Key algorithm")
-        private String algorithm;
-
-        static class KeyProvideOption {
-            @CommandLine.Option(names = {"--key-file", "-f"}, description = "Key file")
-            private String keyFile;
-
-            @CommandLine.Option(names = {"--key-pkcs8", "-t"}, description = "Key PKCS#8 text")
-            private String keyPkcs8;
-        }
-    }
-
     private String askUsername()
     {
         if(Objects.nonNull(username))
@@ -126,5 +111,20 @@ public class AdminTokenGenerator implements Runnable {
 
         System.out.print("> Input username: ");
         return new Scanner(System.in).nextLine();
+    }
+
+    static class KeyOption {
+        @CommandLine.ArgGroup(multiplicity = "1")
+        KeyProvideOption keyProvideOption;
+        @CommandLine.Option(names = {"--key-algo", "-algo"}, required = true, description = "Key algorithm")
+        private String algorithm;
+
+        static class KeyProvideOption {
+            @CommandLine.Option(names = {"--key-file", "-key"}, description = "Key file")
+            private String keyFile;
+
+            @CommandLine.Option(names = {"--key-pkcs8", "-pkcs8"}, description = "Key PKCS#8 text")
+            private String keyPkcs8;
+        }
     }
 }
