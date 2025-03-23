@@ -32,6 +32,7 @@ processResources {
 
 protobuf {
     def protobufVersion = libs.versions.protobuf.asProvider().get()
+    def grpcVersion = libs.versions.grpc.get()
     def reactorGrpcVersion = libs.versions.reactor.grpc.get()
 
     protoc {
@@ -39,6 +40,10 @@ protobuf {
     }
 
     plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+
         reactor {
             artifact = "com.salesforce.servicelibs:reactor-grpc:${reactorGrpcVersion}"
         }
@@ -46,6 +51,7 @@ protobuf {
 
     generateProtoTasks {
         ofSourceSet("main")*.plugins {
+            grpc {}
             reactor {}
         }
 
