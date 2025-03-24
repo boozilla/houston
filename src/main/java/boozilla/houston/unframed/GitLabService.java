@@ -9,6 +9,7 @@ import boozilla.houston.unframed.request.gitlab.PushEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import com.linecorp.armeria.server.ServiceRequestContext;
+import com.linecorp.armeria.server.annotation.MatchesHeader;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +35,8 @@ public class GitLabService implements UnframedService {
         this.objectMapper = objectMapper;
     }
 
-    @Post("/gitlab/push")
+    @Post("/gitlab/webhook")
+    @MatchesHeader("x-gitlab-event=Push Hook")
     public Mono<Empty> push(final PushEvent request)
     {
         final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
@@ -50,7 +52,8 @@ public class GitLabService implements UnframedService {
         return Mono.just(Empty.getDefaultInstance());
     }
 
-    @Post("/gitlab/note")
+    @Post("/gitlab/webhook")
+    @MatchesHeader("x-gitlab-event=Note Hook")
     public Mono<Empty> note(final NoteEvent request)
     {
         final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);

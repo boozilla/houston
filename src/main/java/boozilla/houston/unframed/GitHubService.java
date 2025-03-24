@@ -8,6 +8,8 @@ import boozilla.houston.grpc.webhook.command.Commands;
 import boozilla.houston.unframed.request.github.IssueEvent;
 import boozilla.houston.unframed.request.github.PushEvent;
 import com.google.protobuf.Empty;
+import com.linecorp.armeria.server.annotation.MatchesHeader;
+import com.linecorp.armeria.server.annotation.MatchesHeaders;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,8 +37,9 @@ public class GitHubService implements UnframedService {
         this.behavior = new GitHubBehavior(client);
     }
 
-    @Post("/github/push")
-    public Mono<Empty> push(final PushEvent request)
+    @Post("/github/webhook")
+    @MatchesHeader("x-github-event=push")
+    public Mono<Void> push(final PushEvent request)
     {
         behavior.uploadPayload(request.repository().fullName(), request.sender().login(),
                         request.ref(), request.before(), request.after())
@@ -46,11 +49,12 @@ public class GitHubService implements UnframedService {
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
 
-        return Mono.just(Empty.getDefaultInstance());
+        return Mono.empty();
     }
 
-    @Post("/github/issue")
-    public Mono<Void> issue(final IssueEvent request)
+    @Post("/github/webhook")
+    @MatchesHeader("x-github-event=issues")
+    public Mono<Void> issues(final IssueEvent request)
     {
         Mono.just(request)
                 .filter(req -> req.issue().labels()
@@ -73,5 +77,12 @@ public class GitHubService implements UnframedService {
                 .subscribe();
 
         return Mono.empty();
+    }
+
+    @Post("/github/webhook")
+    @MatchesHeader("x-github-event=issue_comment")
+    public Mono<Void> issueComment(final IssueEvent request)
+    {
+        return issues(request);
     }
 }
