@@ -7,15 +7,16 @@ import boozilla.houston.grpc.webhook.client.github.GitHubClient;
 import boozilla.houston.grpc.webhook.command.Commands;
 import boozilla.houston.unframed.request.github.IssueEvent;
 import boozilla.houston.unframed.request.github.PushEvent;
-import com.google.protobuf.Empty;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
-import com.linecorp.armeria.server.annotation.MatchesHeaders;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import java.util.Objects;
 
 @ProducesJson
 @SecuredService(GitHubAuthorizer.class)
@@ -63,7 +64,7 @@ public class GitHubService implements UnframedService {
                 .flatMap(req -> {
                     final var projectId = req.repository().fullName();
                     final var issueNumber = req.issue().number();
-                    final var body = req.comment().body();
+                    final var body = Objects.nonNull(req.comment()) ? req.comment().body() : Strings.EMPTY;
                     final var command = commands.find(body);
 
                     if(command.isPresent())
