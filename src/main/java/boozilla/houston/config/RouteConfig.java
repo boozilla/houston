@@ -2,10 +2,9 @@ package boozilla.houston.config;
 
 import boozilla.houston.asset.Assets;
 import boozilla.houston.asset.codec.DynamicJsonMarshaller;
-import boozilla.houston.decorator.GrpcAuthDecorator;
 import boozilla.houston.decorator.ServiceDecorator;
-import boozilla.houston.decorator.auth.AdminAuthorizer;
 import boozilla.houston.decorator.auth.HttpAuthorizer;
+import boozilla.houston.decorator.auth.JwtAdminAuthorizer;
 import boozilla.houston.decorator.factory.ScopeDecoratorFactory;
 import boozilla.houston.decorator.factory.SecureDecoratorFactory;
 import boozilla.houston.properties.GrpcProperties;
@@ -15,7 +14,7 @@ import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.grpc.GrpcService;
 import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.grpc.BindableService;
-import io.grpc.protobuf.services.ProtoReflectionService;
+import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,7 +35,7 @@ public class RouteConfig {
                 .addServices(services);
 
         if(grpcProperties.enableReflection())
-            builder.addService(ProtoReflectionService.newInstance());
+            builder.addService(ProtoReflectionServiceV1.newInstance());
 
         return builder.build();
     }
@@ -56,14 +55,14 @@ public class RouteConfig {
     }
 
     @Bean
-    public SecureDecoratorFactory secureDecoratorFactory(final List<HttpAuthorizer> grpcAuthorizer)
+    public SecureDecoratorFactory secureDecoratorFactory(final List<HttpAuthorizer> authorizers)
     {
-        return new SecureDecoratorFactory(new GrpcAuthDecorator(grpcAuthorizer));
+        return new SecureDecoratorFactory(authorizers);
     }
 
     @Bean
     public ScopeDecoratorFactory scopeDecoratorFactory(final DocServiceBuilder docServiceBuilder,
-                                                       final AdminAuthorizer adminAuthorizer)
+                                                       final JwtAdminAuthorizer adminAuthorizer)
     {
         return new ScopeDecoratorFactory(docServiceBuilder, adminAuthorizer);
     }

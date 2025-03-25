@@ -10,6 +10,7 @@ import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryBranchRe
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryCompareResponse;
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryTreeResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linecorp.armeria.client.HttpClient;
 import com.linecorp.armeria.client.ResponseAs;
 import com.linecorp.armeria.client.RestClient;
@@ -27,7 +28,6 @@ import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.ZonedDateTime;
@@ -43,24 +43,29 @@ public class GitLabClient implements GitClient {
     private static final Function<? super HttpClient, CircuitBreakerClient> circuitBreaker = circuitBreaker();
 
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
-    public GitLabClient(final String url, final String token)
+    public GitLabClient(final String url,
+                        final String token,
+                        final ObjectMapper objectMapper)
     {
-        restClient = RestClient.builder("%s/api/v4".formatted(url))
+        this.restClient = RestClient.builder("%s/api/v4".formatted(url))
                 .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(token))
                 .followRedirects()
                 .decorator(retryStrategy)
                 .decorator(circuitBreaker)
                 .build();
+        this.objectMapper = objectMapper;
     }
 
-    public static GitLabClient of(final ServiceRequestContext context)
+    public static GitLabClient of(final ServiceRequestContext context,
+                                  final ObjectMapper objectMapper)
     {
         final var token = header(context, GITLAB_ACCESS_TOKEN_KEY, "Access token is null");
         final var url = header(context, GITLAB_URL_KEY, "GitLab URL is null");
 
-        return new GitLabClient(url, token);
+        return new GitLabClient(url, token, objectMapper);
     }
 
     private static String header(final ServiceRequestContext context, final String key, final String message)
@@ -89,18 +94,13 @@ public class GitLabClient implements GitClient {
         return CircuitBreakerClient.newDecorator(circuitBreaker, rule);
     }
 
-    public URI uri()
-    {
-        return restClient.uri();
-    }
-
     public Mono<RepositoryCompareResponse> compare(final String projectId, final String from, final String to)
     {
         final var request = restClient.get("/projects/{id}/repository/compare")
                 .pathParam("id", projectId)
                 .queryParam("from", from)
                 .queryParam("to", to)
-                .execute(RepositoryCompareResponse.class);
+                .execute(RepositoryCompareResponse.class, objectMapper);
 
         return Mono.fromFuture(request)
                 .map(HttpEntity::content);
@@ -123,13 +123,13 @@ public class GitLabClient implements GitClient {
                 .queryParam("sort", "asc")
                 .queryParam("per_page", 100)
                 .execute(ResponseAs.json(new TypeReference<List<RepositoryTreeResponse.Node>>() {
-                }));
+                }, objectMapper));
 
         return Mono.fromFuture(request)
                 .flatMapMany(response -> pagination(response, page, nextPage -> tree(projectId, path, ref, recursive, nextPage)));
     }
 
-    public Mono<byte[]> getRawFile(final String projectId, final String filePath, final String ref, final boolean lfs)
+    public Mono<byte[]> getRawFile(final String projectId, final String ref, final String filePath, final boolean lfs)
     {
         final var request = restClient.get("/projects/{id}/repository/files/{filePath}/raw")
                 .pathParam("id", projectId)
@@ -142,13 +142,13 @@ public class GitLabClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<RepositoryBranchResponse.Branch> getBranch(final String projectId, final String search)
+    public Mono<RepositoryBranchResponse.Branch> getBranches(final String projectId, final String search)
     {
         final var request = restClient.get("/projects/{id}/repository/branches")
                 .pathParam("id", projectId)
                 .queryParam("search", search)
                 .execute(new TypeReference<List<RepositoryBranchResponse.Branch>>() {
-                });
+                }, objectMapper);
 
         return Mono.fromFuture(request)
                 .flatMap(response -> {
@@ -172,7 +172,7 @@ public class GitLabClient implements GitClient {
     }
 
     public Mono<Issue> createIssue(final String projectId, final String title, final String description,
-                                   final long assigneeId, final String labels, final ZonedDateTime createdAt)
+                                   final String assigneeId, final String labels, final ZonedDateTime createdAt)
     {
         final var request = restClient.post("/projects/{id}/issues")
                 .pathParam("id", projectId)
@@ -181,7 +181,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("assignee_id", assigneeId)
                 .queryParam("labels", labels)
                 .queryParam("created_at", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(createdAt))
-                .execute(IssueCreateResponse.class);
+                .execute(IssueCreateResponse.class, objectMapper);
 
         return Mono.fromFuture(request)
                 .map(HttpEntity::content);
@@ -205,7 +205,7 @@ public class GitLabClient implements GitClient {
         final var request = restClient.get("/projects/{id}/issues/{issueIid}")
                 .pathParam("id", projectId)
                 .pathParam("issueIid", issueIid)
-                .execute(IssueGetResponse.class);
+                .execute(IssueGetResponse.class, objectMapper);
 
         return Mono.fromFuture(request)
                 .map(HttpEntity::content);
@@ -217,7 +217,7 @@ public class GitLabClient implements GitClient {
                 .pathParam("id", projectId)
                 .queryParam("labels", String.join(",", labels))
                 .execute(new TypeReference<List<IssueGetResponse>>() {
-                });
+                }, objectMapper);
 
         return Mono.fromFuture(request)
                 .flatMapMany(response -> Flux.fromIterable(response.content()));
@@ -272,7 +272,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("sort", "asc")
                 .queryParam("order_by", "created_at")
                 .execute(new TypeReference<List<NotesGetResponse.Note>>() {
-                });
+                }, objectMapper);
 
         return Mono.fromFuture(request)
                 .flatMapMany(response -> pagination(response, page, nextPage -> notes(projectId, issueIid, nextPage)));

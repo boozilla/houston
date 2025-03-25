@@ -2,7 +2,8 @@ package boozilla.houston.asset;
 
 import boozilla.houston.entity.Data;
 import boozilla.houston.repository.DataRepository;
-import boozilla.houston.repository.Vaults;
+import boozilla.houston.repository.vaults.Vaults;
+import com.google.protobuf.InvalidProtocolBufferException;
 import houston.vo.asset.Archive;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -95,11 +96,20 @@ public class AssetContainerWatcher implements DisposableBean {
 
     private Mono<Archive> downloadArchive(final Data data)
     {
-        final var path = data.getSheetName() + "/" + data.getSha256();
-
-        return vaults.download(path)
+        return vaults.download(data)
+                .flatMap(content -> {
+                    try
+                    {
+                        final var archive = Archive.parseFrom(content);
+                        return Mono.just(archive);
+                    }
+                    catch(InvalidProtocolBufferException e)
+                    {
+                        return Mono.error(e);
+                    }
+                })
                 .onErrorResume(error -> {
-                    log.error("Archive file not found [path=%s]".formatted(path));
+                    log.error("Archive file not found [path={}]", data.getPath());
                     return Mono.empty();
                 });
     }

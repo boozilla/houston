@@ -1,8 +1,8 @@
 package boozilla.houston.token;
 
-import boozilla.houston.security.KmsAlgorithm;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -15,15 +15,15 @@ import java.util.Optional;
 @Component
 public class AdminApiKey {
     private final String issuer;
-    private final KmsAlgorithm kmsAlgorithm;
+    private final Algorithm algorithm;
     private final JWTVerifier verifier;
 
     public AdminApiKey(@Value("${project.name}") final String appName,
-                       final KmsAlgorithm kmsAlgorithm)
+                       final Algorithm algorithm)
     {
         this.issuer = appName;
-        this.kmsAlgorithm = kmsAlgorithm;
-        this.verifier = JWT.require(kmsAlgorithm)
+        this.algorithm = algorithm;
+        this.verifier = JWT.require(algorithm)
                 .withIssuer(issuer)
                 .build();
     }
@@ -34,7 +34,7 @@ public class AdminApiKey {
                         .withIssuedAt(OffsetDateTime.now().toInstant())
                         .withIssuer(issuer)
                         .withSubject(username)
-                        .sign(kmsAlgorithm))
+                        .sign(algorithm))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 

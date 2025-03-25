@@ -17,13 +17,13 @@ import java.util.concurrent.CompletionStage;
 
 @Slf4j
 @Component
-public class AdminAuthorizer implements HttpAuthorizer {
+public class JwtAdminAuthorizer implements HttpAuthorizer {
     private static final String TOKEN_HEADER_NAME = "x-houston-token";
 
     private final AdminApiKey adminApiKey;
 
-    public AdminAuthorizer(@Nullable final DocServiceBuilder docServiceBuilder,
-                           final AdminApiKey adminApiKey)
+    public JwtAdminAuthorizer(@Nullable final DocServiceBuilder docServiceBuilder,
+                              final AdminApiKey adminApiKey)
     {
         if(Objects.nonNull(docServiceBuilder))
             docServiceBuilder.exampleHeaders(HttpHeaders.of(TOKEN_HEADER_NAME, Strings.EMPTY));

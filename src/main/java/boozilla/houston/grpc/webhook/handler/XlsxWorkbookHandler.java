@@ -103,11 +103,12 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                     final var data = tuple.getT1();
                     final var archive = tuple.getT2();
 
-                    return vaults.upload(data.getSheetName(), archive)
-                            .flatMap(key -> {
-                                data.setSha256(key);
+                    return vaults.upload(data.getSheetName(), archive.toByteArray())
+                            .flatMap(uploadResult -> {
+                                data.setPath(uploadResult.path());
+                                data.setChecksum(uploadResult.checksum());
 
-                                return repository.existsByCommitIdAndScopeAndNameAndSha256(data.getCommitId(), data.getScope(), data.getName(), data.getSha256())
+                                return repository.existsByCommitIdAndScopeAndNameAndChecksum(data.getCommitId(), data.getScope(), data.getName(), data.getChecksum())
                                         .filter(result -> !result)
                                         .flatMap(result -> repository.save(data)
                                                 .onErrorResume(error -> {

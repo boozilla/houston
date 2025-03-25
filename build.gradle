@@ -2,6 +2,7 @@ plugins {
     id 'java'
     alias libs.plugins.protobuf
     alias libs.plugins.jib
+    alias libs.plugins.spring.boot
 }
 
 subprojects {
@@ -13,7 +14,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.0.3'
+version = '1.0.4'
 
 sourceSets {
     main {
@@ -43,6 +44,7 @@ protobuf {
         grpc {
             artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
         }
+
         reactor {
             artifact = "com.salesforce.servicelibs:reactor-grpc:${reactorGrpcVersion}"
         }
@@ -96,6 +98,10 @@ jib {
                 '-XX:MaxRAMPercentage=80'
         ]
     }
+}
+
+bootJar {
+    launchScript()
 }
 
 repositories {

@@ -1,7 +1,7 @@
 package boozilla.houston.asset;
 
 import boozilla.houston.asset.constraints.AssetSheetConstraints;
-import boozilla.houston.repository.Vaults;
+import boozilla.houston.repository.vaults.Vaults;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;

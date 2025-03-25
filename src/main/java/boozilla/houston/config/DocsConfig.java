@@ -19,7 +19,7 @@ public class DocsConfig implements ArmeriaServerConfigurator {
     {
         serverBuilder.serviceUnder("/docs", docServiceBuilder
                 .exclude(DocServiceFilter.ofGrpc()
-                        .and(DocServiceFilter.ofMethodName("ServerReflectionInfo")))
+                        .and(DocServiceFilter.ofServiceName("grpc.reflection.v1.ServerReflection")))
                 .build());
     }
 }
