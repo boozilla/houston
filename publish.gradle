@@ -14,7 +14,7 @@ afterEvaluate {
 
     publishing {
         publications {
-            "$project.name"(MavenPublication) {
+            publications.named(project.name) {
                 groupId = "io.github.boozilla"
                 artifactId = "houston.${project.name}"
 
