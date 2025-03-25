@@ -2,6 +2,7 @@ plugins {
     id 'java'
     alias libs.plugins.protobuf
     alias libs.plugins.jib
+    alias libs.plugins.spring.boot
 }
 
 subprojects {
@@ -97,6 +98,10 @@ jib {
                 '-XX:MaxRAMPercentage=80'
         ]
     }
+}
+
+bootJar {
+    launchScript()
 }
 
 repositories {
