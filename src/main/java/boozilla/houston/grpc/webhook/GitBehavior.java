@@ -4,12 +4,14 @@ import boozilla.houston.Application;
 import boozilla.houston.grpc.webhook.client.GitClient;
 import boozilla.houston.grpc.webhook.client.Issue;
 import boozilla.houston.grpc.webhook.command.PayloadCommand;
+import com.google.common.base.Strings;
 import houston.vo.webhook.UploadPayload;
 import org.joda.time.Period;
 import reactor.core.publisher.Mono;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public interface GitBehavior<T extends GitClient> {
@@ -80,8 +82,10 @@ public interface GitBehavior<T extends GitClient> {
 
         final var contributors = uploadPayload.getContributorList().stream()
                 .map(contributor -> "| %s | %s | %s | %s |"
-                        .formatted(contributor.getTitle(), shortCommitId(contributor.getCommitId()),
-                                contributor.getName(), contributor.getEmail()))
+                        .formatted(Objects.requireNonNullElse(Strings.emptyToNull(contributor.getTitle()), "-"),
+                                Objects.requireNonNullElse(shortCommitId(contributor.getCommitId()), "-"),
+                                Objects.requireNonNullElse(Strings.emptyToNull(contributor.getName()), "-"),
+                                Objects.requireNonNullElse(Strings.emptyToNull(contributor.getEmail()), "-")))
                 .collect(Collectors.joining("\n"));
 
         final var messageSourceAccessor = Application.messageSourceAccessor();
