@@ -42,13 +42,18 @@ public class GitHubService implements UnframedService {
     @MatchesHeader("x-github-event=push")
     public Mono<Void> push(final PushEvent request)
     {
-        behavior.uploadPayload(request.repository().fullName(), request.sender().login(),
-                        request.ref(), request.before(), request.after())
-                .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
-                        .flatMap(issue -> behavior.linkIssues(issue.getId(), uploadPayload)
-                                .and(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe();
+        final var requestBranch = behavior.branchFromRef(request.ref());
+
+        if(targetBranch.equalsIgnoreCase(requestBranch))
+        {
+            behavior.uploadPayload(request.repository().fullName(), request.sender().login(),
+                            request.ref(), request.before(), request.after())
+                    .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
+                            .flatMap(issue -> behavior.linkIssues(issue.getId(), uploadPayload)
+                                    .and(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe();
+        }
 
         return Mono.empty();
     }
@@ -60,7 +65,7 @@ public class GitHubService implements UnframedService {
         Mono.just(request)
                 .filter(req -> req.issue().labels()
                         .stream()
-                        .anyMatch(label -> label.name().equalsIgnoreCase(this.targetBranch)))
+                        .anyMatch(label -> label.name().equalsIgnoreCase(targetBranch)))
                 .flatMap(req -> {
                     final var projectId = req.repository().fullName();
                     final var issueNumber = req.issue().number();
@@ -69,7 +74,7 @@ public class GitHubService implements UnframedService {
 
                     if(command.isPresent())
                     {
-                        return command.get().run(this.packageName, projectId, issueNumber, this.targetBranch, body, behavior);
+                        return command.get().run(packageName, projectId, issueNumber, targetBranch, body, behavior);
                     }
 
                     return Mono.empty();
