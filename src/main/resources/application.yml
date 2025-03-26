@@ -24,7 +24,8 @@ armeria:
 
 management:
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
         exclude: "*"
+    access:
+      default: none
