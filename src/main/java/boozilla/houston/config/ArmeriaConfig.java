@@ -38,8 +38,8 @@ public class ArmeriaConfig {
     }
 
     @Bean
-    public ArmeriaServerConfigurator tls(@Nullable @Value("${armeria.tls.private-key-file}") final String privateKeyFile,
-                                         @Nullable @Value("${armeria.tls.cert-chain-file}") final String certChainFile)
+    public ArmeriaServerConfigurator tls(@Nullable @Value("${armeria.tls.private-key-file:#{null}}") final String privateKeyFile,
+                                         @Nullable @Value("${armeria.tls.cert-chain-file:#{null}}") final String certChainFile)
     {
         return serverBuilder -> {
             if(Objects.nonNull(privateKeyFile) && Objects.nonNull(certChainFile))
