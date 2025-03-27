@@ -36,13 +36,14 @@ public class PluginGrpc extends ReactorPluginServiceGrpc.PluginServiceImplBase {
     @Override
     public Flux<RunVerifierResponse> runVerifier(final UploadVerifierRequest request)
     {
-        final var writer = new StringWriter();
         final var container = assets.container();
         final var classLoader = new ByteArrayClassLoader(getClass().getClassLoader(), Map.of(
                 request.getClassName(), request.getVerifierByteCode().toByteArray()));
 
-        try(final var printer = new PrintWriter(writer))
+        try
         {
+            final var writer = new StringWriter();
+            final var printer = new PrintWriter(writer);
             final var constraintsClass = classLoader.loadClass(request.getClassName());
             final var constraints = AssetVerifier.newConstraints(constraintsClass);
 
@@ -52,7 +53,7 @@ public class PluginGrpc extends ReactorPluginServiceGrpc.PluginServiceImplBase {
                         error.printStackTrace(printer);
 
                         return RunVerifierResponse.newBuilder()
-                                .setStacktrace(writer.toString())
+                                .setOutput(writer.toString())
                                 .build();
                     });
         }
