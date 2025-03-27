@@ -7,7 +7,7 @@ import java.util.Optional;
 public interface AssetSheetConstraints {
     Optional<String> targetSheetName();
 
-    Flux<Throwable> check(final AssetAccessor accessor);
+    Flux<? extends Throwable> check(final AssetAccessor accessor);
 
     String subject();
 }

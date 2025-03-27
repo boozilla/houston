@@ -20,7 +20,7 @@ public class NothingConstraints implements AssetSheetConstraints {
     }
 
     @Override
-    public Flux<Throwable> check(final AssetAccessor container)
+    public Flux<Exception> check(final AssetAccessor container)
     {
         return Flux.empty();
     }
