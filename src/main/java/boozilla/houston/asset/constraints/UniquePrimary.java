@@ -5,6 +5,7 @@ import boozilla.houston.exception.AssetVerifyException;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.io.PrintWriter;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -25,7 +26,7 @@ public class UniquePrimary extends LocalizedAssetSheetConstraints {
     }
 
     @Override
-    public Flux<Throwable> check(final AssetAccessor accessor)
+    public Flux<Throwable> check(final PrintWriter writer, final AssetAccessor accessor)
     {
         final var updated = accessor.updatedKey()
                 .stream()

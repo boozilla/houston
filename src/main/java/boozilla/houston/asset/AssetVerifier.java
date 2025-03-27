@@ -9,6 +9,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.tools.shaded.net.bytebuddy.dynamic.loading.ByteArrayClassLoader;
 import reactor.util.function.Tuples;
 
+import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Set;
@@ -36,11 +37,14 @@ public class AssetVerifier {
         }
     }
 
-    public static Flux<Throwable> exceptions(final AssetContainer container, final AssetSheetConstraints... constraints)
+    public static Flux<Throwable> exceptions(final PrintWriter writer,
+                                             final AssetContainer container,
+                                             final AssetSheetConstraints... constraints)
     {
         return Flux.fromArray(constraints)
-                .flatMap(c -> c.check(container))
-                .distinct();
+                .flatMap(c -> c.check(writer, container))
+                .distinct()
+                .cast(Throwable.class);
     }
 
     private Flux<AssetSheetConstraints> scanConstraints(final GitBehavior<?> behavior, final String projectId, final String ref)
@@ -79,12 +83,13 @@ public class AssetVerifier {
 
         return Flux.fromIterable(constraints)
                 .concatWith(scanConstraints(behavior, projectId, ref))
-                .flatMap(c -> c.check(container)
+                .flatMap(c -> c.check(new PrintWriter(System.out), container)
                         .doFirst(() -> behavior.commentMessage(projectId, issueId,
                                         messageAccessor.getMessage("CONSTRAINTS_SUBJECT").formatted(c.subject()))
                                 .subscribeOn(Schedulers.boundedElastic())
                                 .subscribe()))
                 .distinct()
+                .cast(Throwable.class)
                 .doOnNext(error -> error.printStackTrace(System.out));
     }
 }

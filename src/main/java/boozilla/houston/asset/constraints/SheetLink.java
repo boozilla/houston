@@ -8,6 +8,7 @@ import boozilla.houston.utils.MessageUtils;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,7 +24,7 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     @Override
-    public Flux<Throwable> check(final AssetAccessor accessor)
+    public Flux<Throwable> check(final PrintWriter writer, final AssetAccessor accessor)
     {
         final var updated = accessor.updatedMergeKey();
 

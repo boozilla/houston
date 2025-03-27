@@ -36,28 +36,24 @@ public class PluginGrpc extends ReactorPluginServiceGrpc.PluginServiceImplBase {
     @Override
     public Flux<RunVerifierResponse> runVerifier(final UploadVerifierRequest request)
     {
+        final var writer = new StringWriter();
         final var container = assets.container();
         final var classLoader = new ByteArrayClassLoader(getClass().getClassLoader(), Map.of(
                 request.getClassName(), request.getVerifierByteCode().toByteArray()));
 
-        try
+        try(final var printer = new PrintWriter(writer))
         {
             final var constraintsClass = classLoader.loadClass(request.getClassName());
             final var constraints = AssetVerifier.newConstraints(constraintsClass);
 
-            return AssetVerifier.exceptions(container, constraints)
+            return AssetVerifier.exceptions(printer, container, constraints)
                     .onErrorResume(Flux::just)
                     .map(error -> {
-                        final var writer = new StringWriter();
+                        error.printStackTrace(printer);
 
-                        try(final var printer = new PrintWriter(writer))
-                        {
-                            error.printStackTrace(printer);
-
-                            return RunVerifierResponse.newBuilder()
-                                    .setStacktrace(writer.toString())
-                                    .build();
-                        }
+                        return RunVerifierResponse.newBuilder()
+                                .setStacktrace(writer.toString())
+                                .build();
                     });
         }
         catch(ClassNotFoundException e)

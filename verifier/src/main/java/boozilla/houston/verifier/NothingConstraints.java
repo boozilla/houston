@@ -4,6 +4,7 @@ import boozilla.houston.asset.constraints.AssetAccessor;
 import boozilla.houston.asset.constraints.AssetSheetConstraints;
 import reactor.core.publisher.Flux;
 
+import java.io.PrintWriter;
 import java.util.Optional;
 
 public class NothingConstraints implements AssetSheetConstraints {
@@ -20,7 +21,7 @@ public class NothingConstraints implements AssetSheetConstraints {
     }
 
     @Override
-    public Flux<Exception> check(final AssetAccessor container)
+    public Flux<Exception> check(final PrintWriter writer, final AssetAccessor container)
     {
         return Flux.empty();
     }
