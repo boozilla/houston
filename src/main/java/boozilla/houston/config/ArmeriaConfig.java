@@ -46,6 +46,10 @@ public class ArmeriaConfig {
             {
                 serverBuilder.tls(TlsKeyPair.of(new File(privateKeyFile), new File(certChainFile)));
             }
+            else
+            {
+                serverBuilder.tlsSelfSigned();
+            }
         };
     }
 
