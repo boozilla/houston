@@ -6,10 +6,10 @@ import java.io.PrintWriter;
 import java.util.Optional;
 
 public interface AssetSheetConstraints {
+    String subject();
+
     Optional<String> targetSheetName();
 
     Flux<? extends Throwable> check(final PrintWriter writer,
                                     final AssetAccessor accessor);
-
-    String subject();
 }
