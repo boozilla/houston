@@ -5,7 +5,6 @@ import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.Assets;
 import boozilla.houston.context.ScopeContext;
 import com.google.protobuf.Any;
-import com.google.protobuf.Empty;
 import com.linecorp.armeria.common.util.TimeoutMode;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.grpc.service.*;
@@ -15,6 +14,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.stream.Collectors;
 
 @Service
 @ScopeService
@@ -25,20 +25,23 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     private final Assets assets;
 
     @Override
-    public Flux<AssetSheet> list(final Empty request)
+    public Flux<AssetSheet> list(final AssetListRequest request)
     {
         final var requestContext = ServiceRequestContext.current();
         final var scope = ScopeContext.get();
+        final var include = request.getIncludeList().stream()
+                .collect(Collectors.toUnmodifiableSet());
 
         return assets.container()
-                .list(scope)
+                .list(scope, include)
                 .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
     }
 
     @Override
-    public Mono<AssetSheets> fetchList(final Empty request)
+    public Mono<AssetSheets> fetchList(final AssetListRequest request)
     {
-        return list(request).reduce(AssetSheets.newBuilder(), (builder, sheet) -> {
+        return list(request)
+                .reduce(AssetSheets.newBuilder(), (builder, sheet) -> {
                     builder.addSheet(sheet);
                     return builder;
                 })
@@ -51,20 +54,27 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
         final var requestContext = ServiceRequestContext.current();
         final var scope = ScopeContext.get();
 
-        return assets.container()
+        final var response = assets.container()
                 .query(scope, request.getQuery(), resultInfo -> {
                     requestContext.addAdditionalResponseHeader("x-houston-query-size", resultInfo.size());
                     requestContext.addAdditionalResponseHeader("x-houston-query-merge-cost", resultInfo.mergeCost());
                     requestContext.addAdditionalResponseHeader("x-houston-query-retrieval-cost", resultInfo.retrievalCost());
-                })
-                .map(AssetData::any)
+                });
+
+        if(request.getHeadersOnly())
+        {
+            return response.thenMany(Flux.empty());
+        }
+
+        return response.map(AssetData::any)
                 .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
     }
 
     @Override
     public Mono<AssetQueryResponse> fetchQuery(final AssetQueryRequest request)
     {
-        return query(request).reduce(AssetQueryResponse.newBuilder(), (builder, any) -> {
+        return query(request)
+                .reduce(AssetQueryResponse.newBuilder(), (builder, any) -> {
                     builder.addResult(any);
                     return builder;
                 })

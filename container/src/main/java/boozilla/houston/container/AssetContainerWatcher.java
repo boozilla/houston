@@ -3,7 +3,7 @@ package boozilla.houston.container;
 import boozilla.houston.HoustonChannel;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
 import com.google.protobuf.Any;
-import com.google.protobuf.Empty;
+import houston.grpc.service.AssetListRequest;
 import houston.grpc.service.AssetQueryRequest;
 import houston.grpc.service.AssetSheet;
 import houston.grpc.service.ReactorAssetServiceGrpc;
@@ -89,7 +89,7 @@ public class AssetContainerWatcher implements AutoCloseable {
     private Mono<List<AssetSheet>> list(final AssetContainer container)
     {
         final var stub = ReactorAssetServiceGrpc.newReactorStub(channel);
-        return stub.list(Empty.getDefaultInstance())
+        return stub.list(AssetListRequest.getDefaultInstance())
                 .collectList()
                 .doOnNext(latest -> {
                     final var sheetNames = latest.stream().map(AssetSheet::getName)

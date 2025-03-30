@@ -218,10 +218,11 @@ public class AssetContainer implements AssetAccessor {
         return Objects.requireNonNullElse(partitions, Set.of());
     }
 
-    public Flux<AssetSheet> list(final Scope scope)
+    public Flux<AssetSheet> list(final Scope scope, final Set<String> include)
     {
         final var stream = this.data.keySet().stream()
                 .filter(key -> key.scope() == scope)
+                .filter(key -> include.isEmpty() || include.contains(key.sheetName()))
                 .map(key -> {
                     final var data = this.data.get(key);
                     final var query = this.query.get(key.toMergeKey());
