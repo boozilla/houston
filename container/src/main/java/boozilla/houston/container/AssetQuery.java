@@ -32,16 +32,18 @@ import static com.googlecode.cqengine.query.QueryFactory.attribute;
 import static com.googlecode.cqengine.query.QueryFactory.nullableAttribute;
 
 public class AssetQuery {
+    private final String commitId;
     private final ConcurrentIndexedCollection<DynamicMessage> indexedCollection;
     private final SQLParser<DynamicMessage> sqlParser;
 
     private SimpleAttribute<DynamicMessage, Long> primary;
 
-    public AssetQuery(final List<Any> data, final Descriptors.Descriptor sheetDescriptor)
+    public AssetQuery(final String commitId, final List<Any> data, final Descriptors.Descriptor sheetDescriptor)
     {
         final var attributes = attributes(sheetDescriptor.getFields());
         final var indices = indices(sheetDescriptor.getFields(), attributes);
 
+        this.commitId = commitId;
         this.indexedCollection = indexedCollection(sheetDescriptor, indices, data);
         this.sqlParser = SQLParser.forPojoWithAttributes(DynamicMessage.class, attributes);
     }
@@ -53,7 +55,11 @@ public class AssetQuery {
 
         if(Objects.nonNull(resultInfoConsumer))
         {
-            final var resultInfo = new QueryResultInfo(resultSet.size(), resultSet.getMergeCost(), resultSet.getRetrievalCost());
+            final var resultInfo = new QueryResultInfo(
+                    commitId,
+                    resultSet.size(),
+                    resultSet.getMergeCost(),
+                    resultSet.getRetrievalCost());
             resultInfoConsumer.accept(resultInfo);
         }
 

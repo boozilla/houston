@@ -56,6 +56,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
 
         final var response = assets.container()
                 .query(scope, request.getQuery(), resultInfo -> {
+                    requestContext.addAdditionalResponseHeader("x-houston-commit-id", resultInfo.commitId());
                     requestContext.addAdditionalResponseHeader("x-houston-query-size", resultInfo.size());
                     requestContext.addAdditionalResponseHeader("x-houston-query-merge-cost", resultInfo.mergeCost());
                     requestContext.addAdditionalResponseHeader("x-houston-query-retrieval-cost", resultInfo.retrievalCost());

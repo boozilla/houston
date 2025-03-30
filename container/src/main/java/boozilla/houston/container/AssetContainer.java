@@ -65,7 +65,7 @@ public class AssetContainer {
         remove(sheet);
 
         final var sheetDescriptor = sheetDescriptor(sheet.getName(), sheet.getStructure());
-        final var query = new AssetQuery(data, sheetDescriptor);
+        final var query = new AssetQuery(sheet.getCommitId(), data, sheetDescriptor);
 
         this.sheets.put(sheet.getName(), sheet);
         this.query.put(sheet.getName(), query);

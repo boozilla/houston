@@ -255,12 +255,13 @@ public class AssetContainer implements AssetAccessor {
                         return;
 
                     final var codec = this.codec.get(mergeKey);
+                    final var commitId = this.data.get(mergeKey).getCommitId();
                     final var sheetDescriptor = codec.getFileDescriptor().findMessageTypeByName(mergeKey.sheetName());
                     final var data = archives.stream().flatMap(archive -> codec.deserialize(archive.getDataBytes().toByteArray()).stream())
                             .map(Any::pack)
                             .toList();
 
-                    final var query = new AssetQuery(data, sheetDescriptor);
+                    final var query = new AssetQuery(commitId, data, sheetDescriptor);
 
                     this.query.put(mergeKey, query);
                 })
