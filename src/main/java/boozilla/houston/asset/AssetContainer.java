@@ -22,6 +22,7 @@ import reactor.util.function.Tuples;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class AssetContainer implements AssetAccessor {
@@ -291,26 +292,56 @@ public class AssetContainer implements AssetAccessor {
                 });
     }
 
-    public Flux<AssetData> query(final AssetLink link, final SqlStatement<?> sql)
+    public Flux<AssetData> query(final AssetLink link,
+                                 final SqlStatement<?> sql)
     {
-        return query(link, sql.toString());
+        return query(link, sql.toString(), null);
     }
 
-    public Flux<AssetData> query(final Scope scope, final SqlStatement<?> sql)
+    public Flux<AssetData> query(final AssetLink link,
+                                 final SqlStatement<?> sql,
+                                 final Consumer<QueryResultInfo> resultInfoConsumer)
     {
-        return query(scope, sql.toString());
+        return query(link, sql.toString(), resultInfoConsumer);
     }
 
-    public Flux<AssetData> query(final AssetLink link, final String sql)
+    public Flux<AssetData> query(final Scope scope,
+                                 final SqlStatement<?> sql)
+    {
+        return query(scope, sql.toString(), null);
+    }
+
+    public Flux<AssetData> query(final Scope scope,
+                                 final SqlStatement<?> sql,
+                                 final Consumer<QueryResultInfo> resultInfoConsumer)
+    {
+        return query(scope, sql.toString(), resultInfoConsumer);
+    }
+
+    public Flux<AssetData> query(final AssetLink link,
+                                 final String sql)
+    {
+        return query(link, sql, null);
+    }
+
+    public Flux<AssetData> query(final AssetLink link,
+                                 final String sql,
+                                 final Consumer<QueryResultInfo> resultInfoConsumer)
     {
         final var scope = columnScope(link.getSheetName(), link.getColumnName()).stream()
                 .findAny()
                 .orElseThrow();
 
-        return query(scope, sql);
+        return query(scope, sql, resultInfoConsumer);
     }
 
+    @Override
     public Flux<AssetData> query(final Scope scope, final String sql)
+    {
+        return query(scope, sql, null);
+    }
+
+    public Flux<AssetData> query(final Scope scope, final String sql, final Consumer<QueryResultInfo> resultInfoConsumer)
     {
         final var query = Query.of(sql);
 
@@ -321,6 +352,6 @@ public class AssetContainer implements AssetAccessor {
         if(Objects.isNull(assetQuery) || Objects.isNull(codec))
             return Flux.empty();
 
-        return query.result(assetQuery, codec.getFieldDescriptor());
+        return query.result(assetQuery, codec.getFieldDescriptor(), resultInfoConsumer);
     }
 }

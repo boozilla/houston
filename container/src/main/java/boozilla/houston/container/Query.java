@@ -1,6 +1,7 @@
 package boozilla.houston.container;
 
 import boozilla.houston.asset.AssetData;
+import boozilla.houston.asset.QueryResultInfo;
 import com.google.protobuf.Descriptors;
 import com.googlecode.cqengine.query.parser.common.InvalidQueryException;
 import com.googlecode.cqengine.resultset.ResultSet;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public record Query(
@@ -119,9 +121,11 @@ public record Query(
         return columns.isEmpty();
     }
 
-    public Flux<AssetData> result(final AssetQuery assetQuery, final List<Descriptors.FieldDescriptor> fieldDescriptor)
+    public Flux<AssetData> result(final AssetQuery assetQuery,
+                                  final List<Descriptors.FieldDescriptor> fieldDescriptor,
+                                  final Consumer<QueryResultInfo> resultInfoConsumer)
     {
-        return Flux.using(() -> assetQuery.query(sql()),
+        return Flux.using(() -> assetQuery.query(sql(), resultInfoConsumer),
                         result -> Flux.fromStream(() -> {
                                     var stream = result.stream();
 

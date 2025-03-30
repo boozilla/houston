@@ -52,7 +52,11 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
         final var scope = ScopeContext.get();
 
         return assets.container()
-                .query(scope, request.getQuery())
+                .query(scope, request.getQuery(), resultInfo -> {
+                    requestContext.addAdditionalResponseHeader("x-houston-query-size", resultInfo.size());
+                    requestContext.addAdditionalResponseHeader("x-houston-query-merge-cost", resultInfo.mergeCost());
+                    requestContext.addAdditionalResponseHeader("x-houston-query-retrieval-cost", resultInfo.retrievalCost());
+                })
                 .map(AssetData::any)
                 .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
     }

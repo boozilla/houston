@@ -1,5 +1,6 @@
 package boozilla.houston.container;
 
+import boozilla.houston.asset.QueryResultInfo;
 import boozilla.houston.utils.MessageUtils;
 import com.google.protobuf.Any;
 import com.google.protobuf.Descriptors;
@@ -21,6 +22,8 @@ import com.googlecode.cqengine.resultset.ResultSet;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -43,10 +46,18 @@ public class AssetQuery {
         this.sqlParser = SQLParser.forPojoWithAttributes(DynamicMessage.class, attributes);
     }
 
-    public ResultSet<DynamicMessage> query(final String sql)
+    public ResultSet<DynamicMessage> query(final String sql, final Consumer<QueryResultInfo> resultInfoConsumer)
     {
         final var parseResult = this.sqlParser.parse(sql);
-        return indexedCollection.retrieve(parseResult.getQuery(), parseResult.getQueryOptions());
+        final var resultSet = indexedCollection.retrieve(parseResult.getQuery(), parseResult.getQueryOptions());
+
+        if(Objects.nonNull(resultInfoConsumer))
+        {
+            final var resultInfo = new QueryResultInfo(resultSet.size(), resultSet.getMergeCost(), resultSet.getRetrievalCost());
+            resultInfoConsumer.accept(resultInfo);
+        }
+
+        return resultSet;
     }
 
     public int size()

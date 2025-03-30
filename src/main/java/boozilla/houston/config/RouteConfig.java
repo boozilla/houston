@@ -14,7 +14,7 @@ import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.grpc.GrpcService;
 import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.grpc.BindableService;
-import io.grpc.protobuf.services.ProtoReflectionServiceV1;
+import io.grpc.protobuf.services.ProtoReflectionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -35,7 +35,7 @@ public class RouteConfig {
                 .addServices(services);
 
         if(grpcProperties.enableReflection())
-            builder.addService(ProtoReflectionServiceV1.newInstance());
+            builder.addService(ProtoReflectionService.newInstance());
 
         return builder.build();
     }

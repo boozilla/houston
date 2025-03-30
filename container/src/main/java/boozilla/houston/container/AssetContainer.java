@@ -1,6 +1,7 @@
 package boozilla.houston.container;
 
 import boozilla.houston.asset.AssetData;
+import boozilla.houston.asset.QueryResultInfo;
 import boozilla.houston.asset.sql.SqlStatement;
 import com.google.protobuf.*;
 import houston.grpc.service.AssetSheet;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Consumer;
 
 @Slf4j
 public class AssetContainer {
@@ -31,10 +33,20 @@ public class AssetContainer {
 
     public Flux<AssetData> query(final SqlStatement<?> sql)
     {
-        return query(sql.toString());
+        return query(sql.toString(), null);
+    }
+
+    public Flux<AssetData> query(final SqlStatement<?> sql, final Consumer<QueryResultInfo> resultInfoConsumer)
+    {
+        return query(sql.toString(), resultInfoConsumer);
     }
 
     public Flux<AssetData> query(final String sql)
+    {
+        return query(sql, null);
+    }
+
+    public Flux<AssetData> query(final String sql, final Consumer<QueryResultInfo> resultInfoConsumer)
     {
         final var query = Query.of(sql);
 
@@ -43,7 +55,8 @@ public class AssetContainer {
 
         return query.result(
                 this.query.get(query.from()),
-                descriptors.get(query.from()).getFields()
+                descriptors.get(query.from()).getFields(),
+                resultInfoConsumer
         );
     }
 
