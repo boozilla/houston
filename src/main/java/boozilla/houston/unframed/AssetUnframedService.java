@@ -1,13 +1,12 @@
 package boozilla.houston.unframed;
 
 import boozilla.houston.annotation.ScopeService;
-import boozilla.houston.asset.AssetData;
-import boozilla.houston.asset.Assets;
-import boozilla.houston.context.ScopeContext;
+import boozilla.houston.grpc.AssetGrpc;
 import com.linecorp.armeria.server.annotation.Post;
 import houston.grpc.service.AssetQueryRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.stream.Collectors;
@@ -15,17 +14,13 @@ import java.util.stream.Collectors;
 @RestController
 @AllArgsConstructor
 public class AssetUnframedService implements UnframedService {
-    private final Assets assets;
+    private final AssetGrpc assetGrpc;
 
     @ScopeService
     @Post("/asset/query")
     public Mono<String> query(final AssetQueryRequest request)
     {
-        final var scope = ScopeContext.get();
-
-        return assets.container()
-                .query(scope, request.getQuery())
-                .map(AssetData::toJsonString)
+        return assetGrpc.query(request, data -> Flux.just(data.toJsonString()))
                 .collect(Collectors.joining(",", "[", "]"));
     }
 }

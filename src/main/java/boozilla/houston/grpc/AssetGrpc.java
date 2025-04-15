@@ -1,6 +1,7 @@
 package boozilla.houston.grpc;
 
 import boozilla.houston.annotation.ScopeService;
+import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.Assets;
 import boozilla.houston.context.ScopeContext;
 import com.google.protobuf.Any;
@@ -13,6 +14,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +52,11 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     @Override
     public Flux<Any> query(final AssetQueryRequest request)
     {
+        return query(request, data -> Flux.just(data.any()));
+    }
+
+    public <T> Flux<T> query(final AssetQueryRequest request, final Function<AssetData, Flux<T>> func)
+    {
         final var requestContext = ServiceRequestContext.current();
         final var scope = ScopeContext.get();
 
@@ -66,7 +73,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
             return response.thenMany(Flux.empty());
         }
 
-        return response.flatMapSequential(data -> Flux.just(data.any()))
+        return response.flatMapSequential(func)
                 .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
     }
 
