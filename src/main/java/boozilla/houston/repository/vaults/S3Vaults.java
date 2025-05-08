@@ -33,10 +33,10 @@ public class S3Vaults implements Vaults {
         final var checksumBytes = checksum.getChecksumBytes();
         final var checksumHex = HexFormat.of().formatHex(checksumBytes);
         final var checksumBase64 = Base64.getEncoder().encodeToString(checksumBytes);
-        final var path = sheetName + "/" + checksumHex;
+        final var key = sheetName + "/" + checksumHex;
 
         final var uploadFuture = client.putObject(builder -> builder
-                        .key(path + "/" + checksumHex)
+                        .key(key)
                         .bucket(bucket)
                         .checksumAlgorithm(ChecksumAlgorithm.SHA256)
                         .build(),
@@ -49,7 +49,7 @@ public class S3Vaults implements Vaults {
                         return Mono.error(new RuntimeException("Checksum mismatch"));
                     }
 
-                    return Mono.just(new UploadResult(path, checksumHex));
+                    return Mono.just(new UploadResult(key, checksumHex));
                 });
     }
 
