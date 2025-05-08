@@ -152,6 +152,9 @@ dependencies {
     implementation libs.aws.secretsmanager
     implementation libs.aws.kms
     implementation libs.aws.s3
+    runtimeOnly libs.aws.sso
+    runtimeOnly libs.aws.ssooidc
+    runtimeOnly libs.aws.auth
 
     implementation libs.java.jwt
 

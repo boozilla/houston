@@ -79,6 +79,9 @@ fastexcel-reader = { group = "org.dhatim", name = "fastexcel-reader", version.re
 aws-secretsmanager = { group = "software.amazon.awssdk", name = "secretsmanager", version.ref = "awssdk" }
 aws-kms = { group = "software.amazon.awssdk", name = "kms", version.ref = "awssdk" }
 aws-s3 = { group = "software.amazon.awssdk", name = "s3", version.ref = "awssdk" }
+aws-sso = { group = "software.amazon.awssdk", name = "sso", version.ref = "awssdk" }
+aws-ssooidc = { group = "software.amazon.awssdk", name = "ssooidc", version.ref = "awssdk" }
+aws-auth = { group = "software.amazon.awssdk", name = "auth", version.ref = "awssdk" }
 
 # java-jwt
 java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "java-jwt" }

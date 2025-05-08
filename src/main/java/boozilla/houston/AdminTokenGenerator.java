@@ -19,7 +19,7 @@ public class AdminTokenGenerator implements Runnable {
     @CommandLine.Option(names = {"--issuer", "--iss"}, required = true, description = "Token issuer")
     private String issuer;
 
-    @CommandLine.Option(names = {"--username", "--u"}, interactive = true, description = "Username")
+    @CommandLine.Option(names = {"--username", "--user"}, interactive = true, description = "Username")
     private String username;
 
     @CommandLine.ArgGroup(multiplicity = "1")
