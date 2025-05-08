@@ -16,10 +16,10 @@ import java.util.function.Supplier;
 @Setter(AccessLevel.NONE)
 @CommandLine.Command
 public class AdminTokenGenerator implements Runnable {
-    @CommandLine.Option(names = {"--issuer", "-iss"}, required = true, description = "Token issuer")
+    @CommandLine.Option(names = {"--issuer", "--iss"}, required = true, description = "Token issuer")
     private String issuer;
 
-    @CommandLine.Option(names = {"--username", "-u"}, interactive = true, description = "Username")
+    @CommandLine.Option(names = {"--username", "--u"}, interactive = true, description = "Username")
     private String username;
 
     @CommandLine.ArgGroup(multiplicity = "1")
@@ -32,7 +32,7 @@ public class AdminTokenGenerator implements Runnable {
     }
 
     static class KeyOrKmsOption {
-        @CommandLine.Option(names = {"--kms-key-id", "-kms"}, description = "KMS key ID")
+        @CommandLine.Option(names = {"--kms-key-id", "--kms"}, description = "KMS key ID")
         private String kmsKeyId;
 
         @CommandLine.ArgGroup(exclusive = false)
@@ -116,14 +116,14 @@ public class AdminTokenGenerator implements Runnable {
     static class KeyOption {
         @CommandLine.ArgGroup(multiplicity = "1")
         KeyProvideOption keyProvideOption;
-        @CommandLine.Option(names = {"--key-algo", "-algo"}, required = true, description = "Key algorithm")
+        @CommandLine.Option(names = {"--key-algo", "--algo"}, required = true, description = "Key algorithm")
         private String algorithm;
 
         static class KeyProvideOption {
-            @CommandLine.Option(names = {"--key-file", "-key"}, description = "Key file")
+            @CommandLine.Option(names = {"--key-file", "--key"}, description = "Key file")
             private String keyFile;
 
-            @CommandLine.Option(names = {"--key-pkcs8", "-pkcs8"}, description = "Key PKCS#8 text")
+            @CommandLine.Option(names = {"--key-pkcs8", "--pkcs8"}, description = "Key PKCS#8 text")
             private String keyPkcs8;
         }
     }
