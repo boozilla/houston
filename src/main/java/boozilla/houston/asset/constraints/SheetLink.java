@@ -17,6 +17,8 @@ import java.util.stream.Stream;
 
 @Component
 public class SheetLink extends LocalizedAssetSheetConstraints {
+    private static final String PRIMARY_COLUMN = "code";
+
     @Override
     public Optional<String> targetSheetName()
     {
@@ -45,7 +47,7 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
         final var target = link.getRelated();
 
         final var linkType = accessor.columnType(link.getSheetName(), link.getColumnName());
-        final var targetType = accessor.columnType(target.getSheetName(), "code");
+        final var targetType = accessor.columnType(target.getSheetName(), PRIMARY_COLUMN);
 
         if(!linkType.equals(targetType))
         {
@@ -86,18 +88,17 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
                                                  final AssetLink target,
                                                  final AssetAccessor accessor)
     {
-        final var primaryColumn = "code";
         final var expression = target.getExpression();
 
         // 1. 존재하지 않는 값 검증
-        final var existsQuery = Select.columns(primaryColumn)
+        final var existsQuery = Select.columns(PRIMARY_COLUMN)
                 .from(target.getSheetName())
                 .where(":COLUMN IN :VALUES")
-                .parameter("COLUMN", primaryColumn)
+                .parameter("COLUMN", PRIMARY_COLUMN)
                 .parameter("VALUES", linkedValues);
 
         final var nonExistValuesMono = accessor.query(target, existsQuery)
-                .flatMap(data -> Flux.fromStream(data.stream(primaryColumn, Object.class)))
+                .flatMap(data -> Flux.fromStream(data.stream(PRIMARY_COLUMN, Object.class)))
                 .collect(Collectors.toUnmodifiableSet())
                 .map(existValues -> linkedValues.stream()
                         .filter(value -> !existValues.contains(value))
@@ -113,16 +114,16 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
         final var allowValues = extractAllowedValuesFromExpression(expression);
 
         // 허용된 값들을 사용하여 쿼리 실행
-        final var passedExpressionQuery = Select.columns(primaryColumn)
+        final var passedExpressionQuery = Select.columns(PRIMARY_COLUMN)
                 .from(target.getSheetName())
                 .where(":PRIMARY IN :CODE_VALUES AND :TARGET IN :ALLOW_VALUES")
-                .parameter("PRIMARY", primaryColumn)
+                .parameter("PRIMARY", PRIMARY_COLUMN)
                 .parameter("CODE_VALUES", linkedValues)
                 .parameter("TARGET", target.getColumnName())
                 .parameter("ALLOW_VALUES", allowValues);
 
         final var expressionInvalidValuesMono = accessor.query(target, passedExpressionQuery)
-                .flatMap(data -> Flux.fromStream(data.stream(primaryColumn, Object.class)))
+                .flatMap(data -> Flux.fromStream(data.stream(PRIMARY_COLUMN, Object.class)))
                 .collect(Collectors.toUnmodifiableSet())
                 .map(passedValues -> linkedValues.stream()
                         .filter(value -> !passedValues.contains(value))
