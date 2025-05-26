@@ -113,15 +113,16 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
         final var allowValues = extractAllowedValuesFromExpression(expression);
 
         // 허용된 값들을 사용하여 쿼리 실행
-        final var passedExpressionQuery = Select.columns("code")
+        final var passedExpressionQuery = Select.columns(primaryColumn)
                 .from(target.getSheetName())
-                .where("code IN :CODE_VALUES AND :TARGET IN :ALLOW_VALUES")
+                .where(":PRIMARY IN :CODE_VALUES AND :TARGET IN :ALLOW_VALUES")
+                .parameter("PRIMARY", primaryColumn)
                 .parameter("CODE_VALUES", linkedValues)
                 .parameter("TARGET", target.getColumnName())
                 .parameter("ALLOW_VALUES", allowValues);
 
         final var expressionInvalidValuesMono = accessor.query(target, passedExpressionQuery)
-                .flatMap(data -> Flux.fromStream(data.stream("code", Object.class)))
+                .flatMap(data -> Flux.fromStream(data.stream(primaryColumn, Object.class)))
                 .collect(Collectors.toUnmodifiableSet())
                 .map(passedValues -> linkedValues.stream()
                         .filter(value -> !passedValues.contains(value))
