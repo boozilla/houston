@@ -188,52 +188,22 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     /**
-     * 표현식에 따라 유효하지 않은 값들을 찾아 반환합니다.
-     * <p>
-     * 지원하는 표현식 형식:
-     * [0] = 연결된 값이 0 이어야 합니다.
-     * [1] = 연결된 값이 1 이어야 합니다.
-     * [0, 1] = 연결된 값이 0 또는 1 이어야 합니다.
-     * ["One", "Two", "Three"] = 연결된 값이 One, Two, Three 중 하나이어야 합니다.
-     * [0:100] = 연결된 값이 0 ~ 100 사이 값이어야 합니다.
+     * 표현식에서 내용을 추출합니다.
+     * 유효하지 않은 형식이면 빈 문자열을 반환합니다.
      *
-     * @param linkedValues 검증할 값들
-     * @param expression   검증 표현식
-     * @return 유효하지 않은 값들의 집합
+     * @param expression 표현식
+     * @return 표현식 내용 ([] 제외)
      */
-    private Set<Object> validateExpression(final Set<Object> linkedValues, final String expression)
+    private String extractExpressionContent(final String expression)
     {
-        // 검증할 값이 없거나 표현식이 유효하지 않은 경우
-        if(Objects.isNull(linkedValues) || linkedValues.isEmpty())
-        {
-            return Set.of();
-        }
-
         // 표현식 형식 검증
         if(!isValidExpressionFormat(expression))
         {
-            // 표현식이 유효하지 않으면 모든 값이 유효하지 않다고 간주
-            return linkedValues;
+            return "";
         }
 
         // 표현식에서 [] 안의 내용 추출
-        final var content = expression.substring(1, expression.length() - 1).trim();
-
-        // 빈 표현식 처리
-        if(content.isEmpty())
-        {
-            return linkedValues;
-        }
-
-        // 표현식 유형에 따라 처리
-        if(isRangeExpression(content))
-        {
-            return validateRangeExpression(linkedValues, content);
-        }
-        else
-        {
-            return validateListExpression(linkedValues, content);
-        }
+        return expression.substring(1, expression.length() - 1).trim();
     }
 
     /**
@@ -251,16 +221,10 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
      */
     private Set<Object> extractAllowedValuesFromExpression(final String expression)
     {
-        // 표현식이 유효하지 않은 경우
-        if(!isValidExpressionFormat(expression))
-        {
-            return Set.of();
-        }
+        // 표현식 내용 추출
+        final var content = extractExpressionContent(expression);
 
-        // 표현식에서 [] 안의 내용 추출
-        final var content = expression.substring(1, expression.length() - 1).trim();
-
-        // 빈 표현식 처리
+        // 표현식이 유효하지 않거나 빈 경우
         if(content.isEmpty())
         {
             return Set.of();
@@ -285,21 +249,29 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
      */
     private Set<Object> extractAllowedValuesFromRangeExpression(final String content)
     {
+        return parseRangeExpression(content).allowedValues();
+    }
+
+    /**
+     * 범위 표현식을 파싱하여 범위 정보를 반환합니다.
+     *
+     * @param content 표현식 내용 ([] 제외)
+     * @return 범위 정보 (최소값, 최대값, 허용된 값들의 집합)
+     */
+    private RangeInfo parseRangeExpression(final String content)
+    {
         final var parts = content.split(":");
 
         if(parts.length != 2)
         {
-            return Set.of(); // 잘못된 범위 형식
+            return new RangeInfo(null, null, Set.of()); // 잘못된 범위 형식
         }
 
         try
         {
+            final var allowedValues = new HashSet<>();
             final var min = Double.parseDouble(parts[0].trim());
             final var max = Double.parseDouble(parts[1].trim());
-
-            // 범위 내의 정수 값들을 생성
-            // 실제 구현에서는 범위가 너무 넓을 수 있으므로 제한된 수의 값만 생성
-            final var allowedValues = new HashSet<Object>();
 
             // 정수 범위인 경우 정수 값들을 생성
             if(min == Math.floor(min) && max == Math.floor(max))
@@ -312,18 +284,34 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
             else
             {
                 // 실수 범위인 경우 몇 개의 샘플 값을 생성
-                // 실제 구현에서는 더 정교한 방법이 필요할 수 있음
                 allowedValues.add(min);
                 allowedValues.add(max);
                 allowedValues.add((min + max) / 2);
             }
 
-            return allowedValues;
+            return new RangeInfo(min, max, allowedValues);
         }
         catch(NumberFormatException e)
         {
-            return Set.of(); // 숫자 변환 실패
+            return new RangeInfo(null, null, Set.of()); // 숫자 변환 실패
         }
+    }
+
+    /**
+     * 문자열 목록 표현식에서 허용된 값들을 추출합니다.
+     *
+     * @param content 표현식 내용 ([] 제외)
+     * @return 허용된 값들의 집합
+     */
+    private Set<Object> extractAllowedValuesFromStringListExpression(final String content)
+    {
+        // 빈 표현식이면 빈 집합 반환
+        if(content.isEmpty())
+        {
+            return Set.of();
+        }
+
+        return parseStringListExpression(content);
     }
 
     /**
@@ -354,36 +342,31 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     /**
-     * 문자열 목록 표현식에서 허용된 값들을 추출합니다.
+     * 문자열 목록 표현식을 파싱하여 값들의 집합을 반환합니다.
      *
      * @param content 표현식 내용 ([] 제외)
-     * @return 허용된 값들의 집합
+     * @return 파싱된 값들의 집합
      */
-    private Set<Object> extractAllowedValuesFromStringListExpression(final String content)
+    private Set<Object> parseStringListExpression(final String content)
     {
-        // 빈 표현식이면 빈 집합 반환
-        if(content.isEmpty())
-        {
-            return Set.of();
-        }
-
-        final var allowedValues = new HashSet<Object>();
+        final var values = new HashSet<>();
 
         // 문자열 목록에서 따옴표와 공백 제거 후 분리
         final var cleanContent = content.replaceAll("[\"']", "").trim();
         final var items = cleanContent.split(",\\s*");
 
-        // 표현식에서 허용된 값들을 추출
+        // 표현식에서 값들을 추출
         for(final var item : items)
         {
             final var trimmedItem = item.trim();
+
             if(!trimmedItem.isEmpty())
             {
-                allowedValues.add(trimmedItem);
+                values.add(trimmedItem);
             }
         }
 
-        return allowedValues;
+        return values;
     }
 
     /**
@@ -400,13 +383,26 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
             return Set.of();
         }
 
-        final var allowedValues = new HashSet<Object>();
+        return parseNumericListExpression(content);
+    }
 
-        // 표현식에서 허용된 값들을 추출
+    /**
+     * 숫자 목록 표현식을 파싱하여 값들의 집합을 반환합니다.
+     *
+     * @param content 표현식 내용 ([] 제외)
+     * @return 파싱된 값들의 집합
+     */
+    private Set<Object> parseNumericListExpression(final String content)
+    {
+        final var values = new HashSet<>();
+
+        // 표현식에서 값들을 추출
         final var items = content.split(",\\s*");
+
         for(final var item : items)
         {
             final var trimmedItem = item.trim();
+
             if(trimmedItem.isEmpty())
             {
                 continue;
@@ -417,21 +413,65 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
                 // 정수인지 실수인지 확인하여 적절한 타입으로 변환
                 if(trimmedItem.contains("."))
                 {
-                    allowedValues.add(Double.parseDouble(trimmedItem));
+                    values.add(Double.parseDouble(trimmedItem));
                 }
                 else
                 {
-                    allowedValues.add(Long.parseLong(trimmedItem));
+                    values.add(Long.parseLong(trimmedItem));
                 }
             }
             catch(NumberFormatException e)
             {
                 // 숫자 변환 실패 시 문자열로 처리
-                allowedValues.add(trimmedItem);
+                values.add(trimmedItem);
             }
         }
 
-        return allowedValues;
+        return values;
+    }
+
+    /**
+     * 범위 표현식에 대한 값 검증을 수행합니다.
+     *
+     * @param linkedValues 검증할 값들
+     * @param content      표현식 내용
+     * @return 유효하지 않은 값들의 집합
+     */
+    private Set<Object> validateRangeExpression(final Set<Object> linkedValues, final String content)
+    {
+        final var rangeInfo = parseRangeExpression(content);
+
+        // 범위 정보가 유효하지 않은 경우 모든 값을 유효하지 않다고 간주
+        if(rangeInfo.min() == null || rangeInfo.max() == null)
+        {
+            return Set.copyOf(linkedValues);
+        }
+
+        // 숫자가 아닌 값들은 먼저 필터링
+        final var nonNumericValues = linkedValues.stream()
+                .filter(value -> !(value instanceof Number))
+                .collect(Collectors.toSet());
+
+        // 숫자 값들만 처리
+        final var numericValues = linkedValues.stream()
+                .filter(value -> value instanceof Number)
+                .collect(Collectors.toSet());
+
+        if(numericValues.isEmpty())
+        {
+            return nonNumericValues; // 숫자 값이 없으면 숫자가 아닌 값들만 반환
+        }
+
+        // 범위를 벗어난 숫자 값들을 찾음
+        final var invalidNumericValues = numericValues.stream()
+                .filter(value -> !rangeInfo.isInRange((Number) value))
+                .collect(Collectors.toSet());
+
+        // 숫자가 아닌 값들과 범위를 벗어난 숫자 값들을 합침
+        final var allInvalidValues = new HashSet<>(nonNumericValues);
+        allInvalidValues.addAll(invalidNumericValues);
+
+        return allInvalidValues;
     }
 
     /**
@@ -479,70 +519,36 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     /**
-     * 범위 표현식에 대한 값 검증을 수행합니다.
-     * 범위 표현식을 리스트로 변환하여 처리합니다.
+     * 문자열 목록 표현식에 대한 값 검증을 수행합니다.
+     * 표현식에 포함된 문자열 값들과 일치하지 않는 값들을 찾아 반환합니다.
      *
      * @param linkedValues 검증할 값들
      * @param content      표현식 내용
      * @return 유효하지 않은 값들의 집합
      */
-    private Set<Object> validateRangeExpression(final Set<Object> linkedValues, final String content)
+    private Set<Object> validateStringListExpression(final Set<Object> linkedValues, final String content)
     {
-        final var parts = content.split(":");
-
-        if(parts.length != 2)
+        // 빈 표현식이면 모든 값이 유효하지 않음
+        if(content.isEmpty())
         {
-            return Set.copyOf(linkedValues); // 잘못된 범위 형식
-        }
-
-        try
-        {
-            final var min = Double.parseDouble(parts[0].trim());
-            final var max = Double.parseDouble(parts[1].trim());
-
-            // 숫자가 아닌 값들은 먼저 필터링
-            final var nonNumericValues = linkedValues.stream()
-                    .filter(value -> !(value instanceof Number))
-                    .collect(Collectors.toSet());
-
-            // 숫자 값들만 처리
-            final var numericValues = linkedValues.stream()
-                    .filter(value -> value instanceof Number)
-                    .collect(Collectors.toSet());
-
-            if(numericValues.isEmpty())
-            {
-                return nonNumericValues; // 숫자 값이 없으면 숫자가 아닌 값들만 반환
-            }
-
-            // 범위 내의 값들을 찾아 리스트 표현식으로 변환
-            final var validNumericValues = numericValues.stream()
-                    .filter(value -> {
-                        final var doubleValue = ((Number) value).doubleValue();
-                        return doubleValue >= min && doubleValue <= max;
-                    })
-                    .collect(Collectors.toSet());
-
-            // 유효한 값들을 리스트 표현식 문자열로 변환
-            final var listContent = validNumericValues.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", "));
-
-            // 리스트 표현식으로 변환하여 validateNumericListExpression 메서드 호출
-            // 이렇게 하면 범위 표현식을 리스트로 처리할 수 있음
-            final var invalidNumericValues = validateNumericListExpression(numericValues, listContent);
-
-            // 숫자가 아닌 값들과 범위를 벗어난 숫자 값들을 합침
-            final var allInvalidValues = new HashSet<>(nonNumericValues);
-            allInvalidValues.addAll(invalidNumericValues);
-
-            return allInvalidValues;
-        }
-        catch(NumberFormatException e)
-        {
-            // 범위 표현식이 유효한 숫자가 아닌 경우 모든 값을 유효하지 않다고 간주
             return Set.copyOf(linkedValues);
         }
+
+        final var allowedValues = parseStringListExpression(content);
+        final var invalidValues = new HashSet<>();
+
+        // 허용된 값들에 포함되지 않는 값들을 찾음
+        for(final var value : linkedValues)
+        {
+            final var strValue = value.toString();
+
+            if(!allowedValues.contains(strValue))
+            {
+                invalidValues.add(value);
+            }
+        }
+
+        return invalidValues;
     }
 
     /**
@@ -575,52 +581,6 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     /**
-     * 문자열 목록 표현식에 대한 값 검증을 수행합니다.
-     * 표현식에 포함된 문자열 값들과 일치하지 않는 값들을 찾아 반환합니다.
-     *
-     * @param linkedValues 검증할 값들
-     * @param content      표현식 내용
-     * @return 유효하지 않은 값들의 집합
-     */
-    private Set<Object> validateStringListExpression(final Set<Object> linkedValues, final String content)
-    {
-        // 빈 표현식이면 모든 값이 유효하지 않음
-        if(content.isEmpty())
-        {
-            return Set.copyOf(linkedValues);
-        }
-
-        final var invalidValues = new HashSet<>();
-        final var allowedValues = new HashSet<String>();
-
-        // 문자열 목록에서 따옴표와 공백 제거 후 분리
-        final var cleanContent = content.replaceAll("[\"']", "").trim();
-        final var items = cleanContent.split(",\\s*");
-
-        // 표현식에서 허용된 값들을 추출
-        for(final var item : items)
-        {
-            final var trimmedItem = item.trim();
-            if(!trimmedItem.isEmpty())
-            {
-                allowedValues.add(trimmedItem);
-            }
-        }
-
-        // 허용된 값들에 포함되지 않는 값들을 찾음
-        for(final var value : linkedValues)
-        {
-            final var strValue = value.toString();
-            if(!allowedValues.contains(strValue))
-            {
-                invalidValues.add(value);
-            }
-        }
-
-        return invalidValues;
-    }
-
-    /**
      * 숫자 목록 표현식에 대한 값 검증을 수행합니다.
      * 표현식에 포함된 숫자 값들과 일치하지 않는 값들을 찾아 반환합니다.
      *
@@ -636,37 +596,8 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
             return linkedValues;
         }
 
+        final var allowedValues = parseNumericListExpression(content);
         final var invalidValues = new HashSet<>();
-        final var allowedValues = new HashSet<>();
-
-        // 표현식에서 허용된 값들을 추출
-        final var items = content.split(",\\s*");
-        for(final var item : items)
-        {
-            final var trimmedItem = item.trim();
-            if(trimmedItem.isEmpty())
-            {
-                continue;
-            }
-
-            try
-            {
-                // 정수인지 실수인지 확인하여 적절한 타입으로 변환
-                if(trimmedItem.contains("."))
-                {
-                    allowedValues.add(Double.parseDouble(trimmedItem));
-                }
-                else
-                {
-                    allowedValues.add(Long.parseLong(trimmedItem));
-                }
-            }
-            catch(NumberFormatException e)
-            {
-                // 숫자 변환 실패 시 문자열로 처리
-                allowedValues.add(trimmedItem);
-            }
-        }
 
         // 허용된 값들에 포함되지 않는 값들을 찾음
         for(final var value : linkedValues)
@@ -678,5 +609,27 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
         }
 
         return invalidValues;
+    }
+
+    /**
+     * 범위 정보를 저장하는 레코드 클래스
+     */
+    private record RangeInfo(Double min, Double max, Set<Object> allowedValues) {
+        /**
+         * 주어진 값이 범위 내에 있는지 확인합니다.
+         *
+         * @param value 확인할 값
+         * @return 범위 내에 있으면 true, 아니면 false
+         */
+        public boolean isInRange(final Number value)
+        {
+            if(min == null || max == null)
+            {
+                return false;
+            }
+
+            final var doubleValue = value.doubleValue();
+            return doubleValue >= min && doubleValue <= max;
+        }
     }
 }
