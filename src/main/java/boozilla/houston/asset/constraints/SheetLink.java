@@ -433,50 +433,6 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     /**
-     * 범위 표현식에 대한 값 검증을 수행합니다.
-     *
-     * @param linkedValues 검증할 값들
-     * @param content      표현식 내용
-     * @return 유효하지 않은 값들의 집합
-     */
-    private Set<Object> validateRangeExpression(final Set<Object> linkedValues, final String content)
-    {
-        final var rangeInfo = parseRangeExpression(content);
-
-        // 범위 정보가 유효하지 않은 경우 모든 값을 유효하지 않다고 간주
-        if(rangeInfo.min() == null || rangeInfo.max() == null)
-        {
-            return Set.copyOf(linkedValues);
-        }
-
-        // 숫자가 아닌 값들은 먼저 필터링
-        final var nonNumericValues = linkedValues.stream()
-                .filter(value -> !(value instanceof Number))
-                .collect(Collectors.toSet());
-
-        // 숫자 값들만 처리
-        final var numericValues = linkedValues.stream()
-                .filter(value -> value instanceof Number)
-                .collect(Collectors.toSet());
-
-        if(numericValues.isEmpty())
-        {
-            return nonNumericValues; // 숫자 값이 없으면 숫자가 아닌 값들만 반환
-        }
-
-        // 범위를 벗어난 숫자 값들을 찾음
-        final var invalidNumericValues = numericValues.stream()
-                .filter(value -> !rangeInfo.isInRange((Number) value))
-                .collect(Collectors.toSet());
-
-        // 숫자가 아닌 값들과 범위를 벗어난 숫자 값들을 합침
-        final var allInvalidValues = new HashSet<>(nonNumericValues);
-        allInvalidValues.addAll(invalidNumericValues);
-
-        return allInvalidValues;
-    }
-
-    /**
      * 표현식이 유효한 형식인지 확인합니다.
      * 유효한 표현식은 '[' 로 시작하고 ']' 로 끝나야 합니다.
      *
@@ -521,117 +477,11 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     }
 
     /**
-     * 문자열 목록 표현식에 대한 값 검증을 수행합니다.
-     * 표현식에 포함된 문자열 값들과 일치하지 않는 값들을 찾아 반환합니다.
-     *
-     * @param linkedValues 검증할 값들
-     * @param content      표현식 내용
-     * @return 유효하지 않은 값들의 집합
-     */
-    private Set<Object> validateStringListExpression(final Set<Object> linkedValues, final String content)
-    {
-        // 빈 표현식이면 모든 값이 유효하지 않음
-        if(content.isEmpty())
-        {
-            return Set.copyOf(linkedValues);
-        }
-
-        final var allowedValues = parseStringListExpression(content);
-        final var invalidValues = new HashSet<>();
-
-        // 허용된 값들에 포함되지 않는 값들을 찾음
-        for(final var value : linkedValues)
-        {
-            final var strValue = value.toString();
-
-            if(!allowedValues.contains(strValue))
-            {
-                invalidValues.add(value);
-            }
-        }
-
-        return invalidValues;
-    }
-
-    /**
-     * 목록 표현식에 대한 값 검증을 수행합니다.
-     * 문자열 목록인지 숫자 목록인지 판단하여 적절한 검증 메서드를 호출합니다.
-     *
-     * @param linkedValues 검증할 값들
-     * @param content      표현식 내용
-     * @return 유효하지 않은 값들의 집합
-     */
-    private Set<Object> validateListExpression(final Set<Object> linkedValues, final String content)
-    {
-        // 빈 표현식이면 모든 값이 유효하지 않음
-        if(content.isEmpty())
-        {
-            return linkedValues;
-        }
-
-        // 따옴표가 포함되어 있으면 문자열 목록으로 처리
-        final var isStringList = content.contains("\"") || content.contains("'");
-
-        if(isStringList)
-        {
-            return validateStringListExpression(linkedValues, content);
-        }
-        else
-        {
-            return validateNumericListExpression(linkedValues, content);
-        }
-    }
-
-    /**
-     * 숫자 목록 표현식에 대한 값 검증을 수행합니다.
-     * 표현식에 포함된 숫자 값들과 일치하지 않는 값들을 찾아 반환합니다.
-     *
-     * @param linkedValues 검증할 값들
-     * @param content      표현식 내용
-     * @return 유효하지 않은 값들의 집합
-     */
-    private Set<Object> validateNumericListExpression(final Set<Object> linkedValues, final String content)
-    {
-        // 빈 표현식이면 모든 값이 유효하지 않음
-        if(content.isEmpty())
-        {
-            return linkedValues;
-        }
-
-        final var allowedValues = parseNumericListExpression(content);
-        final var invalidValues = new HashSet<>();
-
-        // 허용된 값들에 포함되지 않는 값들을 찾음
-        for(final var value : linkedValues)
-        {
-            if(!allowedValues.contains(value))
-            {
-                invalidValues.add(value);
-            }
-        }
-
-        return invalidValues;
-    }
-
-    /**
      * 범위 정보를 저장하는 레코드 클래스
      */
-    private record RangeInfo(Double min, Double max, Set<Object> allowedValues) {
-        /**
-         * 주어진 값이 범위 내에 있는지 확인합니다.
-         *
-         * @param value 확인할 값
-         * @return 범위 내에 있으면 true, 아니면 false
-         */
-        public boolean isInRange(final Number value)
-        {
-            if(min == null || max == null)
-            {
-                return false;
-            }
-
-            final var doubleValue = value.doubleValue();
-            return doubleValue >= min && doubleValue <= max;
-        }
+    private record RangeInfo(
+            Double min,
+            Double max,
+            Set<Object> allowedValues) {
     }
 }
