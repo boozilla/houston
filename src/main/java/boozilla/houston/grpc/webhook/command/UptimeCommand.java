@@ -13,13 +13,13 @@ import java.net.UnknownHostException;
 import java.util.Set;
 
 @Component
-public class StatusCommand implements Command {
+public class UptimeCommand implements Command {
     private final String hostName;
     private final String hostAddress;
     private final long startUp;
     private final MessageSourceAccessor messageSourceAccessor;
 
-    public StatusCommand(final ApplicationContext context, final MessageSourceAccessor messageSourceAccessor)
+    public UptimeCommand(final ApplicationContext context, final MessageSourceAccessor messageSourceAccessor)
     {
         try
         {
@@ -38,13 +38,13 @@ public class StatusCommand implements Command {
     @Override
     public Set<String> aliases()
     {
-        return Set.of("/status");
+        return Set.of("/uptime");
     }
 
     @Override
     public String commandTemplate()
     {
-        return "/status";
+        return "/uptime";
     }
 
     @Override
@@ -53,7 +53,7 @@ public class StatusCommand implements Command {
     {
         final var period = new Period(startUp, System.currentTimeMillis());
         final var uptime = PeriodFormatter.print(period);
-        final var message = messageSourceAccessor.getMessage("STATUS_COMMAND_MESSAGE")
+        final var message = messageSourceAccessor.getMessage("UPTIME_COMMAND_MESSAGE")
                 .formatted(hostName, hostAddress, uptime);
 
         return behavior.commentMessage(projectId, issueId, message);
@@ -62,18 +62,18 @@ public class StatusCommand implements Command {
     @Override
     public String description()
     {
-        return "HELP_COMMAND_STATUS_DESCRIPTION";
+        return "HELP_COMMAND_UPTIME_DESCRIPTION";
     }
 
     @Override
     public String options()
     {
-        return "HELP_COMMAND_STATUS_OPTIONS";
+        return "HELP_COMMAND_UPTIME_OPTIONS";
     }
 
     @Override
     public Set<String> example()
     {
-        return Set.of("HELP_COMMAND_STATUS_EXAMPLE_1");
+        return Set.of("HELP_COMMAND_UPTIME_EXAMPLE_1");
     }
 }
