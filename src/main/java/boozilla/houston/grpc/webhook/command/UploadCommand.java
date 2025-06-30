@@ -4,6 +4,7 @@ import boozilla.houston.grpc.webhook.GitBehavior;
 import boozilla.houston.grpc.webhook.StateLabel;
 import boozilla.houston.grpc.webhook.handler.Extension;
 import boozilla.houston.grpc.webhook.handler.GitFileHandler;
+import boozilla.houston.grpc.webhook.handler.JsonManifestHandler;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.Period;
@@ -125,10 +126,16 @@ public class UploadCommand implements Command {
                                 // 업로드 코멘트
                                 .then(behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_UPLOADING")
                                         .formatted(handlers.size())))
-                                .then(commitId)))
-                .flatMap(commit -> behavior.addLabels(projectId, issueId, commit.substring(0, 8))
+                                .thenReturn(Tuples.of(commit, handlers))))
+                .flatMap(tuple -> behavior.addLabels(projectId, issueId, tuple.getT1().substring(0, 8))
                         // 라벨 달기
-                        .and(behavior.setState(projectId, issueId, StateLabel.INACTIVE))
+                        .and(Mono.defer(() -> {
+                            final var manifestOnly = tuple.getT2().stream()
+                                    .allMatch(handler -> handler instanceof JsonManifestHandler);
+                            final var state = manifestOnly ? StateLabel.ACTIVE : StateLabel.INACTIVE;
+
+                            return behavior.setState(projectId, issueId, state);
+                        }))
                         // 업로드 완료 코멘트
                         .and(behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_UPLOAD_ALL_COMPLETE")))
                         // Issue 닫음
