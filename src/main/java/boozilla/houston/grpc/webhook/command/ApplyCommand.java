@@ -82,6 +82,7 @@ public class ApplyCommand implements Command {
                     return Mono.just(String.join("<br>", messages));
                 })
                 .doOnNext(message -> behavior.commentMessage(projectId, issueId, message)
+                        .and(behavior.setState(projectId, issueId, StateLabel.ACTIVE))
                         .subscribeOn(Schedulers.boundedElastic())
                         .subscribe())
                 .then();

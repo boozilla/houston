@@ -11,52 +11,43 @@ public enum DataType {
     UNKNOWN,
     LONG(Set.of("long", "int64"),
             cell -> (long) Double.parseDouble(getText(cell).trim()),
-            obj -> Long.parseLong(obj.toString()),
-            Long.class),
+            obj -> Long.parseLong(obj.toString())),
     INTEGER(Set.of("integer", "int", "int32"),
             cell -> (int) Double.parseDouble(getText(cell).trim()),
-            obj -> Integer.parseInt(obj.toString()),
-            Integer.class),
+            obj -> Integer.parseInt(obj.toString())),
     DOUBLE(Set.of("double", "float"),
             cell -> Double.parseDouble(getText(cell).trim()),
-            obj -> Double.parseDouble(obj.toString()),
-            Double.class),
+            obj -> Double.parseDouble(obj.toString())),
     STRING(Set.of("string", "str"),
             DataType::getText,
-            Object::toString,
-            String.class),
+            Object::toString),
     BOOLEAN(Set.of("boolean", "bool"),
             cell -> Boolean.parseBoolean(getText(cell).trim()),
-            obj -> Boolean.parseBoolean(obj.toString()),
-            Boolean.class),
+            obj -> Boolean.parseBoolean(obj.toString())),
     DATE(Set.of("date", "datetime", "timezone", "timestamp"),
             cell -> ZonedDateTime.parse(cell.getText().trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"))
                     .toInstant()
                     .toEpochMilli(),
             obj -> ZonedDateTime.parse(obj.toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"))
                     .toInstant()
-                    .toEpochMilli(),
-            Long.class);
+                    .toEpochMilli());
 
     private final Set<String> symbols;
     private final Function<Cell, Object> extractor;
     private final Function<Object, Object> cast;
-    private final Class<?> typeClass;
 
     DataType()
     {
         this.symbols = Set.of();
         this.extractor = cell -> null;
         this.cast = value -> null;
-        this.typeClass = null;
     }
 
-    DataType(final Set<String> symbols, final Function<Cell, Object> extractor, final Function<Object, Object> cast, final Class<?> typeClass)
+    DataType(final Set<String> symbols, final Function<Cell, Object> extractor, final Function<Object, Object> cast)
     {
         this.symbols = symbols;
         this.extractor = extractor;
         this.cast = cast;
-        this.typeClass = typeClass;
     }
 
     private static String getText(final Cell cell)
@@ -89,10 +80,5 @@ public enum DataType {
     public Object cast(final Object value)
     {
         return cast.apply(value);
-    }
-
-    public Class<?> typeClass()
-    {
-        return this.typeClass;
     }
 }
