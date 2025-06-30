@@ -81,10 +81,9 @@ public class UploadCommand implements Command {
                         .flatMap(handlerMap -> files(projectId, issueId, commit, handlerMap.keySet(), behavior)
                                 .onErrorResume(error -> behavior.commentMessage(projectId, issueId, error.getMessage())
                                         .then(Mono.error(error)))
-                                .doOnNext(map -> behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_HANDLING")
+                                .flatMap(map -> behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_HANDLING")
                                                 .formatted(map.size()))
-                                        .subscribeOn(Schedulers.boundedElastic())
-                                        .subscribe())
+                                        .thenReturn(map))
                                 .flatMap(fileMap -> Flux.fromIterable(fileMap.entrySet())
                                         .flatMap(entry -> {
                                             // 확장자별 동일한 handler 인스턴스
@@ -124,12 +123,10 @@ public class UploadCommand implements Command {
                                                     .then(Mono.error(completeError));
                                         }))
                                 // 업로드 코멘트
-                                .doOnSubscribe(subscription -> behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_UPLOADING")
-                                                .formatted(handlers.size()))
-                                        .subscribeOn(Schedulers.boundedElastic())
-                                        .subscribe())
+                                .then(behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_UPLOADING")
+                                        .formatted(handlers.size())))
                                 .then(commitId)))
-                .doOnSuccess(commit -> behavior.addLabels(projectId, issueId, commit.substring(0, 8))
+                .flatMap(commit -> behavior.addLabels(projectId, issueId, commit.substring(0, 8))
                         // 라벨 달기
                         .and(behavior.setState(projectId, issueId, StateLabel.INACTIVE))
                         // 업로드 완료 코멘트
@@ -137,9 +134,7 @@ public class UploadCommand implements Command {
                         // Issue 닫음
                         .and(behavior.closeIssue(projectId, issueId))
                         // 진행 시간 등록
-                        .and(Mono.defer(() -> behavior.addSpentTime(projectId, issueId, new Period(startAt, System.currentTimeMillis()))))
-                        .subscribeOn(Schedulers.boundedElastic())
-                        .subscribe())
+                        .and(Mono.defer(() -> behavior.addSpentTime(projectId, issueId, new Period(startAt, System.currentTimeMillis())))))
                 .then();
     }
 
