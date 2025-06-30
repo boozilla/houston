@@ -18,6 +18,9 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.kms.KmsAsyncClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerAsyncClient;
 
+import java.util.List;
+import java.util.Objects;
+
 @Configuration
 public class SecurityConfig {
     @Bean
@@ -84,7 +87,7 @@ public class SecurityConfig {
     @Bean
     public AdminAddress adminAddress(final AdminProperties adminProperties)
     {
-        return new AdminAddress(adminProperties.hosts()
+        return new AdminAddress(Objects.requireNonNullElse(adminProperties.hosts(), List.<String>of())
                 .stream()
                 .map(InetAddressPredicates::ofCidr)
                 .toList());
