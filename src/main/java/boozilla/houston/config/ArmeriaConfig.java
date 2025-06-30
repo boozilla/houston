@@ -2,6 +2,7 @@ package boozilla.houston.config;
 
 import com.linecorp.armeria.common.HttpHeaderNames;
 import com.linecorp.armeria.common.TlsKeyPair;
+import com.linecorp.armeria.common.util.InetAddressPredicates;
 import com.linecorp.armeria.server.ClientAddressSource;
 import com.linecorp.armeria.server.docs.DocService;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
@@ -13,6 +14,7 @@ import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.channel.ChannelOption;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,8 +35,17 @@ public class ArmeriaConfig {
                 .decorator(LoggingService.newDecorator())
                 .accessLogWriter(logger, true)
                 .channelOption(ChannelOption.SO_REUSEADDR, true)
-                .clientAddressSources(ClientAddressSource.ofHeader(HttpHeaderNames.X_FORWARDED_FOR))
                 .meterRegistry(meterRegistry);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "armeria.client-address.proxy-cidr")
+    public ArmeriaServerConfigurator clientAddressSource(@Value("${armeria.client-address.proxy-cidr}") final String proxyCidr)
+    {
+        return serverBuilder -> serverBuilder.clientAddressTrustedProxyFilter(InetAddressPredicates.ofCidr(proxyCidr))
+                .clientAddressSources(ClientAddressSource.ofHeader(HttpHeaderNames.X_FORWARDED_FOR),
+                        ClientAddressSource.ofHeader(HttpHeaderNames.FORWARDED),
+                        ClientAddressSource.ofProxyProtocol());
     }
 
     @Bean

@@ -1,6 +1,8 @@
 package boozilla.houston.grpc;
 
+import boozilla.houston.common.AdminAddress;
 import boozilla.houston.manifest.ManifestContainer;
+import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.grpc.service.Manifest;
 import houston.grpc.service.ManifestRetrieveRequest;
 import houston.grpc.service.ReactorManifestServiceGrpc;
@@ -12,10 +14,26 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class ManifestGrpc extends ReactorManifestServiceGrpc.ManifestServiceImplBase {
     private final ManifestContainer container;
+    private final AdminAddress adminAddress;
 
     @Override
     public Mono<Manifest> retrieve(final ManifestRetrieveRequest request)
     {
-        return container.get(request.getName());
+        final var clientAddress = ServiceRequestContext.current()
+                .clientAddress();
+        final var isAdmin = adminAddress.is(clientAddress);
+
+        return container.get(request.getName())
+                .map(manifest -> {
+                    if(isAdmin)
+                    {
+                        return Manifest.newBuilder(manifest)
+                                .clearMaintenance()
+                                .build();
+                    }
+
+                    return manifest;
+                })
+                .defaultIfEmpty(Manifest.getDefaultInstance());
     }
 }
