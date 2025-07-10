@@ -1,11 +1,14 @@
 package boozilla.houston.config;
 
+import boozilla.houston.common.AdminAddress;
 import boozilla.houston.common.AwsCredentialsCondition;
+import boozilla.houston.properties.AdminProperties;
 import boozilla.houston.properties.KmsProperties;
 import boozilla.houston.security.EcdsaKeyProvider;
 import boozilla.houston.security.KmsAlgorithm;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.ECDSAKeyProvider;
+import com.linecorp.armeria.common.util.InetAddressPredicates;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,6 +17,9 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.kms.KmsAsyncClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerAsyncClient;
+
+import java.util.List;
+import java.util.Objects;
 
 @Configuration
 public class SecurityConfig {
@@ -77,4 +83,14 @@ public class SecurityConfig {
     {
         return new KmsAlgorithm(kmsProperties.id(), kmsAsyncClient);
     }
+
+    @Bean
+    public AdminAddress adminAddress(final AdminProperties adminProperties)
+    {
+        return new AdminAddress(Objects.requireNonNullElse(adminProperties.hosts(), List.<String>of())
+                .stream()
+                .map(InetAddressPredicates::ofCidr)
+                .toList());
+    }
+
 }
