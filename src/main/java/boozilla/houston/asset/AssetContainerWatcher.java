@@ -83,15 +83,16 @@ public class AssetContainerWatcher implements DisposableBean {
                                     });
                         }));
 
-        watcher.doFinally(signal -> watcherDisposable = watcher.repeat()
-                        .delayUntil(currentContainer -> Mono.delay(Duration.ofSeconds(1)))
-                        .subscribeOn(Schedulers.boundedElastic())
-                        .subscribe(
-                                success -> {
-                                },
-                                error -> log.error("Error watching asset data", error)
-                        ))
-                .block();
+        // Run the watcher synchronously once
+        watcher.block();
+
+        watcher.repeat()
+                .delayUntil(currentContainer -> Mono.delay(Duration.ofSeconds(1)))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                        success -> log.info("Asset container has been successfully updated"),
+                        error -> log.error("Error watching asset data", error)
+                );
     }
 
     private Mono<Archive> downloadArchive(final Data data)

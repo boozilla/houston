@@ -65,11 +65,16 @@ public class AssetContainerWatcher implements AutoCloseable {
                     return Mono.empty();
                 });
 
-        watcher.doFinally(signal -> watcherDisposable = watcher.repeat()
-                        .delayUntil(container -> Mono.delay(Duration.ofSeconds(1)))
-                        .subscribeOn(Schedulers.boundedElastic())
-                        .subscribe())
-                .block();
+        // Run the watcher synchronously once
+        watcher.block();
+
+        watcher.repeat()
+                .delayUntil(container -> Mono.delay(Duration.ofSeconds(1)))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                        success -> log.info("Asset container has been successfully updated"),
+                        error -> log.error("Error watching asset container", error)
+                );
     }
 
     @Override
