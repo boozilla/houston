@@ -68,7 +68,7 @@ public class AssetContainerWatcher implements AutoCloseable {
         // Run the watcher synchronously once
         watcher.block();
 
-        watcher.repeat()
+        watcherDisposable = watcher.repeat()
                 .delayUntil(container -> Mono.delay(Duration.ofSeconds(1)))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(

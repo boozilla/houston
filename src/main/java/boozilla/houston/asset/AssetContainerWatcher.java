@@ -86,7 +86,7 @@ public class AssetContainerWatcher implements DisposableBean {
         // Run the watcher synchronously once
         watcher.block();
 
-        watcher.repeat()
+        watcherDisposable = watcher.repeat()
                 .delayUntil(currentContainer -> Mono.delay(Duration.ofSeconds(1)))
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
