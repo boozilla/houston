@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.Objects;
 
 public class Assets {
-    private static AssetContainer container;
+    private static HoustonContainer container;
 
-    static AssetContainer container()
+    static HoustonContainer container()
     {
-        return Objects.isNull(container) ? new AssetContainer() : container;
+        return Objects.isNull(container) ? new HoustonContainer() : container;
     }
 
-    static Mono<Void> swap(final AssetContainer container, final Map<String, UpdateInterceptor<?>> interceptors)
+    static Mono<Void> swap(final HoustonContainer container, final Map<String, UpdateInterceptor<?>> interceptors)
     {
         return Flux.fromIterable(container.updatedSheets())
                 .flatMap(sheet -> {

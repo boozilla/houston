@@ -46,9 +46,10 @@ reactor-tools = { group = "io.projectreactor", name = "reactor-tools", version.r
 # Spring
 spring-core = { group = "org.springframework", name = "spring-core", version.ref = "spring" }
 spring-context = { group = "org.springframework", name = "spring-context", version.ref = "spring" }
-spring-data-relational = { group = "org.springframework.data", name = "spring-data-relational", version.ref = "spring-boot" }
 
 # Spring Boot
+spring-data-relational = { group = "org.springframework.data", name = "spring-data-relational", version.ref = "spring-boot" }
+spring-boot-auto-configure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure", version.ref = "spring-boot" }
 spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc", version.ref = "spring-boot" }
 

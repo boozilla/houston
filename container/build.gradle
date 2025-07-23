@@ -78,7 +78,9 @@ dependencies {
     implementation libs.reactor.grpc.stub
 
     implementation libs.spring.context
+
     implementation libs.spring.data.relational
+    implementation libs.spring.boot.auto.configure
 
     implementation libs.cqengine
     implementation libs.jsqlparser

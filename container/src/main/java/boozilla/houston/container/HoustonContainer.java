@@ -17,13 +17,13 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 
 @Slf4j
-public class AssetContainer {
+public class HoustonContainer {
     private final Map<String, AssetSheet> sheets;
     private final Map<String, AssetQuery> query;
     private final Map<String, Descriptors.Descriptor> descriptors;
     private final Set<String> updatedSheets;
 
-    AssetContainer()
+    HoustonContainer()
     {
         this.sheets = new ConcurrentHashMap<>();
         this.query = new ConcurrentHashMap<>();
@@ -95,9 +95,9 @@ public class AssetContainer {
         return this.updatedSheets;
     }
 
-    AssetContainer copy()
+    HoustonContainer copy()
     {
-        final var newContainer = new AssetContainer();
+        final var newContainer = new HoustonContainer();
         newContainer.sheets.putAll(this.sheets);
         newContainer.query.putAll(this.query);
         newContainer.descriptors.putAll(this.descriptors);

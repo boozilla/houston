@@ -8,6 +8,7 @@ import houston.grpc.service.AssetQueryRequest;
 import houston.grpc.service.AssetSheet;
 import houston.grpc.service.ReactorAssetServiceGrpc;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,8 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class AssetContainerWatcher implements SmartLifecycle {
+@ConditionalOnBean(HoustonChannel.class)
+public class HoustonWatcher implements SmartLifecycle {
     private final HoustonChannel channel;
     private final Map<String, UpdateInterceptor<?>> interceptors;
 
@@ -31,7 +33,7 @@ public class AssetContainerWatcher implements SmartLifecycle {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean isRunningSchedule = new AtomicBoolean(false);
 
-    public AssetContainerWatcher(final HoustonChannel channel, final Set<UpdateInterceptor<?>> interceptors)
+    public HoustonWatcher(final HoustonChannel channel, final Set<UpdateInterceptor<?>> interceptors)
     {
         this.channel = channel;
         this.interceptors = interceptors.stream()
@@ -96,7 +98,7 @@ public class AssetContainerWatcher implements SmartLifecycle {
                 .subscribe();
     }
 
-    private Mono<AssetContainer> runWatcher()
+    private Mono<HoustonContainer> runWatcher()
     {
         return Mono.fromSupplier(Assets::container)
                 .flatMap(current -> list(current)
@@ -123,7 +125,7 @@ public class AssetContainerWatcher implements SmartLifecycle {
                 });
     }
 
-    private Mono<List<AssetSheet>> list(final AssetContainer container)
+    private Mono<List<AssetSheet>> list(final HoustonContainer container)
     {
         final var stub = ReactorAssetServiceGrpc.newReactorStub(channel);
         return stub.list(AssetListRequest.getDefaultInstance())
@@ -141,7 +143,7 @@ public class AssetContainerWatcher implements SmartLifecycle {
                 });
     }
 
-    private Mono<List<AssetSheet>> diff(final AssetContainer container, final List<AssetSheet> latest)
+    private Mono<List<AssetSheet>> diff(final HoustonContainer container, final List<AssetSheet> latest)
     {
         final var currentSheets = container.sheets();
 
