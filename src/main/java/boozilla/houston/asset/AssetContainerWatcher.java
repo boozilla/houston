@@ -5,41 +5,87 @@ import boozilla.houston.repository.DataRepository;
 import boozilla.houston.repository.vaults.Vaults;
 import com.google.protobuf.InvalidProtocolBufferException;
 import houston.vo.asset.Archive;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
-import org.springframework.beans.factory.DisposableBean;
+import org.springframework.context.SmartLifecycle;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuples;
 
-import javax.annotation.PostConstruct;
-import java.time.Duration;
-import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@AllArgsConstructor
-public class AssetContainerWatcher implements DisposableBean {
+@RequiredArgsConstructor
+public class AssetContainerWatcher implements SmartLifecycle {
     private final Assets assets;
     private final Vaults vaults;
     private final DataRepository repository;
 
-    private Disposable watcherDisposable;
+    private final AtomicBoolean hasStarted = new AtomicBoolean(false);
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean isRunningSchedule = new AtomicBoolean(false);
 
-    @PostConstruct
-    private void watch()
+    @Override
+    public void start()
     {
-        final var watcher = Mono.fromSupplier(assets::container)
-                // 최신 애셋 데이터 정보 조회
+        if(hasStarted.compareAndSet(false, true))
+        {
+            try
+            {
+                log.info("Asset container watcher initial blocking start");
+                watch().block();
+            }
+            catch(Exception e)
+            {
+                log.error("Initial blocking watch failed", e);
+            }
+            finally
+            {
+                running.set(true);
+            }
+        }
+    }
+
+    @Override
+    public void stop()
+    {
+        log.info("Asset container watcher stopped");
+
+        running.set(false);
+        hasStarted.set(false);
+    }
+
+    @Override
+    public boolean isRunning()
+    {
+        return running.get();
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    public void scheduleWatch()
+    {
+        if(!isRunningSchedule.compareAndSet(false, true))
+        {
+            return;
+        }
+
+        watch().doFinally(signal -> isRunningSchedule.set(false))
+                .subscribe();
+    }
+
+    public Mono<Void> watch()
+    {
+        return Mono.fromSupplier(assets::container)
                 .flatMap(container -> repository.findByLatest()
                         .collectList()
                         .flatMapMany(latest -> {
-                            final var sheetNames = latest.stream().map(Data::getSheetName)
+                            final var sheetNames = latest.stream()
+                                    .map(Data::getSheetName)
                                     .collect(Collectors.toUnmodifiableSet());
 
                             container.keys().forEach(key -> {
@@ -47,61 +93,48 @@ public class AssetContainerWatcher implements DisposableBean {
                                 {
                                     container.remove(key);
 
-                                    log.info("The asset data has been removed (sheetName = {}, partitionName = {}, scope = {})",
+                                    log.info("Removed asset (sheetName={}, partitionName={}, scope={})",
                                             key.sheetName(), key.partition().orElse(Strings.EMPTY), key.scope().name());
                                 }
                             });
 
                             return Flux.fromIterable(latest);
                         })
-                        // 현재 컨테이너와 비교
                         .filter(container::different)
                         .flatMap(data -> Mono.defer(() -> downloadArchive(data))
-                                .doOnRequest(request -> log.info("Downloading archive (commitId = {}, sheetName = {}, partitionName = {}, scope = {})",
+                                .doOnRequest(req -> log.info("Downloading archive (commitId={}, sheetName={}, partitionName={}, scope={})",
                                         data.getCommitId(), data.getSheetName(), data.getPartitionName().orElse(Strings.EMPTY), data.getScope()))
                                 .map(archive -> Tuples.of(data, archive)))
                         .collectList()
-                        // 변경된 애셋 데이터 정보를 새 컨테이너에 반영
                         .flatMap(updatedData -> {
                             if(updatedData.isEmpty())
+                            {
                                 return Mono.empty();
+                            }
 
                             final var updatedContainer = container.copy();
-                            return updatedContainer.addAll(updatedData);
-                        })
-                        .flatMap(AssetContainer::initialize)
-                        // 현재 컨테이너를 새 컨테이너로 교체
-                        .doOnNext(updatedContainer -> {
-                            assets.container(updatedContainer);
+                            return updatedContainer.addAll(updatedData)
+                                    .flatMap(AssetContainer::initialize)
+                                    .doOnNext(uc -> {
+                                        assets.container(uc);
+                                        uc.updatedData().forEach(tuple -> {
+                                            final var data = tuple.getT1();
 
-                            updatedContainer.updatedData()
-                                    .forEach(tuple -> {
-                                        final var data = tuple.getT1();
-
-                                        log.info("The asset data has been updated (commitId = {}, sheetName = {}, partitionName = {}, scope = {})",
-                                                data.getCommitId(), data.getSheetName(), data.getPartitionName().orElse(Strings.EMPTY), data.getScope().name());
-                                    });
+                                            log.info("Updated asset (commitId={}, sheetName={}, partitionName={}, scope={})",
+                                                    data.getCommitId(), data.getSheetName(), data.getPartitionName().orElse(Strings.EMPTY), data.getScope().name());
+                                        });
+                                    })
+                                    .then();
                         }));
-
-        watcher.doFinally(signal -> watcherDisposable = watcher.repeat()
-                        .delayUntil(currentContainer -> Mono.delay(Duration.ofSeconds(1)))
-                        .subscribeOn(Schedulers.boundedElastic())
-                        .subscribe(
-                                success -> {
-                                },
-                                error -> log.error("Error watching asset data", error)
-                        ))
-                .block();
     }
 
-    private Mono<Archive> downloadArchive(final Data data)
+    private Mono<Archive> downloadArchive(Data data)
     {
         return vaults.download(data)
                 .flatMap(content -> {
                     try
                     {
-                        final var archive = Archive.parseFrom(content);
-                        return Mono.just(archive);
+                        return Mono.just(Archive.parseFrom(content));
                     }
                     catch(InvalidProtocolBufferException e)
                     {
@@ -110,16 +143,27 @@ public class AssetContainerWatcher implements DisposableBean {
                 })
                 .onErrorResume(error -> {
                     log.error("Archive file not found [path={}]", data.getPath());
+
                     return Mono.empty();
                 });
     }
 
     @Override
-    public void destroy()
+    public int getPhase()
     {
-        if(Objects.nonNull(watcherDisposable) && !watcherDisposable.isDisposed())
-        {
-            watcherDisposable.dispose();
-        }
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
+    public boolean isAutoStartup()
+    {
+        return true;
+    }
+
+    @Override
+    public void stop(Runnable callback)
+    {
+        stop();
+        callback.run();
     }
 }

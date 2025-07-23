@@ -9,7 +9,9 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.data.repository.Repository;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
+@EnableScheduling
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class Application {
