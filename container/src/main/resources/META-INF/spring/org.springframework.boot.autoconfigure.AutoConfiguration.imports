@@ -1,1 +1,2 @@
-boozilla.houston.container.config.HoustonConfig
+boozilla.houston.container.config.HoustonAutoConfiguration
+boozilla.houston.container.Assets

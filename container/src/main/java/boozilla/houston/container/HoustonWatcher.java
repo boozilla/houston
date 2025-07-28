@@ -1,12 +1,10 @@
 package boozilla.houston.container;
 
 import boozilla.houston.HoustonChannel;
+import boozilla.houston.container.interceptor.ManifestInterceptor;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
 import com.google.protobuf.Any;
-import houston.grpc.service.AssetListRequest;
-import houston.grpc.service.AssetQueryRequest;
-import houston.grpc.service.AssetSheet;
-import houston.grpc.service.ReactorAssetServiceGrpc;
+import houston.grpc.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.SmartLifecycle;
@@ -16,9 +14,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -27,16 +27,25 @@ import java.util.stream.Collectors;
 @ConditionalOnBean(HoustonChannel.class)
 public class HoustonWatcher implements SmartLifecycle {
     private final HoustonChannel channel;
-    private final Map<String, UpdateInterceptor<?>> interceptors;
+    private final Set<String> manifestTargets;
+    private final Set<ManifestInterceptor> manifestInterceptors;
+    private final Map<String, byte[]> manifests;
+    private final Map<String, UpdateInterceptor<?>> updateInterceptors;
 
     private final AtomicBoolean hasStarted = new AtomicBoolean(false);
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean isRunningSchedule = new AtomicBoolean(false);
 
-    public HoustonWatcher(final HoustonChannel channel, final Set<UpdateInterceptor<?>> interceptors)
+    public HoustonWatcher(final HoustonChannel channel,
+                          final Set<String> manifests,
+                          final Set<ManifestInterceptor> manifestInterceptors,
+                          final Set<UpdateInterceptor<?>> updateInterceptors)
     {
         this.channel = channel;
-        this.interceptors = interceptors.stream()
+        this.manifestTargets = manifests;
+        this.manifestInterceptors = manifestInterceptors;
+        this.manifests = new ConcurrentHashMap<>();
+        this.updateInterceptors = updateInterceptors.stream()
                 .collect(Collectors.toUnmodifiableMap(
                         interceptor -> interceptor.targetTable().getSimpleName(),
                         interceptor -> interceptor
@@ -50,9 +59,13 @@ public class HoustonWatcher implements SmartLifecycle {
         {
             try
             {
-                log.info("Asset container watcher initial blocking start");
+                containerWatcher()
+                        .doOnRequest(n -> log.info("Asset container watcher initial blocking start"))
+                        .block();
 
-                runWatcher().block();
+                manifestWatcher()
+                        .doOnRequest(n -> log.info("Manifest watcher blocking start"))
+                        .block();
             }
             catch(Exception e)
             {
@@ -93,16 +106,17 @@ public class HoustonWatcher implements SmartLifecycle {
             return;
         }
 
-        runWatcher()
+        containerWatcher()
+                .and(manifestWatcher())
                 .doFinally(signal -> isRunningSchedule.set(false))
                 .subscribe();
     }
 
-    private Mono<HoustonContainer> runWatcher()
+    private Mono<HoustonContainer> containerWatcher()
     {
-        return Mono.fromSupplier(Assets::container)
+        return Mono.fromSupplier(Houston::container)
                 .flatMap(current -> list(current)
-                        .flatMap(latest -> diff(current, latest)
+                        .flatMap(latest -> assetDiff(current, latest)
                                 .filter(diff -> !diff.isEmpty())
                                 .flatMapMany(diff -> Flux.fromIterable(diff)
                                         .flatMap(sheet -> download(sheet)
@@ -116,13 +130,38 @@ public class HoustonWatcher implements SmartLifecycle {
 
                                     return container;
                                 })))
-                .flatMap(container -> Assets.swap(container, interceptors)
+                .flatMap(container -> Houston.swap(container, updateInterceptors)
                         .thenReturn(container))
                 .onErrorResume(error -> {
                     log.error("Error while watching asset container", error);
 
                     return Mono.empty();
                 });
+    }
+
+    private Mono<Void> manifestWatcher()
+    {
+        return Flux.fromIterable(manifestTargets)
+                .flatMap(name -> manifest(name).filter(manifest -> {
+                            final var oldBytes = manifests.getOrDefault(name, new byte[0]);
+                            final var newBytes = manifest.toByteArray();
+
+                            return !Arrays.equals(oldBytes, newBytes);
+                        })
+                        .flatMapMany(manifest -> Flux.fromIterable(manifestInterceptors)
+                                .doOnRequest(n -> manifests.put(name, manifest.toByteArray()))
+                                .flatMap(interceptor -> interceptor.onUpdate(name, manifest))))
+                .then();
+    }
+
+    private Mono<Manifest> manifest(final String name)
+    {
+        final var stub = ReactorManifestServiceGrpc.newReactorStub(channel);
+        final var request = ManifestRetrieveRequest.newBuilder()
+                .setName(name)
+                .build();
+
+        return stub.retrieve(request);
     }
 
     private Mono<List<AssetSheet>> list(final HoustonContainer container)
@@ -143,7 +182,7 @@ public class HoustonWatcher implements SmartLifecycle {
                 });
     }
 
-    private Mono<List<AssetSheet>> diff(final HoustonContainer container, final List<AssetSheet> latest)
+    private Mono<List<AssetSheet>> assetDiff(final HoustonContainer container, final List<AssetSheet> latest)
     {
         final var currentSheets = container.sheets();
 

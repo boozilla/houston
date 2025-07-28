@@ -3,55 +3,30 @@ package boozilla.houston.container;
 import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.sql.Select;
 import boozilla.houston.asset.sql.SqlStatement;
-import boozilla.houston.container.interceptor.UpdateInterceptor;
 import com.google.protobuf.AbstractMessage;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
-import java.util.Objects;
-
+@Service
 public class Assets {
-    private static HoustonContainer container;
-
-    static HoustonContainer container()
+    public Flux<AssetData> query(final String sql)
     {
-        return Objects.isNull(container) ? new HoustonContainer() : container;
+        return Houston.container().query(sql);
     }
 
-    static Mono<Void> swap(final HoustonContainer container, final Map<String, UpdateInterceptor<?>> interceptors)
+    public Flux<AssetData> query(final SqlStatement<?> statement)
     {
-        return Flux.fromIterable(container.updatedSheets())
-                .flatMap(sheet -> {
-                    final var interceptor = interceptors.get(sheet);
-
-                    if(Objects.isNull(interceptor))
-                        return Mono.empty();
-
-                    final var rows = container.query(Select.all().from(sheet));
-
-                    return interceptor.apply(rows);
-                })
-                .then(Mono.fromRunnable(() -> Assets.container = container));
+        return Houston.container().query(statement);
     }
 
-    public static Flux<AssetData> query(final String sql)
-    {
-        return container().query(sql);
-    }
-
-    public static Flux<AssetData> query(final SqlStatement<?> statement)
-    {
-        return container().query(statement);
-    }
-
-    public static <T extends AbstractMessage> Flux<T> query(final SqlStatement<?> sql, final Class<T> resultClass)
+    public <T extends AbstractMessage> Flux<T> query(final SqlStatement<?> sql, final Class<T> resultClass)
     {
         return query(sql)
                 .map(data -> data.message(resultClass));
     }
 
-    public static <T extends AbstractMessage> Mono<T> single(final long code, final Class<T> resultClass)
+    public <T extends AbstractMessage> Mono<T> single(final long code, final Class<T> resultClass)
     {
         return query(Select.all()
                 .from(resultClass)
@@ -61,13 +36,13 @@ public class Assets {
                 .singleOrEmpty();
     }
 
-    public static <T extends AbstractMessage> Flux<T> many(final Class<T> resultClass)
+    public <T extends AbstractMessage> Flux<T> many(final Class<T> resultClass)
     {
         return query(Select.all().from(resultClass), resultClass);
     }
 
-    public static String version(final Class<? extends AbstractMessage> targetClass)
+    public String version(final Class<? extends AbstractMessage> targetClass)
     {
-        return container().commitId(targetClass.getSimpleName());
+        return Houston.container().commitId(targetClass.getSimpleName());
     }
 }

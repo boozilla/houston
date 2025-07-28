@@ -5,13 +5,11 @@ import boozilla.houston.asset.QueryResultInfo;
 import boozilla.houston.asset.sql.SqlStatement;
 import com.google.protobuf.*;
 import houston.grpc.service.AssetSheet;
+import houston.grpc.service.Manifest;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
@@ -25,10 +23,10 @@ public class HoustonContainer {
 
     HoustonContainer()
     {
-        this.sheets = new ConcurrentHashMap<>();
-        this.query = new ConcurrentHashMap<>();
-        this.descriptors = new ConcurrentHashMap<>();
-        this.updatedSheets = new ConcurrentSkipListSet<>();
+        sheets = new ConcurrentHashMap<>();
+        query = new ConcurrentHashMap<>();
+        descriptors = new ConcurrentHashMap<>();
+        updatedSheets = new ConcurrentSkipListSet<>();
     }
 
     public Flux<AssetData> query(final SqlStatement<?> sql)
