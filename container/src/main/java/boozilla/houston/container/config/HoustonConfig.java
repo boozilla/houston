@@ -2,13 +2,19 @@ package boozilla.houston.container.config;
 
 import boozilla.houston.HoustonChannel;
 import boozilla.houston.asset.Scope;
+import boozilla.houston.container.HoustonWatcher;
+import boozilla.houston.container.interceptor.UpdateInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.Set;
 
 @Configuration
-@ConditionalOnProperty(prefix = "houston", name = "enabled", havingValue = "true")
+@EnableScheduling
+@ConditionalOnProperty(name = {"houston.address", "houston.token", "houston.scope", "houston.tls"})
 public class HoustonConfig {
     final String address;
     final String token;
@@ -27,8 +33,14 @@ public class HoustonConfig {
     }
 
     @Bean
-    public HoustonChannel getChannel()
+    public HoustonChannel houstonChannel()
     {
         return new HoustonChannel(address, token, scope, tls);
+    }
+
+    @Bean
+    public HoustonWatcher houstonWatcher(final HoustonChannel channel, final Set<UpdateInterceptor<?>> interceptors)
+    {
+        return new HoustonWatcher(channel, interceptors);
     }
 }
