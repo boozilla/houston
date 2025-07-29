@@ -95,9 +95,9 @@ public class JsonManifestHandler extends GitFileHandler {
                                 manifest.setId(manifest.getName());
                             }
 
-                            return Mono.defer(() -> repository.save(manifest));
+                            return Mono.defer(() -> repository.save(manifest)
+                                    .doOnTerminate(manifestContainer::invalidate));
                         }))
-                .doOnTerminate(manifestContainer::invalidate)
                 .then();
     }
 }
