@@ -2,6 +2,7 @@ package boozilla.houston.container;
 
 import boozilla.houston.container.interceptor.ManifestInterceptor;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.AbstractMessageLite;
 import houston.grpc.service.Manifest;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -116,6 +118,15 @@ public class ManifestContainer implements SmartLifecycle {
 
                     return Mono.just(manifest);
                 });
+    }
+
+    public void invalidate()
+    {
+        Mono.just(cache)
+                .map(AsyncLoadingCache::synchronous)
+                .doOnNext(Cache::invalidateAll)
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package boozilla.houston.grpc.webhook.handler;
 
 import boozilla.houston.Application;
+import boozilla.houston.container.ManifestContainer;
 import boozilla.houston.grpc.webhook.GitBehavior;
 import boozilla.houston.repository.ManifestRepository;
 import com.google.protobuf.util.JsonFormat;
@@ -17,15 +18,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JsonManifestHandler extends GitFileHandler {
+    private final ManifestContainer manifestContainer;
     private final List<boozilla.houston.entity.Manifest> manifest;
     private final List<Throwable> exceptions;
 
-    public JsonManifestHandler(final String projectId, final String issueId, final String commitId, final String packageName, final GitBehavior<?> behavior)
+    public JsonManifestHandler(final String projectId,
+                               final String issueId,
+                               final String commitId,
+                               final String packageName,
+                               final GitBehavior<?> behavior,
+                               final ManifestContainer manifestContainer)
     {
         super(projectId, issueId, commitId, packageName, behavior);
 
         this.manifest = new ArrayList<>();
         this.exceptions = new ArrayList<>();
+        this.manifestContainer = manifestContainer;
     }
 
     @Override
@@ -89,6 +97,7 @@ public class JsonManifestHandler extends GitFileHandler {
 
                             return Mono.defer(() -> repository.save(manifest));
                         }))
+                .doOnTerminate(manifestContainer::invalidate)
                 .then();
     }
 }
