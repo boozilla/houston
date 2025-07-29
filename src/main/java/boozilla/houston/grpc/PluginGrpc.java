@@ -2,8 +2,8 @@ package boozilla.houston.grpc;
 
 import boozilla.houston.annotation.ScopeService;
 import boozilla.houston.annotation.SecuredService;
+import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.AssetVerifier;
-import boozilla.houston.asset.Assets;
 import boozilla.houston.context.ScopeContext;
 import boozilla.houston.decorator.auth.JwtAdminAuthorizer;
 import com.google.protobuf.Empty;
@@ -22,7 +22,7 @@ import java.util.Map;
 @SecuredService(JwtAdminAuthorizer.class)
 @AllArgsConstructor
 public class PluginGrpc extends ReactorPluginServiceGrpc.PluginServiceImplBase {
-    private final Assets assets;
+    private final AssetContainers assets;
 
     @Override
     @ScopeService

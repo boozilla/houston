@@ -11,6 +11,6 @@ public record HoustonSettings(
         String token,
         Scope scope,
         boolean tls,
-        Set<String> manifests
+        Set<String> manifest
 ) {
 }

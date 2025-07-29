@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class AssetContainerWatcher implements SmartLifecycle {
-    private final Assets assets;
+    private final AssetContainers containers;
     private final Vaults vaults;
     private final DataRepository repository;
 
@@ -80,7 +80,7 @@ public class AssetContainerWatcher implements SmartLifecycle {
 
     public Mono<Void> watch()
     {
-        return Mono.fromSupplier(assets::container)
+        return Mono.fromSupplier(containers::container)
                 .flatMap(container -> repository.findByLatest()
                         .collectList()
                         .flatMapMany(latest -> {
@@ -116,7 +116,7 @@ public class AssetContainerWatcher implements SmartLifecycle {
                             return updatedContainer.addAll(updatedData)
                                     .flatMap(AssetContainer::initialize)
                                     .doOnNext(uc -> {
-                                        assets.container(uc);
+                                        containers.container(uc);
                                         uc.updatedData().forEach(tuple -> {
                                             final var data = tuple.getT1();
 

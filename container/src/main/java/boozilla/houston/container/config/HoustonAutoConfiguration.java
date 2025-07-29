@@ -5,6 +5,8 @@ import boozilla.houston.container.HoustonWatcher;
 import boozilla.houston.container.interceptor.ManifestInterceptor;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
 import lombok.AllArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +23,7 @@ public class HoustonAutoConfiguration {
     private final HoustonSettings settings;
 
     @Bean
+    @ConditionalOnProperty(name = {"houston.address", "houston.token", "houston.scope"})
     public HoustonChannel houstonChannel()
     {
         return new HoustonChannel(settings.address(),
@@ -30,12 +33,13 @@ public class HoustonAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(HoustonChannel.class)
     public HoustonWatcher houstonWatcher(final HoustonChannel channel,
                                          final Set<ManifestInterceptor> manifestInterceptors,
                                          final Set<UpdateInterceptor<?>> updateInterceptors)
     {
         return new HoustonWatcher(channel,
-                Objects.requireNonNullElse(settings.manifests(), Set.of()),
+                Objects.requireNonNullElse(settings.manifest(), Set.of()),
                 manifestInterceptors,
                 updateInterceptors);
     }

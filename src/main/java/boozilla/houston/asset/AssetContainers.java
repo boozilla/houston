@@ -11,13 +11,13 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Component
-public class Assets {
+public class AssetContainers {
     private final List<AssetSheetConstraints> constraints;
     private final Set<Consumer<AssetContainer>> listeners;
 
     private AssetContainer container;
 
-    private Assets(final List<AssetSheetConstraints> constraints, final Vaults vaults)
+    private AssetContainers(final List<AssetSheetConstraints> constraints, final Vaults vaults)
     {
         this.constraints = constraints;
         this.listeners = new HashSet<>();

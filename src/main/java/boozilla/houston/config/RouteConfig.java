@@ -1,6 +1,6 @@
 package boozilla.houston.config;
 
-import boozilla.houston.asset.Assets;
+import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.codec.DynamicJsonMarshaller;
 import boozilla.houston.decorator.ServiceDecorator;
 import boozilla.houston.decorator.auth.HttpAuthorizer;
@@ -25,7 +25,7 @@ public class RouteConfig {
     @Bean
     public HttpServiceWithRoutes grpcService(final List<BindableService> services,
                                              final GrpcProperties grpcProperties,
-                                             final Assets assets)
+                                             final AssetContainers assets)
     {
         final var builder = GrpcService.builder()
                 .autoCompression(grpcProperties.autoCompression())

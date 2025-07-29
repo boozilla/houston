@@ -1,8 +1,8 @@
 package boozilla.houston.grpc;
 
 import boozilla.houston.annotation.ScopeService;
+import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.AssetData;
-import boozilla.houston.asset.Assets;
 import boozilla.houston.context.ScopeContext;
 import com.google.protobuf.Any;
 import com.linecorp.armeria.common.util.TimeoutMode;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     private static final Duration STREAM_EXTEND_TIMEOUT = Duration.ofSeconds(10);
 
-    private final Assets assets;
+    private final AssetContainers assets;
 
     @Override
     public Flux<AssetSheet> list(final AssetListRequest request)

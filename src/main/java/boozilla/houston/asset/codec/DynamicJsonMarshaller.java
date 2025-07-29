@@ -1,6 +1,6 @@
 package boozilla.houston.asset.codec;
 
-import boozilla.houston.asset.Assets;
+import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.Scope;
 import boozilla.houston.context.ScopeContext;
 import com.google.protobuf.util.JsonFormat;
@@ -21,7 +21,7 @@ public class DynamicJsonMarshaller implements GrpcJsonMarshaller {
     private Map<Scope, JsonFormat.Printer> printers;
 
     public static DynamicJsonMarshaller of(final ServiceDescriptor serviceDescriptor,
-                                           final Assets assets)
+                                           final AssetContainers assets)
     {
         final var defaultMarshaller = GrpcJsonMarshaller.of(serviceDescriptor);
 
@@ -29,7 +29,7 @@ public class DynamicJsonMarshaller implements GrpcJsonMarshaller {
     }
 
     private DynamicJsonMarshaller(final GrpcJsonMarshaller defaultMarshaller,
-                                  final Assets assets)
+                                  final AssetContainers assets)
     {
         this.defaultMarshaller = defaultMarshaller;
 

@@ -5,19 +5,24 @@ import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import houston.grpc.service.Manifest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.SmartLifecycle;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
-import javax.annotation.PostConstruct;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
-public class ManifestContainer {
+public class ManifestContainer implements SmartLifecycle {
     private final ManifestLoader loader;
     private final AsyncLoadingCache<String, Manifest> cache;
+
+    private final AtomicBoolean hasStarted = new AtomicBoolean(false);
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean isRunningSchedule = new AtomicBoolean(false);
 
     public ManifestContainer(final ManifestRepository repository)
     {
@@ -27,25 +32,88 @@ public class ManifestContainer {
                 .buildAsync(this.loader);
     }
 
-    @PostConstruct
-    private void watch()
+    @Override
+    public void start()
     {
-        final var watcher = Flux.fromIterable(cache.asMap().keySet())
-                .flatMap(this.loader::load);
+        if(hasStarted.compareAndSet(false, true))
+        {
+            try
+            {
+                manifestWatcher()
+                        .doOnRequest(n -> log.info("Manifest container initial blocking start"))
+                        .block();
+            }
+            catch(Exception e)
+            {
+                log.error("Initial manifest container watch failed", e);
+            }
+            finally
+            {
+                running.set(true);
+            }
+        }
+    }
 
-        watcher.doFinally(signal -> watcher.repeat()
-                        .delayUntil(container -> Mono.delay(Duration.ofSeconds(1)))
-                        .subscribeOn(Schedulers.boundedElastic())
-                        .subscribe(
-                                success -> {
-                                },
-                                error -> log.error("Error while watching manifest repository", error)
-                        ))
-                .blockLast();
+    @Override
+    public void stop()
+    {
+        running.set(false);
+        hasStarted.set(false);
+
+        log.info("Manifest container stopped.");
+    }
+
+    @Override
+    public boolean isRunning()
+    {
+        return running.get();
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    public void scheduleWatch()
+    {
+        if(!isRunningSchedule.compareAndSet(false, true))
+        {
+            return;
+        }
+
+        manifestWatcher()
+                .doFinally(signal -> isRunningSchedule.set(false))
+                .subscribe();
+    }
+
+    private Mono<Void> manifestWatcher()
+    {
+        return Flux.fromIterable(cache.asMap().keySet())
+                .flatMap(this.loader::load)
+                .then()
+                .onErrorResume(error -> {
+                    log.error("Error while watching manifest repository", error);
+                    return Mono.empty();
+                });
     }
 
     public Mono<Manifest> get(final String key)
     {
         return Mono.fromFuture(cache.get(key));
+    }
+
+    @Override
+    public int getPhase()
+    {
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
+    public boolean isAutoStartup()
+    {
+        return true;
+    }
+
+    @Override
+    public void stop(Runnable callback)
+    {
+        stop();
+        callback.run();
     }
 }

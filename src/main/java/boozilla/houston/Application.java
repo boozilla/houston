@@ -1,6 +1,6 @@
 package boozilla.houston;
 
-import boozilla.houston.asset.Assets;
+import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.grpc.webhook.command.StereotypeCommand;
 import boozilla.houston.repository.vaults.Vaults;
 import org.springframework.boot.SpringApplication;
@@ -27,9 +27,9 @@ public class Application {
         return context.getBean(MessageSourceAccessor.class);
     }
 
-    public static Assets assets()
+    public static AssetContainers assets()
     {
-        return context.getBean(Assets.class);
+        return context.getBean(AssetContainers.class);
     }
 
     public static <T extends Repository<?, ?>> T repository(final Class<T> repositoryClass)
