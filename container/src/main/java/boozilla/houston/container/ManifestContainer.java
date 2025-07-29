@@ -96,6 +96,7 @@ public class ManifestContainer implements SmartLifecycle {
                                     final var newBytes = manifest.toByteArray();
                                     return !Arrays.equals(oldBytes, newBytes);
                                 })
+                                .doOnTerminate(this::invalidate)
                                 .flatMapMany(manifest -> Flux.fromIterable(manifestInterceptors)
                                         .flatMap(interceptor -> interceptor.onUpdate(name, manifest)))
                         ))
