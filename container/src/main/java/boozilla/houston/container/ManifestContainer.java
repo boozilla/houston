@@ -2,7 +2,6 @@ package boozilla.houston.container;
 
 import boozilla.houston.container.interceptor.ManifestInterceptor;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
-import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.AbstractMessageLite;
 import houston.grpc.service.Manifest;
 import lombok.extern.slf4j.Slf4j;
@@ -122,10 +121,9 @@ public class ManifestContainer implements SmartLifecycle {
 
     public void invalidate()
     {
-        Mono.just(cache)
-                .map(AsyncLoadingCache::synchronous)
-                .doOnNext(Cache::invalidateAll)
+        Mono.fromRunnable(() -> cache.synchronous().invalidateAll())
                 .subscribeOn(Schedulers.boundedElastic())
+                .doOnError(error -> log.error("Failed to invalidate cache", error))
                 .subscribe();
     }
 
