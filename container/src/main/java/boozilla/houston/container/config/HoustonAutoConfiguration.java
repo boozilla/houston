@@ -2,8 +2,13 @@ package boozilla.houston.container.config;
 
 import boozilla.houston.HoustonChannel;
 import boozilla.houston.container.HoustonWatcher;
+import boozilla.houston.container.ManifestContainer;
+import boozilla.houston.container.ManifestHoustonLoader;
+import boozilla.houston.container.ManifestLoader;
 import boozilla.houston.container.interceptor.ManifestInterceptor;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import houston.grpc.service.Manifest;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,7 +17,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.util.Objects;
 import java.util.Set;
 
 @Configuration
@@ -35,12 +39,24 @@ public class HoustonAutoConfiguration {
     @Bean
     @ConditionalOnBean(HoustonChannel.class)
     public HoustonWatcher houstonWatcher(final HoustonChannel channel,
-                                         final Set<ManifestInterceptor> manifestInterceptors,
                                          final Set<UpdateInterceptor<?>> updateInterceptors)
     {
-        return new HoustonWatcher(channel,
-                Objects.requireNonNullElse(settings.manifest(), Set.of()),
-                manifestInterceptors,
-                updateInterceptors);
+        return new HoustonWatcher(channel, updateInterceptors);
+    }
+
+    @Bean
+    @ConditionalOnBean(HoustonChannel.class)
+    public ManifestLoader manifestHoustonLoader(final HoustonChannel channel)
+    {
+        return new ManifestHoustonLoader(channel);
+    }
+
+    @Bean
+    @ConditionalOnBean(ManifestLoader.class)
+    public ManifestContainer manifestContainer(final AsyncLoadingCache<String, Manifest> cache,
+                                               final ManifestLoader manifestLoader,
+                                               final Set<ManifestInterceptor> manifestInterceptors)
+    {
+        return new ManifestContainer(cache, manifestLoader, manifestInterceptors);
     }
 }

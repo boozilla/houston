@@ -1,10 +1,12 @@
 package boozilla.houston.container;
 
 import boozilla.houston.HoustonChannel;
-import boozilla.houston.container.interceptor.ManifestInterceptor;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
 import com.google.protobuf.Any;
-import houston.grpc.service.*;
+import houston.grpc.service.AssetListRequest;
+import houston.grpc.service.AssetQueryRequest;
+import houston.grpc.service.AssetSheet;
+import houston.grpc.service.ReactorAssetServiceGrpc;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.SmartLifecycle;
@@ -14,11 +16,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -27,9 +27,6 @@ import java.util.stream.Collectors;
 @ConditionalOnBean(HoustonChannel.class)
 public class HoustonWatcher implements SmartLifecycle {
     private final HoustonChannel channel;
-    private final Set<String> manifestTargets;
-    private final Set<ManifestInterceptor> manifestInterceptors;
-    private final Map<String, byte[]> manifests;
     private final Map<String, UpdateInterceptor<?>> updateInterceptors;
 
     private final AtomicBoolean hasStarted = new AtomicBoolean(false);
@@ -37,14 +34,9 @@ public class HoustonWatcher implements SmartLifecycle {
     private final AtomicBoolean isRunningSchedule = new AtomicBoolean(false);
 
     public HoustonWatcher(final HoustonChannel channel,
-                          final Set<String> manifests,
-                          final Set<ManifestInterceptor> manifestInterceptors,
                           final Set<UpdateInterceptor<?>> updateInterceptors)
     {
         this.channel = channel;
-        this.manifestTargets = manifests;
-        this.manifestInterceptors = manifestInterceptors;
-        this.manifests = new ConcurrentHashMap<>();
         this.updateInterceptors = updateInterceptors.stream()
                 .collect(Collectors.toUnmodifiableMap(
                         interceptor -> interceptor.targetTable().getSimpleName(),
@@ -61,10 +53,6 @@ public class HoustonWatcher implements SmartLifecycle {
             {
                 containerWatcher()
                         .doOnRequest(n -> log.info("Asset container watcher initial blocking start"))
-                        .block();
-
-                manifestWatcher()
-                        .doOnRequest(n -> log.info("Manifest watcher blocking start"))
                         .block();
             }
             catch(Exception e)
@@ -107,7 +95,6 @@ public class HoustonWatcher implements SmartLifecycle {
         }
 
         containerWatcher()
-                .and(manifestWatcher())
                 .doFinally(signal -> isRunningSchedule.set(false))
                 .subscribe();
     }
@@ -137,31 +124,6 @@ public class HoustonWatcher implements SmartLifecycle {
 
                     return Mono.empty();
                 });
-    }
-
-    private Mono<Void> manifestWatcher()
-    {
-        return Flux.fromIterable(manifestTargets)
-                .flatMap(name -> manifest(name).filter(manifest -> {
-                            final var oldBytes = manifests.getOrDefault(name, new byte[0]);
-                            final var newBytes = manifest.toByteArray();
-
-                            return !Arrays.equals(oldBytes, newBytes);
-                        })
-                        .flatMapMany(manifest -> Flux.fromIterable(manifestInterceptors)
-                                .doOnRequest(n -> manifests.put(name, manifest.toByteArray()))
-                                .flatMap(interceptor -> interceptor.onUpdate(name, manifest))))
-                .then();
-    }
-
-    private Mono<Manifest> manifest(final String name)
-    {
-        final var stub = ReactorManifestServiceGrpc.newReactorStub(channel);
-        final var request = ManifestRetrieveRequest.newBuilder()
-                .setName(name)
-                .build();
-
-        return stub.retrieve(request);
     }
 
     private Mono<List<AssetSheet>> list(final HoustonContainer container)

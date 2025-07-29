@@ -1,19 +1,23 @@
 package boozilla.houston.manifest;
 
+import boozilla.houston.container.ManifestLoader;
 import boozilla.houston.repository.ManifestRepository;
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.google.protobuf.InvalidProtocolBufferException;
 import houston.grpc.service.Manifest;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class ManifestLoader implements AsyncCacheLoader<String, Manifest> {
+@Primary
+@Component
+public class ManifestRepositoryLoader implements ManifestLoader {
     private final ManifestRepository repository;
 
-    public ManifestLoader(final ManifestRepository repository)
+    public ManifestRepositoryLoader(final ManifestRepository repository)
     {
         this.repository = repository;
     }

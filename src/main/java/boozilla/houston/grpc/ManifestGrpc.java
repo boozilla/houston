@@ -1,7 +1,7 @@
 package boozilla.houston.grpc;
 
 import boozilla.houston.common.AdminAddress;
-import boozilla.houston.manifest.ManifestContainer;
+import boozilla.houston.container.ManifestContainer;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.grpc.service.Manifest;
 import houston.grpc.service.ManifestRetrieveRequest;

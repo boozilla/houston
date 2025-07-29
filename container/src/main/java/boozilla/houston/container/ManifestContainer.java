@@ -1,8 +1,8 @@
-package boozilla.houston.manifest;
+package boozilla.houston.container;
 
-import boozilla.houston.repository.ManifestRepository;
+import boozilla.houston.container.interceptor.ManifestInterceptor;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.protobuf.AbstractMessageLite;
 import houston.grpc.service.Manifest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
@@ -11,25 +11,28 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
 public class ManifestContainer implements SmartLifecycle {
-    private final ManifestLoader loader;
+    private final ManifestLoader manifestLoader;
+    private final Set<ManifestInterceptor> manifestInterceptors;
     private final AsyncLoadingCache<String, Manifest> cache;
 
     private final AtomicBoolean hasStarted = new AtomicBoolean(false);
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean isRunningSchedule = new AtomicBoolean(false);
 
-    public ManifestContainer(final ManifestRepository repository)
+    public ManifestContainer(final AsyncLoadingCache<String, Manifest> cache,
+                             final ManifestLoader manifestLoader,
+                             final Set<ManifestInterceptor> manifestInterceptors)
     {
-        this.loader = new ManifestLoader(repository);
-        this.cache = Caffeine.newBuilder()
-                .expireAfterAccess(Duration.ofHours(1))
-                .buildAsync(this.loader);
+        this.manifestLoader = manifestLoader;
+        this.manifestInterceptors = manifestInterceptors;
+        this.cache = cache;
     }
 
     @Override
@@ -85,17 +88,34 @@ public class ManifestContainer implements SmartLifecycle {
     private Mono<Void> manifestWatcher()
     {
         return Flux.fromIterable(cache.asMap().keySet())
-                .flatMap(this.loader::load)
-                .then()
-                .onErrorResume(error -> {
-                    log.error("Error while watching manifest repository", error);
-                    return Mono.empty();
-                });
+                .flatMap(name -> Mono.fromFuture(cache.get(name))
+                        .map(AbstractMessageLite::toByteArray)
+                        .flatMapMany(oldBytes -> manifestLoader.load(name)
+                                .filter(manifest -> {
+                                    final var newBytes = manifest.toByteArray();
+                                    return !Arrays.equals(oldBytes, newBytes);
+                                })
+                                .flatMapMany(manifest -> Flux.fromIterable(manifestInterceptors)
+                                        .flatMap(interceptor -> interceptor.onUpdate(name, manifest)))
+                        ))
+                .then();
     }
 
     public Mono<Manifest> get(final String key)
     {
-        return Mono.fromFuture(cache.get(key));
+        final var notExists = !cache.asMap().containsKey(key);
+
+        return Mono.fromFuture(cache.get(key))
+                .flatMap(manifest -> {
+                    if(notExists)
+                    {
+                        return Flux.fromIterable(manifestInterceptors)
+                                .flatMap(interceptor -> interceptor.onUpdate(key, manifest))
+                                .then(Mono.just(manifest));
+                    }
+
+                    return Mono.just(manifest);
+                });
     }
 
     @Override

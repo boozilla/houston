@@ -60,6 +60,8 @@ dependencies {
 
     api project(':api')
 
+    api libs.caffeine
+
     implementation libs.slf4j.api
 
     compileOnly libs.lombok
