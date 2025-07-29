@@ -4,17 +4,20 @@ import boozilla.houston.annotation.SecuredService;
 import boozilla.houston.decorator.auth.JwtAdminAuthorizer;
 import boozilla.houston.grpc.webhook.client.gitlab.GitLabBehavior;
 import boozilla.houston.grpc.webhook.command.Commands;
+import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import boozilla.houston.unframed.request.gitlab.NoteEvent;
 import boozilla.houston.unframed.request.gitlab.PushEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Empty;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.springframework.beans.factory.annotation.Value;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import java.util.stream.Collectors;
 
 @ProducesJson
 @SecuredService(JwtAdminAuthorizer.class)
@@ -37,24 +40,41 @@ public class GitLabService implements UnframedService {
 
     @Post("/gitlab/webhook")
     @MatchesHeader("x-gitlab-event=Push Hook")
-    public Mono<Empty> push(final PushEvent request)
+    public Mono<Void> push(final PushEvent request)
     {
         final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
+        final var requestBranch = behavior.branchFromRef(request.ref());
 
-        behavior.uploadPayload(request.projectId(), request.userId(),
-                        request.ref(), request.before(), request.after())
-                .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
-                        .flatMap(issue -> behavior.linkIssues(issue.getId(), uploadPayload)
-                                .and(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe();
+        if(targetBranch.equalsIgnoreCase(requestBranch))
+        {
+            final var projectId = request.projectId();
 
-        return Mono.just(Empty.getDefaultInstance());
+            behavior.openedIssues(projectId)
+                    .flatMap(linkedIssues -> Flux.fromIterable(linkedIssues)
+                            .flatMap(i -> behavior.findUploadPayload(projectId, i.getId())
+                                    .map(PayloadCommand::decode)
+                                    .flatMapMany(payload -> Flux.fromIterable(payload.getCommitFileList())))
+                            .collect(Collectors.toUnmodifiableSet())
+                            .flatMap(additionalFiles -> behavior.uploadPayload(projectId,
+                                            request.userId(),
+                                            request.ref(),
+                                            request.before(),
+                                            request.after(),
+                                            additionalFiles)
+                                    .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
+                                            .flatMap(issue -> behavior.linkIssues(projectId, issue.getId(), linkedIssues)
+                                                    .then(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
+                            ))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe();
+        }
+
+        return Mono.empty();
     }
 
     @Post("/gitlab/webhook")
     @MatchesHeader("x-gitlab-event=Note Hook")
-    public Mono<Empty> note(final NoteEvent request)
+    public Mono<Void> note(final NoteEvent request)
     {
         final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
 
@@ -78,6 +98,6 @@ public class GitLabService implements UnframedService {
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
 
-        return Mono.just(Empty.getDefaultInstance());
+        return Mono.empty();
     }
 }

@@ -4,7 +4,6 @@ import boozilla.houston.grpc.webhook.GitBehavior;
 import boozilla.houston.grpc.webhook.StateLabel;
 import boozilla.houston.grpc.webhook.client.Issue;
 import boozilla.houston.grpc.webhook.client.github.issue.IssueGetCommentResponse;
-import boozilla.houston.grpc.webhook.client.github.issue.IssueGetResponse;
 import boozilla.houston.grpc.webhook.client.github.repository.RepositoryBranchesResponse;
 import boozilla.houston.grpc.webhook.client.github.repository.RepositoryCompareResponse;
 import boozilla.houston.grpc.webhook.client.github.repository.RepositoryTreesResponse;
@@ -37,7 +36,12 @@ public class GitHubBehavior implements GitBehavior<GitHubClient> {
     }
 
     @Override
-    public Mono<UploadPayload> uploadPayload(final String repo, final String assignee, final String ref, final String beforeCommitId, final String afterCommitId)
+    public Mono<UploadPayload> uploadPayload(final String repo,
+                                             final String assignee,
+                                             final String ref,
+                                             final String beforeCommitId,
+                                             final String afterCommitId,
+                                             final Set<String> additionalFiles)
     {
         return client.compare(repo, beforeCommitId, afterCommitId)
                 .map(compareResults -> {
@@ -54,11 +58,15 @@ public class GitHubBehavior implements GitBehavior<GitHubClient> {
                                     .build())
                             .toList();
 
-                    final var commitFiles = compareResults.diffs()
+                    final var excludeDeleted = compareResults.diffs()
                             .stream()
                             .filter(diff -> !diff.deletedFile())
                             .map(RepositoryCompareResponse.Diff::newPath)
                             .toList();
+                    final var commitFiles = Stream.concat(
+                                    additionalFiles.stream(),
+                                    excludeDeleted.stream())
+                            .collect(Collectors.toUnmodifiableSet());
 
                     return UploadPayload.newBuilder()
                             .setProjectId(repo)
@@ -70,6 +78,13 @@ public class GitHubBehavior implements GitBehavior<GitHubClient> {
                             .addAllCommitFile(commitFiles)
                             .build();
                 });
+    }
+
+    public Mono<List<Issue>> openedIssues(final String repo)
+    {
+        return client.findOpenedIssue(repo)
+                .cast(Issue.class)
+                .collectList();
     }
 
     @Override
@@ -93,21 +108,13 @@ public class GitHubBehavior implements GitBehavior<GitHubClient> {
     }
 
     @Override
-    public Mono<Void> linkIssues(final String issueId, final UploadPayload uploadPayload)
+    public Mono<Void> linkIssues(final String repo, final String issueId, final List<Issue> linkedIssue)
     {
-        final var repo = uploadPayload.getProjectId();
-        final var linkCommits = uploadPayload.getContributorList()
-                .stream()
-                .map(contributor -> shortCommitId(contributor.getCommitId()))
-                .collect(Collectors.toUnmodifiableSet());
-
-        return Flux.fromIterable(linkCommits)
+        return Flux.fromIterable(linkedIssue)
                 .parallel()
-                .flatMap(label -> client.findIssue(repo, Set.of(label))
-                        .cast(IssueGetResponse.class))
-                .filter(i -> !i.getId().equals(issueId))
-                .flatMap(linkIssue -> client.createSubIssues(repo, issueId, linkIssue.uid())
-                        .then(client.closeIssue(repo, linkIssue.getId())))
+                .filter(li -> !li.getId().equals(issueId))
+                .flatMap(li -> client.createSubIssues(repo, issueId, li.getUid().orElseThrow())
+                        .then(client.closeIssue(repo, li.getId())))
                 .then();
     }
 

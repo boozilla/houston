@@ -130,7 +130,7 @@ public class GitHubClient implements GitClient {
                 .map(HttpEntity::content);
     }
 
-    public Mono<Void> createSubIssues(final String repo, final String issueNumber, final long subIssueId)
+    public Mono<Void> createSubIssues(final String repo, final String issueNumber, final String subIssueId)
     {
         final var request = restClient.post("/repos/{repo}/issues/{issue_number}/sub_issues")
                 .pathParam("repo", repo)
@@ -157,7 +157,20 @@ public class GitHubClient implements GitClient {
     {
         return paginate(() -> restClient.get("/repos/{repo}/issues")
                         .pathParam("repo", repo)
+                        .queryParam("state", "all")
                         .queryParam("labels", String.join(",", labels))
+                        .queryParam("sort", "created")
+                        .queryParam("direction", "desc"),
+                request -> request.execute(new TypeReference<>() {
+                }, objectMapper),
+                IssueGetResponse.class);
+    }
+
+    public Flux<IssueGetResponse> findOpenedIssue(final String repo)
+    {
+        return paginate(() -> restClient.get("/repos/{repo}/issues")
+                        .pathParam("repo", repo)
+                        .queryParam("state", "open")
                         .queryParam("sort", "created")
                         .queryParam("direction", "desc"),
                 request -> request.execute(new TypeReference<>() {

@@ -10,19 +10,24 @@ import reactor.core.publisher.Mono;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public interface GitBehavior<T extends GitClient> {
     T client();
 
-    Mono<UploadPayload> uploadPayload(final String projectId, final String assignee,
-                                      final String ref, final String beforeCommitId, final String afterCommitId);
+    Mono<UploadPayload> uploadPayload(final String projectId,
+                                      final String assignee,
+                                      final String ref,
+                                      final String beforeCommitId,
+                                      final String afterCommitId,
+                                      final Set<String> additionalFiles);
 
     Mono<Issue> createIssue(final UploadPayload uploadPayload);
 
     Mono<Issue> getIssue(final String projectId, final String issueId);
 
-    Mono<Void> linkIssues(final String issueId, final UploadPayload uploadPayload);
+    Mono<Void> linkIssues(final String projectId, final String issueId, final List<Issue> linkedIssue);
 
     Mono<Void> setState(final String projectId, final String issueId, final StateLabel newLabel);
 

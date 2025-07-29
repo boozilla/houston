@@ -5,6 +5,7 @@ import boozilla.houston.decorator.auth.GitHubAuthorizer;
 import boozilla.houston.grpc.webhook.client.github.GitHubBehavior;
 import boozilla.houston.grpc.webhook.client.github.GitHubClient;
 import boozilla.houston.grpc.webhook.command.Commands;
+import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import boozilla.houston.unframed.request.github.IssueEvent;
 import boozilla.houston.unframed.request.github.PushEvent;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
@@ -13,10 +14,12 @@ import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @ProducesJson
 @SecuredService(GitHubAuthorizer.class)
@@ -46,11 +49,24 @@ public class GitHubService implements UnframedService {
 
         if(targetBranch.equalsIgnoreCase(requestBranch))
         {
-            behavior.uploadPayload(request.repository().fullName(), request.sender().login(),
-                            request.ref(), request.before(), request.after())
-                    .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
-                            .flatMap(issue -> behavior.linkIssues(issue.getId(), uploadPayload)
-                                    .and(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
+            final var repo = request.repository().fullName();
+
+            behavior.openedIssues(repo)
+                    .flatMap(linkedIssues -> Flux.fromIterable(linkedIssues)
+                            .flatMap(i -> behavior.findUploadPayload(repo, i.getId())
+                                    .map(PayloadCommand::decode)
+                                    .flatMapMany(payload -> Flux.fromIterable(payload.getCommitFileList())))
+                            .collect(Collectors.toUnmodifiableSet())
+                            .flatMap(additionalFiles -> behavior.uploadPayload(repo,
+                                            request.sender().login(),
+                                            request.ref(),
+                                            request.before(),
+                                            request.after(),
+                                            additionalFiles)
+                                    .flatMap(uploadPayload -> behavior.createIssue(uploadPayload)
+                                            .flatMap(issue -> behavior.linkIssues(repo, issue.getId(), linkedIssues)
+                                                    .then(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
+                            ))
                     .subscribeOn(Schedulers.boundedElastic())
                     .subscribe();
         }

@@ -2,12 +2,10 @@ package boozilla.houston.grpc.webhook.client.github.issue;
 
 import boozilla.houston.grpc.webhook.client.Issue;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public record IssueGetResponse(
@@ -26,12 +24,21 @@ public record IssueGetResponse(
     }
 
     @Override
+    @JsonIgnore
+    public Optional<String> getUid()
+    {
+        return Optional.of(Long.toString(uid));
+    }
+
+    @Override
+    @JsonIgnore
     public String getId()
     {
         return number;
     }
 
     @Override
+    @JsonIgnore
     public Set<String> getLabels()
     {
         return labels;

@@ -21,6 +21,7 @@ import reactor.core.scheduler.Schedulers;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,8 +42,12 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     }
 
     @Override
-    public Mono<UploadPayload> uploadPayload(final String projectId, final String assignee,
-                                             final String ref, final String beforeCommitId, final String afterCommitId)
+    public Mono<UploadPayload> uploadPayload(final String projectId,
+                                             final String assignee,
+                                             final String ref,
+                                             final String beforeCommitId,
+                                             final String afterCommitId,
+                                             final Set<String> additionalFiles)
     {
         return client.compare(projectId, beforeCommitId, afterCommitId)
                 .map(compareResults -> {
@@ -58,11 +63,15 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
                                     .build())
                             .toList();
 
-                    final var commitFiles = compareResults.diffs()
+                    final var excludeDeleted = compareResults.diffs()
                             .stream()
                             .filter(diff -> !diff.deletedFile())
                             .map(RepositoryCompareResponse.Diff::newPath)
-                            .toList();
+                            .collect(Collectors.toUnmodifiableSet());
+                    final var commitFiles = Stream.concat(
+                                    additionalFiles.stream(),
+                                    excludeDeleted.stream())
+                            .collect(Collectors.toUnmodifiableSet());
 
                     return UploadPayload.newBuilder()
                             .setProjectId(projectId)
@@ -74,6 +83,13 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
                             .addAllCommitFile(commitFiles)
                             .build();
                 });
+    }
+
+    public Mono<List<Issue>> openedIssues(final String projectId)
+    {
+        return client.findOpenedIssue(projectId)
+                .cast(Issue.class)
+                .collectList();
     }
 
     @Override
@@ -97,20 +113,13 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     }
 
     @Override
-    public Mono<Void> linkIssues(final String issueIid, final UploadPayload uploadPayload)
+    public Mono<Void> linkIssues(final String projectId, final String issueIid, final List<Issue> linkedIssue)
     {
-        final var projectId = uploadPayload.getProjectId();
-        final var linkCommits = uploadPayload.getContributorList()
-                .stream()
-                .map(contributor -> shortCommitId(contributor.getCommitId()))
-                .collect(Collectors.toUnmodifiableSet());
-
-        return Flux.fromIterable(linkCommits)
+        return Flux.fromIterable(linkedIssue)
                 .parallel()
-                .flatMap(label -> client.findIssue(projectId, List.of(label)))
-                .filter(i -> !i.getId().equals(issueIid))
-                .flatMap(linkIssue -> client.createIssueLink(projectId, issueIid, projectId, linkIssue.getId())
-                        .then(client.closeIssue(projectId, linkIssue.getId())))
+                .filter(li -> !li.getId().equals(issueIid))
+                .flatMap(li -> client.createIssueLink(projectId, issueIid, projectId, li.getId())
+                        .then(client.closeIssue(projectId, li.getId())))
                 .then();
     }
 

@@ -215,7 +215,20 @@ public class GitLabClient implements GitClient {
     {
         final var request = restClient.get("/projects/{id}/issues")
                 .pathParam("id", projectId)
+                .pathParam("state", "all")
                 .queryParam("labels", String.join(",", labels))
+                .execute(new TypeReference<List<IssueGetResponse>>() {
+                }, objectMapper);
+
+        return Mono.fromFuture(request)
+                .flatMapMany(response -> Flux.fromIterable(response.content()));
+    }
+
+    public Flux<IssueGetResponse> findOpenedIssue(final String repo)
+    {
+        final var request = restClient.get("/projects/{id}/issues")
+                .pathParam("id", repo)
+                .queryParam("state", "opened")
                 .execute(new TypeReference<List<IssueGetResponse>>() {
                 }, objectMapper);
 

@@ -43,7 +43,7 @@ public class PayloadCommand implements StereotypeCommand {
         return uploadCommand.run(packageName, projectId, issueId, targetRef, delegateCommand, behavior);
     }
 
-    private UploadPayload decode(final String command)
+    public static UploadPayload decode(final String command)
     {
         final var base64 = command.split("\n")[1];
         final var payload = Base64.getDecoder().decode(base64);
