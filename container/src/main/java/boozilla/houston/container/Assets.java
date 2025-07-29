@@ -4,11 +4,9 @@ import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.sql.Select;
 import boozilla.houston.asset.sql.SqlStatement;
 import com.google.protobuf.AbstractMessage;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Service
 public class Assets {
     public Flux<AssetData> query(final String sql)
     {
