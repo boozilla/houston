@@ -47,26 +47,13 @@ afterEvaluate {
                 }
             }
         }
-
-        repositories {
-            maven {
-                name = 'sonatype'
-                url = 'https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC'
-
-                credentials {
-                    username = System.getenv("OSSRH_USERNAME")
-                    password = System.getenv("OSSRH_PASSWORD")
-                }
-            }
-        }
     }
 
     signing {
         def signingKey = System.getenv("SIGNING_KEY")
         def signingPassword = System.getenv("SIGNING_PASSWORD")
 
-        if (Objects.nonNull(signingKey) && Objects.nonNull(signingPassword))
-        {
+        if (Objects.nonNull(signingKey) && Objects.nonNull(signingPassword)) {
             useInMemoryPgpKeys(new String(signingKey.decodeBase64()), signingPassword)
 
             sign publishing.publications
