@@ -50,9 +50,9 @@ afterEvaluate {
 
         repositories {
             maven {
-                name = "sonatype"
+                name = 'ossrh-staging-api'
 
-                def releasesRepoUrl = layout.buildDirectory.dir('repos/releases')
+                def releasesRepoUrl = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
                 def snapshotsRepoUrl = layout.buildDirectory.dir('repos/snapshots')
 
                 url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
