@@ -36,4 +36,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Publish all
-        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+        run: ./gradlew :api:publishToSonatype :container:publishToSonatype closeAndReleaseSonatypeStagingRepository
