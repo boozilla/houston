@@ -51,11 +51,7 @@ afterEvaluate {
         repositories {
             maven {
                 name = 'sonatype'
-
-                def releasesRepoUrl = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
-                def snapshotsRepoUrl = layout.buildDirectory.dir('repos/snapshots')
-
-                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                url = 'https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/'
 
                 credentials {
                     username = System.getenv("OSSRH_USERNAME")
