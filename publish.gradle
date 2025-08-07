@@ -47,30 +47,13 @@ afterEvaluate {
                 }
             }
         }
-
-        repositories {
-            maven {
-                name = "sonatype"
-
-                def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
-                def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots"
-
-                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-
-                credentials {
-                    username = System.getenv("OSSRH_USERNAME")
-                    password = System.getenv("OSSRH_PASSWORD")
-                }
-            }
-        }
     }
 
     signing {
         def signingKey = System.getenv("SIGNING_KEY")
         def signingPassword = System.getenv("SIGNING_PASSWORD")
 
-        if (Objects.nonNull(signingKey) && Objects.nonNull(signingPassword))
-        {
+        if (Objects.nonNull(signingKey) && Objects.nonNull(signingPassword)) {
             useInMemoryPgpKeys(new String(signingKey.decodeBase64()), signingPassword)
 
             sign publishing.publications

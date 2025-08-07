@@ -10,10 +10,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -96,7 +96,7 @@ public class ManifestContainer implements SmartLifecycle {
                                     final var newBytes = manifest.toByteArray();
                                     return !Arrays.equals(oldBytes, newBytes);
                                 })
-                                .doOnNext(manifest -> cache.put(name, CompletableFuture.completedFuture(manifest)))
+                                .doOnTerminate(this::invalidate)
                                 .flatMapMany(manifest -> Flux.fromIterable(manifestInterceptors)
                                         .flatMap(interceptor -> interceptor.onUpdate(name, manifest)))
                         ))
@@ -118,6 +118,14 @@ public class ManifestContainer implements SmartLifecycle {
 
                     return Mono.just(manifest);
                 });
+    }
+
+    public void invalidate()
+    {
+        Mono.fromRunnable(() -> cache.synchronous().invalidateAll())
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnError(error -> log.error("Failed to invalidate cache", error))
+                .subscribe();
     }
 
     @Override

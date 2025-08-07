@@ -1,10 +1,7 @@
 package boozilla.houston.container.config;
 
 import boozilla.houston.HoustonChannel;
-import boozilla.houston.container.HoustonWatcher;
-import boozilla.houston.container.ManifestContainer;
-import boozilla.houston.container.ManifestHoustonLoader;
-import boozilla.houston.container.ManifestLoader;
+import boozilla.houston.container.*;
 import boozilla.houston.container.interceptor.ManifestInterceptor;
 import boozilla.houston.container.interceptor.UpdateInterceptor;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
@@ -58,5 +55,11 @@ public class HoustonAutoConfiguration {
                                                final Set<ManifestInterceptor> manifestInterceptors)
     {
         return new ManifestContainer(cache, manifestLoader, manifestInterceptors);
+    }
+
+    @Bean
+    public Assets assets()
+    {
+        return new Assets();
     }
 }

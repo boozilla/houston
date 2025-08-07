@@ -20,14 +20,16 @@ gradle-api = "8.11.1"
 junit = "5.12.1"
 slf4j = "2.0.17"
 jib = "3.4.4"
-publish = "1.3.1"
 caffeine = "3.2.2"
+publish = "1.3.1"
+nexus = "2.0.0"
 
 [plugins]
 protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 publish = { id = "com.gradle.plugin-publish", version.ref = "publish" }
+nexus = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexus" }
 
 [libraries]
 # Armeria

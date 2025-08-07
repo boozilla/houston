@@ -20,7 +20,11 @@ public class JsonManifestHandler extends GitFileHandler {
     private final List<boozilla.houston.entity.Manifest> manifest;
     private final List<Throwable> exceptions;
 
-    public JsonManifestHandler(final String projectId, final String issueId, final String commitId, final String packageName, final GitBehavior<?> behavior)
+    public JsonManifestHandler(final String projectId,
+                               final String issueId,
+                               final String commitId,
+                               final String packageName,
+                               final GitBehavior<?> behavior)
     {
         super(projectId, issueId, commitId, packageName, behavior);
 
