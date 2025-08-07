@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -95,6 +96,7 @@ public class ManifestContainer implements SmartLifecycle {
                                     final var newBytes = manifest.toByteArray();
                                     return !Arrays.equals(oldBytes, newBytes);
                                 })
+                                .doOnNext(manifest -> cache.put(name, CompletableFuture.completedFuture(manifest)))
                                 .flatMapMany(manifest -> Flux.fromIterable(manifestInterceptors)
                                         .flatMap(interceptor -> interceptor.onUpdate(name, manifest)))
                         ))

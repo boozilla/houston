@@ -14,7 +14,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.0.9'
+version = '1.0.10'
 
 sourceSets {
     main {
