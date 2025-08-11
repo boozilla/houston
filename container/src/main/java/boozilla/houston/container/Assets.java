@@ -7,6 +7,8 @@ import com.google.protobuf.AbstractMessage;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 public class Assets {
     public Flux<AssetData> query(final String sql)
     {
@@ -37,6 +39,13 @@ public class Assets {
     public <T extends AbstractMessage> Flux<T> many(final Class<T> resultClass)
     {
         return query(Select.all().from(resultClass), resultClass);
+    }
+
+    public Mono<Boolean> exists(final long code, final Class<? extends AbstractMessage> resultClass)
+    {
+        return single(code, resultClass)
+                .map(Objects::nonNull)
+                .defaultIfEmpty(false);
     }
 
     public String version(final Class<? extends AbstractMessage> targetClass)
