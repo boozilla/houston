@@ -36,9 +36,9 @@ public record KmsAlgorithmProvider(KmsAsyncClient client) {
         ES256("ES256", SigningAlgorithmSpec.ECDSA_SHA_256.name(), "SHA256withECDSA", "EC"),
         ES384("ES384", SigningAlgorithmSpec.ECDSA_SHA_384.name(), "SHA384withECDSA", "EC"),
         ES512("ES512", SigningAlgorithmSpec.ECDSA_SHA_512.name(), "SHA512withECDSA", "EC"),
-        ML44("ML44", SigningAlgorithmSpec.ML_DSA_SHAKE_256.name(), "ML-DSA-44", "ML-DSA"),
-        ML65("ML65", SigningAlgorithmSpec.ML_DSA_SHAKE_256.name(), "ML-DSA-65", "ML-DSA"),
-        ML87("ML87", SigningAlgorithmSpec.ML_DSA_SHAKE_256.name(), "ML-DSA-87", "ML-DSA");
+        ML44("MD44", SigningAlgorithmSpec.ML_DSA_SHAKE_256.name(), "ML-DSA-44", "ML-DSA"),
+        ML65("MD65", SigningAlgorithmSpec.ML_DSA_SHAKE_256.name(), "ML-DSA-65", "ML-DSA"),
+        ML87("MD87", SigningAlgorithmSpec.ML_DSA_SHAKE_256.name(), "ML-DSA-87", "ML-DSA");
 
         private final String jwtName;
         private final String kmsName;
