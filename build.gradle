@@ -83,7 +83,7 @@ protobuf {
 
 jib {
     from {
-        image = "azul/zulu-openjdk:21-latest"
+        image = "azul/zulu-openjdk:24-latest"
 
         platforms {
             platform {

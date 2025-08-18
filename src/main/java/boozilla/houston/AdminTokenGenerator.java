@@ -1,7 +1,7 @@
 package boozilla.houston;
 
 import boozilla.houston.security.EcdsaKeyProvider;
-import boozilla.houston.security.KmsAlgorithm;
+import boozilla.houston.security.KmsAlgorithmProvider;
 import boozilla.houston.token.AdminApiKey;
 import com.auth0.jwt.algorithms.Algorithm;
 import lombok.AccessLevel;
@@ -9,6 +9,7 @@ import lombok.Setter;
 import picocli.CommandLine;
 import software.amazon.awssdk.services.kms.KmsAsyncClient;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.function.Supplier;
@@ -32,8 +33,16 @@ public class AdminTokenGenerator implements Runnable {
     }
 
     static class KeyOrKmsOption {
-        @CommandLine.Option(names = {"--kms-key-id", "--kms"}, description = "KMS key ID")
-        private String kmsKeyId;
+        static class KmsOption {
+            @CommandLine.Option(names = {"--kms-key-id", "--kms"}, description = "KMS key ID")
+            private String id;
+
+            @CommandLine.Option(names = {"--kms-algo", "--kms-algo"}, required = true, description = "KMS algorithm")
+            private String algorithm;
+        }
+
+        @CommandLine.ArgGroup(exclusive = false)
+        private KmsOption kmsOption;
 
         @CommandLine.ArgGroup(exclusive = false)
         private KeyOption keyOption;
@@ -43,8 +52,8 @@ public class AdminTokenGenerator implements Runnable {
     public void run()
     {
         final var algorithm = algorithm();
-        final var adminApiKey = new AdminApiKey(issuer, algorithm);
-        final var adminToken = adminApiKey.create(askUsername())
+        final var adminApiKey = new AdminApiKey(issuer, List.of(algorithm));
+        final var adminToken = adminApiKey.create(askUsername(), algorithm)
                 .block();
 
         System.out.println(adminToken);
@@ -52,9 +61,9 @@ public class AdminTokenGenerator implements Runnable {
 
     private Algorithm algorithm()
     {
-        if(Objects.nonNull(keyOrKmsOption.kmsKeyId))
+        if(Objects.nonNull(keyOrKmsOption.kmsOption))
         {
-            return kmsAlgorithm(keyOrKmsOption.kmsKeyId);
+            return kmsAlgorithm(keyOrKmsOption.kmsOption.id, keyOrKmsOption.kmsOption.algorithm);
         }
 
         if(Objects.nonNull(keyOrKmsOption.keyOption))
@@ -73,9 +82,25 @@ public class AdminTokenGenerator implements Runnable {
         throw new IllegalArgumentException("No key option");
     }
 
-    private Algorithm kmsAlgorithm(final String kmsKeyId)
+    private KmsAlgorithmProvider kmsAlgorithmProvider()
     {
-        return new KmsAlgorithm(kmsKeyId, KmsAsyncClient.create());
+        return new KmsAlgorithmProvider(KmsAsyncClient.create());
+    }
+
+    private Algorithm kmsAlgorithm(final String kmsKeyId, final String algorithm)
+    {
+        final var algorithmSpec = KmsAlgorithmProvider.AlgorithmSpec.findByJwtName(algorithm);
+
+        if(Objects.isNull(algorithmSpec))
+        {
+            throw new IllegalArgumentException("Unsupported algorithm");
+        }
+
+        final var kmsAlgorithmProvider = kmsAlgorithmProvider();
+
+        return kmsAlgorithmProvider.get(kmsKeyId)
+                .filter(a -> a.getName().contentEquals(algorithmSpec.getJwtName()))
+                .blockFirst();
     }
 
     private Algorithm keyAlgorithmFromFile(final String keyFile, final String algorithm)

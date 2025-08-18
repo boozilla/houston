@@ -5,7 +5,7 @@ import boozilla.houston.common.AwsCredentialsCondition;
 import boozilla.houston.properties.AdminProperties;
 import boozilla.houston.properties.KmsProperties;
 import boozilla.houston.security.EcdsaKeyProvider;
-import boozilla.houston.security.KmsAlgorithm;
+import boozilla.houston.security.KmsAlgorithmProvider;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.ECDSAKeyProvider;
 import com.linecorp.armeria.common.util.InetAddressPredicates;
@@ -37,6 +37,22 @@ public class SecurityConfig {
     {
         return KmsAsyncClient.builder()
                 .build();
+    }
+
+    @Bean
+    public KmsAlgorithmProvider kmsAlgorithmProvider(final KmsAsyncClient client)
+    {
+        return new KmsAlgorithmProvider(client);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "key", name = "kms.id")
+    public List<Algorithm> kmsAlgorithm(final KmsProperties kmsProperties,
+                                        final KmsAlgorithmProvider kmsAlgorithmProvider)
+    {
+        return kmsAlgorithmProvider.get(kmsProperties.id())
+                .collectList()
+                .block();
     }
 
     @Bean
@@ -75,13 +91,6 @@ public class SecurityConfig {
     public Algorithm ecdsa512Algorithm(final ECDSAKeyProvider ecdsaKeyProvider)
     {
         return Algorithm.ECDSA512(ecdsaKeyProvider);
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "key", name = "kms.id")
-    public Algorithm kmsAlgorithm(final KmsProperties kmsProperties, final KmsAsyncClient kmsAsyncClient)
-    {
-        return new KmsAlgorithm(kmsProperties.id(), kmsAsyncClient);
     }
 
     @Bean
