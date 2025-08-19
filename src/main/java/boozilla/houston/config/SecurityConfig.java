@@ -40,6 +40,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @ConditionalOnBean(KmsAsyncClient.class)
     public KmsAlgorithmProvider kmsAlgorithmProvider(final KmsAsyncClient client)
     {
         return new KmsAlgorithmProvider(client);
