@@ -69,7 +69,7 @@ public class AdminApiKey {
                     }
                     catch(final JWTVerificationException e)
                     {
-                        log.error("Failed to verify admin API token", e);
+                        log.info("Failed to verify admin API token", e);
 
                         return false;
                     }

@@ -41,6 +41,13 @@ public final class ScopeDecoratorFactory implements DecoratorFactoryFunction<@No
                     return delegate.serve(ctx, req);
                 })
                 .onFailure((delegate, ctx, req, error) -> {
+                    final var scope = req.headers().get(SCOPE_HEADER_NAME, Scope.CLIENT.name());
+
+                    if(scope.contentEquals(Scope.SERVER.name()))
+                    {
+                        throw new RuntimeException("Unauthorized access to SERVER scope", error);
+                    }
+
                     ctx.setAttr(ScopeContext.ATTR_SCOPE_KEY, Scope.CLIENT);
 
                     return delegate.serve(ctx, req);

@@ -31,11 +31,17 @@ public record Query(
         long limit,
         String sql
 ) {
+    private static final char SINGLE_QUOTE = '\'';
+    private static final String OP_NOT_EQUAL = "<>";
+    private static final String OP_EQUAL = "=";
+    private static final String KW_IS = "IS";
+    private static final String KW_NOT = "NOT";
+
     public static Query of(final String value)
     {
         try
         {
-            final var parser = CCJSqlParserUtil.parse(value);
+            final var parser = CCJSqlParserUtil.parse(normalizeWhereOperators(value));
 
             if(parser instanceof Select select)
                 return of(select);
@@ -114,6 +120,138 @@ public record Query(
             return column.getColumnName().replaceAll("\\b(\\w+)\\b", "'$1'");
 
         return expression.toString();
+    }
+
+    private static int skipWhitespace(final String s, int idx, final int len)
+    {
+        while(idx < len && Character.isWhitespace(s.charAt(idx)))
+        {
+            idx++;
+        }
+
+        return idx;
+    }
+
+    private static int scanLetters(final String s, int idx, final int len)
+    {
+        while(idx < len && Character.isLetter(s.charAt(idx)))
+        {
+            idx++;
+        }
+
+        return idx;
+    }
+
+    private static String normalizeWhereOperators(final String whereClause)
+    {
+        if(Objects.isNull(whereClause) || whereClause.isBlank())
+            return whereClause;
+
+        final var length = whereClause.length();
+        final var builder = new StringBuilder(length);
+        var inSingleQuote = false;
+
+        for(var i = 0; i < length; i++)
+        {
+            final var ch = whereClause.charAt(i);
+
+            // 문자열 리터럴 처리: '' 이스케이프 지원
+            if(ch == SINGLE_QUOTE)
+            {
+                if(inSingleQuote)
+                {
+                    if(i + 1 < length && whereClause.charAt(i + 1) == SINGLE_QUOTE)
+                    {
+                        builder.append("''");
+                        i++;
+                        continue;
+                    }
+                    else
+                    {
+                        inSingleQuote = false;
+                        builder.append(ch);
+                        continue;
+                    }
+                }
+                else
+                {
+                    inSingleQuote = true;
+                    builder.append(ch);
+                    continue;
+                }
+            }
+
+            if(!inSingleQuote)
+            {
+                // != -> <>
+                if(ch == '!' && i + 1 < length && whereClause.charAt(i + 1) == '=')
+                {
+                    builder.append(OP_NOT_EQUAL);
+                    i++;
+                    continue;
+                }
+
+                // == -> =
+                if(ch == '=' && i + 1 < length && whereClause.charAt(i + 1) == '=')
+                {
+                    builder.append(OP_EQUAL);
+                    i++;
+                    continue;
+                }
+
+                // IS / IS NOT (토큰 경계에서만)
+                if(Character.isLetter(ch))
+                {
+                    final var start = i;
+                    var j = scanLetters(whereClause, i, length);
+                    final var word1 = whereClause.substring(start, j);
+
+                    if(word1.equalsIgnoreCase(KW_IS))
+                    {
+                        final var leftBoundary = start == 0 || !Character.isLetterOrDigit(whereClause.charAt(start - 1));
+                        final var rightBoundaryAfterIS = j == length || !Character.isLetterOrDigit(whereClause.charAt(j));
+                        if(leftBoundary)
+                        {
+                            // 공백 스킵
+                            var k = skipWhitespace(whereClause, j, length);
+
+                            // IS NOT 인지 확인
+                            if(k < length && Character.isLetter(whereClause.charAt(k)))
+                            {
+                                final var n = scanLetters(whereClause, k, length);
+                                final var word2 = whereClause.substring(k, n);
+                                final var rightBoundaryAfterNOT = n == length || !Character.isLetterOrDigit(whereClause.charAt(n));
+
+                                if(word2.equalsIgnoreCase(KW_NOT) && rightBoundaryAfterNOT)
+                                {
+                                    builder.append(OP_NOT_EQUAL);
+                                    i = n - 1;
+                                    continue;
+                                }
+                            }
+
+                            // 단독 IS 인 경우: = 로 정규화
+                            if(rightBoundaryAfterIS)
+                            {
+                                builder.append(OP_EQUAL);
+                                i = j - 1;
+                                continue;
+                            }
+                        }
+                    }
+
+                    // 다른 식별자/단어는 그대로 출력
+                    builder.append(whereClause, start, j);
+                    i = j - 1;
+                    continue;
+                }
+            }
+
+            // 기본 문자 출력
+            builder.append(ch);
+        }
+
+        return builder.toString();
     }
 
     public boolean allColumns()
