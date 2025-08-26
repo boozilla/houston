@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -131,6 +132,7 @@ public class SshTunnelConfig implements AutoCloseable {
     }
 
     @Override
+    @PreDestroy
     public void close()
     {
         sessions.forEach(Session::disconnect);
