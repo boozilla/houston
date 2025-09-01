@@ -14,7 +14,6 @@ import java.util.Objects;
 
 @Slf4j
 @Configuration
-@Conditio
 public class SshTunnelConfig implements AutoCloseable {
     private final SshProperties sshProperties;
     private final IdentityRepository identityRepository;
@@ -26,7 +25,9 @@ public class SshTunnelConfig implements AutoCloseable {
         this.sessions = new ArrayList<>();
 
         final var agentConnector = getAgentConnector(sshProperties.agentSock());
-        this.identityRepository = getIdentityRepository(agentConnector);
+
+        if(Objects.nonNull(agentConnector))
+            this.identityRepository = getIdentityRepository(agentConnector);
     }
 
     private JSch getJsch(final SshProperties.Tunnel tunnel) throws JSchException
@@ -60,7 +61,13 @@ public class SshTunnelConfig implements AutoCloseable {
 
     private AgentConnector getAgentConnector(final String agentSock) throws AgentProxyException
     {
-        return new SSHAgentConnector(Path.of(agentSock));
+        if(Objects.nonNull(agentSock))
+            return new SSHAgentConnector(Path.of(agentSock));
+
+        if(Objects.nonNull()System.getenv("SSH_AUTH_SOCK"))
+            return new SSHAgentConnector();
+
+        return null;
     }
 
     private IdentityRepository getIdentityRepository(final AgentConnector connector)

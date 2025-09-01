@@ -41,11 +41,6 @@ public record SshProperties(
         return Objects.requireNonNullElse(knownHosts, "~/.ssh/known_hosts");
     }
 
-    public String agentSock()
-    {
-        return Objects.nonNull(agentSock) ? agentSock : System.getenv("SSH_AUTH_SOCK");
-    }
-
     public Set<Tunnel> tunnels()
     {
         return Objects.requireNonNullElse(tunnels, Set.of());
