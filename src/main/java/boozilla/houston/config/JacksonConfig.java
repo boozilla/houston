@@ -9,7 +9,6 @@ public class JacksonConfig {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jackson2ObjectMapperBuilderCustomizer()
     {
-        return builder -> builder.failOnUnknownProperties(false)
-                .propertyNamingStrategy(com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE);
+        return builder -> builder.failOnUnknownProperties(false);
     }
 }

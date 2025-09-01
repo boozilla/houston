@@ -2,7 +2,6 @@ package boozilla.houston.grpc.webhook.client.github.issue;
 
 import boozilla.houston.grpc.webhook.client.Issue;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.*;
@@ -24,21 +23,21 @@ public record IssueGetResponse(
     }
 
     @Override
-    @JsonIgnore
+    @JsonProperty("id")
     public Optional<String> getUid()
     {
         return Optional.of(Long.toString(uid));
     }
 
     @Override
-    @JsonIgnore
+    @JsonProperty("number")
     public String getId()
     {
         return number;
     }
 
     @Override
-    @JsonIgnore
+    @JsonProperty("labels")
     public Set<String> getLabels()
     {
         return labels;
