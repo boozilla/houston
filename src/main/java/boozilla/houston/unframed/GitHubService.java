@@ -9,6 +9,7 @@ import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import boozilla.houston.unframed.request.github.IssueEvent;
 import boozilla.houston.unframed.request.github.PushEvent;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
+import com.linecorp.armeria.server.annotation.PathPrefix;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.apache.logging.log4j.util.Strings;
@@ -21,6 +22,7 @@ import reactor.core.scheduler.Schedulers;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@PathPrefix("/github")
 @ProducesJson
 @SecuredService(GitHubAuthorizer.class)
 @ConditionalOnBean(GitHubClient.class)
@@ -41,7 +43,7 @@ public class GitHubService implements UnframedService {
         this.behavior = new GitHubBehavior(client);
     }
 
-    @Post("/github/webhook")
+    @Post("/webhook")
     @MatchesHeader("x-github-event=push")
     public Mono<Void> push(final PushEvent request)
     {
@@ -74,7 +76,7 @@ public class GitHubService implements UnframedService {
         return Mono.empty();
     }
 
-    @Post("/github/webhook")
+    @Post("/webhook")
     @MatchesHeader("x-github-event=issues")
     public Mono<Void> issues(final IssueEvent request)
     {
@@ -101,7 +103,7 @@ public class GitHubService implements UnframedService {
         return Mono.empty();
     }
 
-    @Post("/github/webhook")
+    @Post("/webhook")
     @MatchesHeader("x-github-event=issue_comment")
     public Mono<Void> issueComment(final IssueEvent request)
     {

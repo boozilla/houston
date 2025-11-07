@@ -10,6 +10,7 @@ import boozilla.houston.unframed.request.gitlab.PushEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
+import com.linecorp.armeria.server.annotation.PathPrefix;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.stream.Collectors;
 
+@PathPrefix("/gitlab")
 @ProducesJson
 @SecuredService(JwtAdminAuthorizer.class)
 public class GitLabService implements UnframedService {
@@ -38,7 +40,7 @@ public class GitLabService implements UnframedService {
         this.objectMapper = objectMapper;
     }
 
-    @Post("/gitlab/webhook")
+    @Post("/webhook")
     @MatchesHeader("x-gitlab-event=Push Hook")
     public Mono<Void> push(final PushEvent request)
     {
@@ -72,7 +74,7 @@ public class GitLabService implements UnframedService {
         return Mono.empty();
     }
 
-    @Post("/gitlab/webhook")
+    @Post("/webhook")
     @MatchesHeader("x-gitlab-event=Note Hook")
     public Mono<Void> note(final NoteEvent request)
     {

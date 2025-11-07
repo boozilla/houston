@@ -16,7 +16,7 @@ import java.util.Objects;
 @Configuration
 public class SshTunnelConfig implements AutoCloseable {
     private final SshProperties sshProperties;
-    private final IdentityRepository identityRepository;
+    private final AgentIdentityRepository agentIdentityRepository;
     private final List<Session> sessions;
 
     public SshTunnelConfig(final SshProperties sshProperties) throws AgentProxyException, JSchException
@@ -25,7 +25,7 @@ public class SshTunnelConfig implements AutoCloseable {
         this.sessions = new ArrayList<>();
 
         final var agentConnector = getAgentConnector(sshProperties.agentSock());
-        this.identityRepository = getIdentityRepository(agentConnector);
+        this.agentIdentityRepository = getIdentityRepository(agentConnector);
     }
 
     private JSch getJsch(final SshProperties.Tunnel tunnel) throws JSchException
@@ -33,18 +33,21 @@ public class SshTunnelConfig implements AutoCloseable {
         final var jSch = new JSch();
         jSch.setKnownHosts(sshProperties.knownHosts());
 
-        if(Objects.isNull(tunnel.sshIdentityName()) || tunnel.sshIdentityName().isBlank())
+        if(Objects.nonNull(agentIdentityRepository))
         {
-            jSch.setIdentityRepository(identityRepository);
-        }
-
-        if(Objects.nonNull(tunnel.sshIdentityName()) && !tunnel.sshIdentityName().isBlank())
-        {
-            for(final var identity : identityRepository.getIdentities())
+            if(Objects.isNull(tunnel.sshIdentityName()) || tunnel.sshIdentityName().isBlank())
             {
-                if(identity.getName().contentEquals(tunnel.sshIdentityName()))
+                jSch.setIdentityRepository(agentIdentityRepository);
+            }
+
+            if(Objects.nonNull(tunnel.sshIdentityName()) && !tunnel.sshIdentityName().isBlank())
+            {
+                for(final var identity : agentIdentityRepository.getIdentities())
                 {
-                    jSch.addIdentity(identity, tunnel.sshIdentityPassphrase().getBytes());
+                    if(identity.getName().contentEquals(tunnel.sshIdentityName()))
+                    {
+                        jSch.addIdentity(identity, tunnel.sshIdentityPassphrase().getBytes());
+                    }
                 }
             }
         }
@@ -62,10 +65,13 @@ public class SshTunnelConfig implements AutoCloseable {
         if(Objects.nonNull(agentSock))
             return new SSHAgentConnector(Path.of(agentSock));
 
-        return new SSHAgentConnector();
+        if(Objects.nonNull(System.getenv("SSH_AUTH_SOCK")))
+            return new SSHAgentConnector();
+
+        return null;
     }
 
-    private IdentityRepository getIdentityRepository(final AgentConnector connector)
+    private AgentIdentityRepository getIdentityRepository(final AgentConnector connector)
     {
         return new AgentIdentityRepository(connector);
     }

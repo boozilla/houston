@@ -336,15 +336,16 @@ public class GitHubClient implements GitClient {
                     final var nextPage = Objects.isNull(linkHeader) || !linkHeader.contains("rel=\"next\"") ?
                             currentPage : currentPage + 1;
 
-                    final var currentContent = response.content();
+                    final var currentContent = Flux.fromIterable(response.content());
 
                     if(nextPage == currentPage)
                     {
-                        return Flux.fromIterable(currentContent);
+                        return currentContent;
                     }
 
                     return paginate(requestSupplier, requestConsumer, resultClass, nextPage, perPage)
-                            .cast(resultClass);
+                            .cast(resultClass)
+                            .concatWith(currentContent);
                 });
     }
 }
