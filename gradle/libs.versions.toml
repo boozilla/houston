@@ -1,6 +1,6 @@
 [versions]
 armeria = "1.33.4"
-spring-boot = "3.5.6"
+spring-boot = "3.5.5"
 spring = "6.2.11"
 protobuf-plugin = "0.9.4"
 protobuf = "4.30.1"
