@@ -47,7 +47,9 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
         final var target = link.getRelated();
 
         final var linkType = accessor.columnType(link.getSheetName(), link.getColumnName());
-        final var targetType = accessor.columnType(target.getSheetName(), PRIMARY_COLUMN);
+        // 대상 컬럼: 지정되지 않은 경우 기본 primary(code)
+        final var targetColumn = Optional.ofNullable(target.getColumnName()).orElse(PRIMARY_COLUMN);
+        final var targetType = accessor.columnType(target.getSheetName(), targetColumn);
 
         if(!linkType.equals(targetType))
         {
@@ -90,15 +92,18 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
     {
         final var expression = target.getExpression();
 
-        // 1. 존재하지 않는 값 검증
-        final var existsQuery = Select.columns(PRIMARY_COLUMN)
-                .from(target.getSheetName())
-                .where(":COLUMN IN :VALUES")
-                .parameter("COLUMN", PRIMARY_COLUMN)
-                .parameter("VALUES", linkedValues);
+        // 1. 대상 컬럼 결정 (미지정 시 primary(code))
+        final var targetColumn = Optional.ofNullable(target.getColumnName()).orElse(PRIMARY_COLUMN);
 
-        final var nonExistValuesMono = accessor.query(target, existsQuery)
-                .flatMap(data -> Flux.fromStream(data.stream(PRIMARY_COLUMN, Object.class)))
+        // 2. 대상 시트의 대상 컬럼 전체 값을 수집하여 존재 여부 판단 (배열 컬럼도 지원)
+        final var collectTargetValuesQuery = Select.columns(targetColumn)
+                .from(target.getSheetName());
+
+        final var nonExistValuesMono = accessor.query(target, collectTargetValuesQuery)
+                .flatMap(data -> Flux.fromStream(data.stream(targetColumn, Object.class))
+                        .flatMap(row -> MessageUtils.extractValue(row)
+                                .map(Flux::just)
+                                .orElse(Flux.empty())))
                 .collect(Collectors.toUnmodifiableSet())
                 .map(existValues -> linkedValues.stream()
                         .filter(value -> !existValues.contains(value))
@@ -110,26 +115,16 @@ public class SheetLink extends LocalizedAssetSheetConstraints {
             return nonExistValuesMono;
         }
 
-        // 2. 표현식에서 허용된 값들을 추출
+        // 3. 표현식 허용 값 계산: 대상 컬럼 값 자체가 허용 목록에 포함되어야 함
         final var allowValues = extractAllowedValuesFromExpression(expression);
 
-        // 허용된 값들을 사용하여 쿼리 실행
-        final var passedExpressionQuery = Select.columns(PRIMARY_COLUMN)
-                .from(target.getSheetName())
-                .where(":PRIMARY IN :CODE_VALUES AND :TARGET IN :ALLOW_VALUES")
-                .parameter("PRIMARY", PRIMARY_COLUMN)
-                .parameter("CODE_VALUES", linkedValues)
-                .parameter("TARGET", target.getColumnName())
-                .parameter("ALLOW_VALUES", allowValues);
+        final var expressionInvalidValuesMono = Mono.just(
+                linkedValues.stream()
+                        .filter(value -> !allowValues.contains(value))
+                        .collect(Collectors.toUnmodifiableSet())
+        );
 
-        final var expressionInvalidValuesMono = accessor.query(target, passedExpressionQuery)
-                .flatMap(data -> Flux.fromStream(data.stream(PRIMARY_COLUMN, Object.class)))
-                .collect(Collectors.toUnmodifiableSet())
-                .map(passedValues -> linkedValues.stream()
-                        .filter(value -> !passedValues.contains(value))
-                        .collect(Collectors.toUnmodifiableSet()));
-
-        // 3. 두 결과를 합침
+        // 4. 두 결과를 합침
         return Mono.zip(nonExistValuesMono, expressionInvalidValuesMono)
                 .map(tuple -> {
                     final var nonExistValues = tuple.getT1();
