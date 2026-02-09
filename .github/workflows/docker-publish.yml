@@ -1,4 +1,4 @@
-name: Docker publish
+name: Image publish
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   publish:
@@ -29,4 +30,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Publish
-        run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=${{ secrets.TO_IMAGE }} -Djib.to.auth.username=${{ secrets.DOCKER_HUB_USERNAME }} -Djib.to.auth.password=${{ secrets.DOCKER_HUB_PASSWORD }}
+        run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=ghcr.io/${{ github.repository }} -Djib.to.auth.username=${{ github.actor }} -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
