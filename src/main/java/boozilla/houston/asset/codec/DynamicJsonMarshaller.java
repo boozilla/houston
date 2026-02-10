@@ -14,11 +14,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Objects;
 
 public class DynamicJsonMarshaller implements GrpcJsonMarshaller {
     private final GrpcJsonMarshaller defaultMarshaller;
 
-    private Map<Scope, JsonFormat.Printer> printers;
+    private volatile Map<Scope, JsonFormat.Printer> printers;
 
     public static DynamicJsonMarshaller of(final ServiceDescriptor serviceDescriptor,
                                            final AssetContainers assets)
@@ -44,7 +45,13 @@ public class DynamicJsonMarshaller implements GrpcJsonMarshaller {
         if(message instanceof final AssetQueryResponse queryResponse)
         {
             final var scope = ScopeContext.get();
-            final var printer = printers.get(scope);
+            final var printer = Objects.isNull(printers) ? null : printers.get(scope);
+
+            if(Objects.isNull(printer))
+            {
+                defaultMarshaller.serializeMessage(marshaller, message, os);
+                return;
+            }
 
             os.write(printer.print(queryResponse)
                     .getBytes());

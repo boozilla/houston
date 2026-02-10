@@ -40,4 +40,14 @@ public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
     Mono<Integer> deleteByNameStartsWith(final String name);
 
     Mono<Boolean> existsByCommitIdAndScopeAndNameAndChecksum(String commitId, Scope scope, String name, String checksum);
+
+    @Query(value = """
+            SELECT * FROM data WHERE apply_at IS NULL ORDER BY id DESC
+            """)
+    Flux<Data> findByApplyAtIsNull();
+
+    @Query(value = """
+            SELECT * FROM data WHERE apply_at IS NOT NULL ORDER BY id DESC
+            """)
+    Flux<Data> findByApplyAtIsNotNull();
 }

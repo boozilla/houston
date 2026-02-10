@@ -19,6 +19,16 @@ armeria:
     enable-unframed-requests: true
     enable-reflection: true
     auto-compression: true
+  mcp:
+    enabled: false
+    path: /mcp
+    name: houston-mcp
+    version: 1.0.0
+  encoding:
+    enabled: true
+    algorithms:
+      - gzip
+      - deflate
   graceful-shutdown-quiet-period-millis: 3000
   graceful-shutdown-timeout-millis: 10000
 

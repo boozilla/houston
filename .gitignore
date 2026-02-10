@@ -47,11 +47,12 @@ bin/
 /.idea/dataSources.xml
 /.idea/encodings.xml
 /.idea/gradle.xml
-/gradlew
-/gradlew.bat
 /.idea/misc.xml
 /.idea/sqldialects.xml
 /.idea/uiDesigner.xml
 /.idea/vcs.xml
+/.idea/inspectionProfiles/Project_Default.xml
 /gradle.properties
+/gradlew.bat
+/gradlew
 /.env

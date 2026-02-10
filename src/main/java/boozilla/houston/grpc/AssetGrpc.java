@@ -4,10 +4,13 @@ import boozilla.houston.annotation.ScopeService;
 import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.AssetData;
 import boozilla.houston.context.ScopeContext;
+import boozilla.houston.exception.AssetQueryException;
 import com.google.protobuf.Any;
 import com.linecorp.armeria.common.util.TimeoutMode;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.grpc.service.*;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -74,7 +77,10 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
         }
 
         return response.flatMapSequential(func)
-                .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
+                .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT))
+                .onErrorMap(AssetQueryException.class, error -> new StatusRuntimeException(Status.NOT_FOUND
+                        .withDescription(error.getMessage())
+                        .withCause(error)));
     }
 
     @Override

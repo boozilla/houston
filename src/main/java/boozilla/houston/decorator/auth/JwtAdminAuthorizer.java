@@ -35,9 +35,7 @@ public class JwtAdminAuthorizer implements HttpAuthorizer {
     public @Nonnull CompletionStage<Boolean> authorize(@Nonnull final ServiceRequestContext ctx,
                                                        @Nonnull final HttpRequest httpRequest)
     {
-        final var header = Optional.ofNullable(httpRequest.headers().get(TOKEN_HEADER_NAME));
-        final var query = Optional.ofNullable(ctx.queryParam("token"));
-        final var token = header.isEmpty() ? query : header;
+        final var token = Optional.ofNullable(httpRequest.headers().get(TOKEN_HEADER_NAME));
 
         return adminApiKey.verify(token)
                 .toFuture();

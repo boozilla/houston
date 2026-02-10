@@ -25,6 +25,8 @@ caffeine = "3.2.3"
 publish = "2.0.0"
 nexus = "2.0.0"
 jsch = "2.27.7"
+jsoup = "1.18.3"
+jline = "3.30.6"
 
 [plugins]
 protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
@@ -43,6 +45,7 @@ armeria-spring-boot4-autoconfigure = { group = "com.linecorp.armeria", name = "a
 armeria-grpc = { group = "com.linecorp.armeria", name = "armeria-grpc", version.ref = "armeria" }
 armeria-grpc-protocol = { group = "com.linecorp.armeria", name = "armeria-grpc-protocol", version.ref = "armeria" }
 armeria-protobuf = { group = "com.linecorp.armeria", name = "armeria-protobuf", version.ref = "armeria" }
+armeria-ai-mcp = { group = "com.linecorp.armeria", name = "armeria-ai-mcp", version.ref = "armeria" }
 
 # Reactor
 reactor-core = { group = "io.projectreactor", name = "reactor-core", version.ref = "reactor" }
@@ -114,3 +117,9 @@ caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version
 
 # jsch
 jsch = { group = "com.github.mwiede", name = "jsch", version.ref = "jsch" }
+
+# Jsoup
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+
+# JLine
+jline = { group = "org.jline", name = "jline", version.ref = "jline" }

@@ -4,9 +4,9 @@ import boozilla.houston.asset.constraints.AssetSheetConstraints;
 import boozilla.houston.repository.vaults.Vaults;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -15,12 +15,12 @@ public class AssetContainers {
     private final List<AssetSheetConstraints> constraints;
     private final Set<Consumer<AssetContainer>> listeners;
 
-    private AssetContainer container;
+    private volatile AssetContainer container;
 
     private AssetContainers(final List<AssetSheetConstraints> constraints, final Vaults vaults)
     {
         this.constraints = constraints;
-        this.listeners = new HashSet<>();
+        this.listeners = new CopyOnWriteArraySet<>();
 
         container(new AssetContainer(vaults));
     }

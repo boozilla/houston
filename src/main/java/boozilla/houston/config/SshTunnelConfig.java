@@ -2,11 +2,11 @@ package boozilla.houston.config;
 
 import boozilla.houston.properties.SshProperties;
 import com.jcraft.jsch.*;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;

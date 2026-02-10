@@ -15,7 +15,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.0.14'
+version = '1.1.0'
 
 sourceSets {
     main {
@@ -138,6 +138,7 @@ dependencies {
     implementation libs.armeria.grpc
     implementation libs.armeria.grpc.protocol
     implementation libs.armeria.protobuf
+    implementation libs.armeria.ai.mcp
 
     implementation libs.reactor.core
     implementation libs.reactor.tools
@@ -172,6 +173,10 @@ dependencies {
     implementation libs.picocli
 
     implementation libs.jsch
+
+    implementation libs.jsoup
+
+    implementation libs.jline
 }
 
 tasks.register('generateAdminToken', JavaExec) {

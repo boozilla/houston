@@ -7,6 +7,7 @@ import boozilla.houston.asset.sql.SqlStatement;
 import boozilla.houston.container.AssetIndex;
 import boozilla.houston.container.AssetQuery;
 import boozilla.houston.entity.Data;
+import boozilla.houston.exception.AssetQueryException;
 import boozilla.houston.repository.vaults.Vaults;
 import com.google.protobuf.*;
 import com.google.protobuf.util.JsonFormat;
@@ -352,7 +353,7 @@ public class AssetContainer implements AssetAccessor {
         final var assetIndex = this.index.get(mergeKey);
 
         if(Objects.isNull(assetIndex) || Objects.isNull(codec))
-            return Flux.empty();
+            return Flux.error(new AssetQueryException("ASSET_QUERY_EXCEPTION_TABLE_NOT_FOUND", query.from()));
 
         return query.result(assetIndex, codec.getFieldDescriptor(), resultInfoConsumer);
     }
