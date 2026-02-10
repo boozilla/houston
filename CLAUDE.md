@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-houston은 gRPC 기반의 자산(Asset) 데이터 관리 서버입니다. Excel(XLSX) 파일을 동적 Protocol Buffer 메시지로 변환하여 제공하며, GitHub/GitLab 웹훅을 통한 자동 동기화를 지원합니다.
+houston은 gRPC 기반의 자산(Asset) 데이터 관리 서버입니다. Excel(XLSX) 파일을 동적 Protocol Buffer 메시지로 변환하여 제공하며, GitHub/GitLab 웹훅을 통한 자동
+동기화를 지원합니다.
 
 ## 빌드 및 테스트 명령어
 
@@ -48,21 +49,25 @@ houston/
 **Transport Layer**: Armeria 프레임워크 사용, HTTP/2 + gRPC 지원 (framed/unframed 모두 지원)
 
 **gRPC Services** (`src/main/java/boozilla/houston/grpc/`):
+
 - `AssetGrpc`: 자산 데이터 조회 및 스트리밍
 - `ManifestGrpc`: 앱 메타데이터/유지보수 정보
 - `PluginGrpc`: 플러그인 관리
 
 **자산 처리** (`src/main/java/boozilla/houston/asset/`):
+
 - `AssetContainer`: XLSX 파일 로드 및 관리
 - `AssetSheet`: 시트 메타데이터 및 스키마 정의
 - `codec/`: Protobuf, JSON 직렬화
 - `constraints/`: 제약조건 (UniquePrimary, SheetLink 등)
 
 **인증** (`src/main/java/boozilla/houston/security/`):
+
 - JWT 기반 인증 (ECDSA256/384/512)
 - AWS KMS 통합 지원
 
 **저장소** (`src/main/java/boozilla/houston/repository/vaults/`):
+
 - S3Vaults: Amazon S3 백엔드
 - GitHubVaults: GitHub 저장소 백엔드
 
@@ -80,12 +85,14 @@ houston/
 환경변수 예시: `examples/environment-variables.env`
 
 Proto 정의:
+
 - `src/main/proto-public/`: 공개 서비스 정의 (AssetService, ManifestService, PluginService)
 - `src/main/proto-internal/`: 내부 메시지 타입
 
 ## Gradle 플러그인 태스크
 
 클라이언트 프로젝트에서 사용:
+
 ```bash
 ./gradlew houstonSyncSchema    # houston 서버에 스키마 동기화
 ./gradlew houstonRunVerifier   # 자산 제약조건 검증 실행

@@ -17,35 +17,17 @@ import java.util.function.Supplier;
 @Setter(AccessLevel.NONE)
 @CommandLine.Command
 public class AdminTokenGenerator implements Runnable {
-    @CommandLine.Option(names = {"--issuer", "--iss"}, required = true, description = "Token issuer")
-    private String issuer;
-
-    @CommandLine.Option(names = {"--username", "--user"}, interactive = true, description = "Username")
-    private String username;
-
     @CommandLine.ArgGroup(multiplicity = "1")
     KeyOrKmsOption keyOrKmsOption;
+    @CommandLine.Option(names = {"--issuer", "--iss"}, required = true, description = "Token issuer")
+    private String issuer;
+    @CommandLine.Option(names = {"--username", "--user"}, interactive = true, description = "Username")
+    private String username;
 
     public static void main(final String... args)
     {
         new CommandLine(new AdminTokenGenerator())
                 .execute(args);
-    }
-
-    static class KeyOrKmsOption {
-        static class KmsOption {
-            @CommandLine.Option(names = {"--kms-key-id", "--kms"}, description = "KMS key ID")
-            private String id;
-
-            @CommandLine.Option(names = {"--kms-algo", "--kms-algo"}, required = true, description = "KMS algorithm")
-            private String algorithm;
-        }
-
-        @CommandLine.ArgGroup(exclusive = false)
-        private KmsOption kmsOption;
-
-        @CommandLine.ArgGroup(exclusive = false)
-        private KeyOption keyOption;
     }
 
     @Override
@@ -136,6 +118,21 @@ public class AdminTokenGenerator implements Runnable {
 
         System.out.print("> Input username: ");
         return new Scanner(System.in).nextLine();
+    }
+
+    static class KeyOrKmsOption {
+        @CommandLine.ArgGroup(exclusive = false)
+        private KmsOption kmsOption;
+        @CommandLine.ArgGroup(exclusive = false)
+        private KeyOption keyOption;
+
+        static class KmsOption {
+            @CommandLine.Option(names = {"--kms-key-id", "--kms"}, description = "KMS key ID")
+            private String id;
+
+            @CommandLine.Option(names = {"--kms-algo", "--kms-algo"}, required = true, description = "KMS algorithm")
+            private String algorithm;
+        }
     }
 
     static class KeyOption {

@@ -12,6 +12,21 @@ import java.util.stream.Collectors;
 
 @Component
 public class PayloadCommand implements StereotypeCommand {
+    public static UploadPayload decode(final String command)
+    {
+        final var base64 = command.split("\n")[1];
+        final var payload = Base64.getDecoder().decode(base64);
+
+        try
+        {
+            return UploadPayload.parseFrom(payload);
+        }
+        catch(InvalidProtocolBufferException e)
+        {
+            throw new RuntimeException("Upload payload decoding errors", e);
+        }
+    }
+
     @Override
     public Set<String> aliases()
     {
@@ -41,20 +56,5 @@ public class PayloadCommand implements StereotypeCommand {
                 .formatted(uploadPayload.getHead(), fileArgs);
 
         return uploadCommand.run(packageName, projectId, issueId, targetRef, delegateCommand, behavior);
-    }
-
-    public static UploadPayload decode(final String command)
-    {
-        final var base64 = command.split("\n")[1];
-        final var payload = Base64.getDecoder().decode(base64);
-
-        try
-        {
-            return UploadPayload.parseFrom(payload);
-        }
-        catch(InvalidProtocolBufferException e)
-        {
-            throw new RuntimeException("Upload payload decoding errors", e);
-        }
     }
 }

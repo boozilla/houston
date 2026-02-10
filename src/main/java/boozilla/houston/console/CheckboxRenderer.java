@@ -93,8 +93,8 @@ public class CheckboxRenderer {
     }
 
     public void renderConfirmation(final PrintWriter writer, final String title,
-                                    final List<CheckboxPrompt.Item> items,
-                                    final List<Integer> selectedIndices)
+                                   final List<CheckboxPrompt.Item> items,
+                                   final List<Integer> selectedIndices)
     {
         final var messageSourceAccessor = Application.messageSourceAccessor();
 

@@ -19,11 +19,11 @@ public class HelpDescription {
     {
         return """
                 %s
-                                
+                
                 ## %s
-                                
+                
                 %s
-                                
+                
                 <table>
                 <tr>
                 <th>%s</th>
@@ -52,9 +52,9 @@ public class HelpDescription {
                 <td>%s</td>
                 <td>
                 %s
-                                
+                
                 <br>
-                                
+                
                 %s
                 </td>
                 </tr>
@@ -81,7 +81,7 @@ public class HelpDescription {
     {
         return """
                 ## %s
-                                
+                
                 %s
                 %s
                 """

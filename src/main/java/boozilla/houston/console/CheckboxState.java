@@ -45,7 +45,8 @@ public class CheckboxState {
         var count = 0;
         for(final var s : selected)
         {
-            if(s) count++;
+            if(s)
+                count++;
         }
         return count;
     }

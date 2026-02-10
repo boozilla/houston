@@ -1,20 +1,15 @@
 package boozilla.houston.decorator.auth;
 
 import boozilla.houston.properties.GitHubProperties;
-import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.server.ServiceRequestContext;
-import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.Strings;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -27,12 +22,8 @@ public class GitHubAuthorizer implements HttpAuthorizer {
 
     private final GitHubProperties gitHubProperties;
 
-    public GitHubAuthorizer(@Nullable final DocServiceBuilder docServiceBuilder,
-                            final GitHubProperties gitHubProperties)
+    public GitHubAuthorizer(final GitHubProperties gitHubProperties)
     {
-        if(Objects.nonNull(docServiceBuilder))
-            docServiceBuilder.exampleHeaders(HttpHeaders.of(TOKEN_HEADER_NAME, Strings.EMPTY));
-
         this.gitHubProperties = gitHubProperties;
     }
 

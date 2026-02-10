@@ -69,6 +69,20 @@ public class XmlConverter implements AutoCloseable {
                 .mapToObj(i -> (Element) nodeList.item(i));
     }
 
+    private static Mono<Void> closeAsync(XmlConverter converter)
+    {
+        return Mono.fromRunnable(() -> {
+            try
+            {
+                converter.close();
+            }
+            catch(Exception e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     private void fillData(final Worksheet worksheet, final Stream<Element> rowStream)
     {
         final var rowIndex = new AtomicInteger();
@@ -131,19 +145,5 @@ public class XmlConverter implements AutoCloseable {
 
         if(Objects.nonNull(outputStream))
             outputStream.close();
-    }
-
-    private static Mono<Void> closeAsync(XmlConverter converter)
-    {
-        return Mono.fromRunnable(() -> {
-            try
-            {
-                converter.close();
-            }
-            catch(Exception e)
-            {
-                throw new RuntimeException(e);
-            }
-        });
     }
 }

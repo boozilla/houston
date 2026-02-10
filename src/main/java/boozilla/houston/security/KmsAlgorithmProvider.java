@@ -13,6 +13,38 @@ import java.security.spec.PSSParameterSpec;
 import java.util.Objects;
 
 public record KmsAlgorithmProvider(KmsAsyncClient client) {
+    public Flux<Algorithm> get(final String keyId)
+    {
+        return getSigningAlgorithmSpecs(keyId)
+                .flatMap(signingSpec -> {
+                    final var algoSpec = AlgorithmSpec.findByKmsName(signingSpec.name());
+
+                    if(Objects.isNull(algoSpec))
+                    {
+                        return Flux.empty();
+                    }
+
+                    return Flux.just(new KmsAlgorithm(keyId, algoSpec, signingSpec, client));
+                });
+    }
+
+    private Flux<SigningAlgorithmSpec> getSigningAlgorithmSpecs(final String keyId)
+    {
+        final var describeKey = client.describeKey(builder -> builder.keyId(keyId));
+
+        return Mono.fromFuture(describeKey)
+                .flatMapMany(response -> {
+                    final var metadata = response.keyMetadata();
+
+                    if(!metadata.enabled())
+                    {
+                        return Flux.error(new RuntimeException("KMS Key is not enabled"));
+                    }
+
+                    return Flux.fromIterable(metadata.signingAlgorithms());
+                });
+    }
+
     @Getter
     public enum AlgorithmSpec {
         PS256("PS256",
@@ -92,37 +124,5 @@ public record KmsAlgorithmProvider(KmsAsyncClient client) {
 
             return null;
         }
-    }
-
-    public Flux<Algorithm> get(final String keyId)
-    {
-        return getSigningAlgorithmSpecs(keyId)
-                .flatMap(signingSpec -> {
-                    final var algoSpec = AlgorithmSpec.findByKmsName(signingSpec.name());
-
-                    if(Objects.isNull(algoSpec))
-                    {
-                        return Flux.empty();
-                    }
-
-                    return Flux.just(new KmsAlgorithm(keyId, algoSpec, signingSpec, client));
-                });
-    }
-
-    private Flux<SigningAlgorithmSpec> getSigningAlgorithmSpecs(final String keyId)
-    {
-        final var describeKey = client.describeKey(builder -> builder.keyId(keyId));
-
-        return Mono.fromFuture(describeKey)
-                .flatMapMany(response -> {
-                    final var metadata = response.keyMetadata();
-
-                    if(!metadata.enabled())
-                    {
-                        return Flux.error(new RuntimeException("KMS Key is not enabled"));
-                    }
-
-                    return Flux.fromIterable(metadata.signingAlgorithms());
-                });
     }
 }

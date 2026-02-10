@@ -4,6 +4,8 @@ import com.linecorp.armeria.common.HttpHeaderNames;
 import com.linecorp.armeria.common.TlsKeyPair;
 import com.linecorp.armeria.common.util.InetAddressPredicates;
 import com.linecorp.armeria.server.ClientAddressSource;
+import com.linecorp.armeria.common.HttpHeadersBuilder;
+import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.server.docs.DocService;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.healthcheck.HealthCheckService;
@@ -26,6 +28,12 @@ import java.util.Objects;
 
 @Configuration
 public class ArmeriaConfig {
+    @Bean
+    public static ArmeriaBeanPostProcessor armeriaBeanPostProcessor(final ApplicationContext applicationContext)
+    {
+        return new ArmeriaBeanPostProcessor(applicationContext.getAutowireCapableBeanFactory());
+    }
+
     @Bean
     public ArmeriaServerConfigurator configure(final AccessLogWriter logger,
                                                final MeterRegistry meterRegistry)
@@ -65,15 +73,16 @@ public class ArmeriaConfig {
     }
 
     @Bean
-    public static ArmeriaBeanPostProcessor armeriaBeanPostProcessor(final ApplicationContext applicationContext)
-    {
-        return new ArmeriaBeanPostProcessor(applicationContext.getAutowireCapableBeanFactory());
-    }
-
-    @Bean
     public AccessLogWriter accessLogWriter()
     {
         return AccessLogWriter.common();
+    }
+
+    @Bean
+    @Profile("docs")
+    public HttpHeadersBuilder exampleHeaders()
+    {
+        return HttpHeaders.builder();
     }
 
     @Bean

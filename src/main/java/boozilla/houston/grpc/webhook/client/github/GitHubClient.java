@@ -61,6 +61,23 @@ public class GitHubClient implements GitClient {
         this.objectMapper = objectMapper;
     }
 
+    private static Function<? super HttpClient, RetryingClient> retry()
+    {
+        return RetryingClient.newDecorator(RetryRule.failsafe(Backoff.ofDefault()));
+    }
+
+    private static Function<? super HttpClient, CircuitBreakerClient> circuitBreaker()
+    {
+        final var rule = CircuitBreakerRule.builder()
+                .onException()
+                .thenFailure();
+
+        final var circuitBreaker = CircuitBreaker.builder("github-client-circuit-breaker")
+                .build();
+
+        return CircuitBreakerClient.newDecorator(circuitBreaker, rule);
+    }
+
     public Mono<RepositoryCompareResponse> compare(final String repo, final String base, final String head)
     {
         if(base.contentEquals("0000000000000000000000000000000000000000"))
@@ -256,23 +273,6 @@ public class GitHubClient implements GitClient {
 
         return Mono.fromFuture(request)
                 .map(HttpEntity::content);
-    }
-
-    private static Function<? super HttpClient, RetryingClient> retry()
-    {
-        return RetryingClient.newDecorator(RetryRule.failsafe(Backoff.ofDefault()));
-    }
-
-    private static Function<? super HttpClient, CircuitBreakerClient> circuitBreaker()
-    {
-        final var rule = CircuitBreakerRule.builder()
-                .onException()
-                .thenFailure();
-
-        final var circuitBreaker = CircuitBreaker.builder("github-client-circuit-breaker")
-                .build();
-
-        return CircuitBreakerClient.newDecorator(circuitBreaker, rule);
     }
 
     private <T extends CollectableResponse<T>> Mono<T> collect(

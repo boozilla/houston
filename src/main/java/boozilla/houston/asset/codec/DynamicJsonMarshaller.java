@@ -21,20 +21,20 @@ public class DynamicJsonMarshaller implements GrpcJsonMarshaller {
 
     private volatile Map<Scope, JsonFormat.Printer> printers;
 
-    public static DynamicJsonMarshaller of(final ServiceDescriptor serviceDescriptor,
-                                           final AssetContainers assets)
-    {
-        final var defaultMarshaller = GrpcJsonMarshaller.of(serviceDescriptor);
-
-        return new DynamicJsonMarshaller(defaultMarshaller, assets);
-    }
-
     private DynamicJsonMarshaller(final GrpcJsonMarshaller defaultMarshaller,
                                   final AssetContainers assets)
     {
         this.defaultMarshaller = defaultMarshaller;
 
         assets.onUpdated(container -> printers = container.jsonPrinters());
+    }
+
+    public static DynamicJsonMarshaller of(final ServiceDescriptor serviceDescriptor,
+                                           final AssetContainers assets)
+    {
+        final var defaultMarshaller = GrpcJsonMarshaller.of(serviceDescriptor);
+
+        return new DynamicJsonMarshaller(defaultMarshaller, assets);
     }
 
     @Override

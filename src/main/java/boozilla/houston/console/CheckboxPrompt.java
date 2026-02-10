@@ -17,8 +17,6 @@ import static boozilla.houston.console.AnsiCodes.*;
 public class CheckboxPrompt {
     private static final int MIN_WIDTH = 40;
 
-    public record Item(String label, String description) {}
-
     /**
      * 체크박스 선택 UI를 표시하고 사용자가 선택한 항목의 인덱스를 반환합니다.
      *
@@ -53,7 +51,7 @@ public class CheckboxPrompt {
     }
 
     private List<Integer> showInteractive(final Terminal terminal, final String title, final List<Item> items)
-            throws IOException
+    throws IOException
     {
         terminal.enterRawMode();
         final var reader = terminal.reader();
@@ -214,5 +212,8 @@ public class CheckboxPrompt {
             CheckboxRenderer.renderCancelled(writer, title);
             return List.of();
         }
+    }
+
+    public record Item(String label, String description) {
     }
 }

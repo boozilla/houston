@@ -17,98 +17,15 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class AssetSheet implements AutoCloseable {
-    static class RowPosition {
-        // Row 는 1 부터 시작
-        private static final int COMMENT_HEADER_POSITION = 2;
-
-        enum Category {
-            COMMENT(null),
-            NAME("name"),
-            TYPE("type"),
-            SCOPE("scope"),
-            NULLABLE("nullable"),
-            LINK("link");
-
-            private final String name;
-
-            Category(final String name)
-            {
-                this.name = name;
-            }
-        }
-
-        private final Map<Category, Row> headers;
-        private final int startOfData;
-
-        public RowPosition(final Stream<Row> rows)
-        {
-            headers = new HashMap<>();
-
-            Flux.fromStream(rows)
-                    .skip(COMMENT_HEADER_POSITION - 1)
-                    .takeUntil(row -> foundAll())
-                    .doOnNext(row -> {
-                        if(row.getRowNum() == COMMENT_HEADER_POSITION)
-                        {
-                            headers.put(Category.COMMENT, row);
-                            return;
-                        }
-
-                        findCategory(row)
-                                .ifPresent(category -> headers.computeIfAbsent(category, key -> row));
-                    })
-                    .then()
-                    .subscribeOn(Schedulers.boundedElastic())
-                    .block();
-
-            startOfData = calcStartOfData();
-        }
-
-        private Optional<Category> findCategory(final Row row)
-        {
-            final var cell = row.getCell(0);
-
-            if(Objects.nonNull(cell))
-            {
-                final var text = cell.getText();
-
-                for(final var category : Category.values())
-                {
-                    if(text.equalsIgnoreCase(category.name))
-                        return Optional.of(category);
-                }
-            }
-
-            return Optional.empty();
-        }
-
-        private boolean foundAll()
-        {
-            return Category.values().length == headers.size();
-        }
-
-        private int calcStartOfData()
-        {
-            return headers.values()
-                    .stream()
-                    .mapToInt(Row::getRowNum)
-                    .max()
-                    .orElseThrow();
-        }
-    }
-
     // Column 은 0 부터 시작
     private static final int START_OF_COLUMN = 1;
-
     private final RowPosition rowPosition;
     private final Sheet sheet;
     private final List<Throwable> analyzeExceptions;
     private final List<Throwable> readExceptions;
-
     private IntSummaryStatistics columnStatistics;
     private Map<Integer, AssetColumn> columns;
     private Stream<Row> rowStream;
-
     public AssetSheet(final Sheet sheet)
     {
         this.sheet = sheet;
@@ -352,5 +269,83 @@ public class AssetSheet implements AutoCloseable {
     {
         if(Objects.nonNull(rowStream))
             rowStream.close();
+    }
+
+    static class RowPosition {
+        // Row 는 1 부터 시작
+        private static final int COMMENT_HEADER_POSITION = 2;
+        private final Map<Category, Row> headers;
+        private final int startOfData;
+        public RowPosition(final Stream<Row> rows)
+        {
+            headers = new HashMap<>();
+
+            Flux.fromStream(rows)
+                    .skip(COMMENT_HEADER_POSITION - 1)
+                    .takeUntil(row -> foundAll())
+                    .doOnNext(row -> {
+                        if(row.getRowNum() == COMMENT_HEADER_POSITION)
+                        {
+                            headers.put(Category.COMMENT, row);
+                            return;
+                        }
+
+                        findCategory(row)
+                                .ifPresent(category -> headers.computeIfAbsent(category, key -> row));
+                    })
+                    .then()
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .block();
+
+            startOfData = calcStartOfData();
+        }
+
+        private Optional<Category> findCategory(final Row row)
+        {
+            final var cell = row.getCell(0);
+
+            if(Objects.nonNull(cell))
+            {
+                final var text = cell.getText();
+
+                for(final var category : Category.values())
+                {
+                    if(text.equalsIgnoreCase(category.name))
+                        return Optional.of(category);
+                }
+            }
+
+            return Optional.empty();
+        }
+
+        private boolean foundAll()
+        {
+            return Category.values().length == headers.size();
+        }
+
+        private int calcStartOfData()
+        {
+            return headers.values()
+                    .stream()
+                    .mapToInt(Row::getRowNum)
+                    .max()
+                    .orElseThrow();
+        }
+
+        enum Category {
+            COMMENT(null),
+            NAME("name"),
+            TYPE("type"),
+            SCOPE("scope"),
+            NULLABLE("nullable"),
+            LINK("link");
+
+            private final String name;
+
+            Category(final String name)
+            {
+                this.name = name;
+            }
+        }
     }
 }

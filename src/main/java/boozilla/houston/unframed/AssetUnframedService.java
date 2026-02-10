@@ -58,7 +58,7 @@ public class AssetUnframedService implements UnframedService {
                 .flatMap(sheets -> {
                     final var sheetList = sheets.getSheetList();
 
-                    if (sheetList.isEmpty())
+                    if(sheetList.isEmpty())
                         return Mono.just(HttpResponse.of(HttpStatus.NOT_FOUND));
 
                     final var commitId = sheetList.getFirst().getCommitId();
@@ -81,7 +81,7 @@ public class AssetUnframedService implements UnframedService {
         return container.list(scope, Set.of(tableName))
                 .next()
                 .flatMap(sheet -> {
-                    if (sheet.getCommitId().equals(commitId))
+                    if(sheet.getCommitId().equals(commitId))
                     {
                         // Fast path: 인메모리 쿼리
                         return queryFromContainer(tableName);
@@ -110,7 +110,7 @@ public class AssetUnframedService implements UnframedService {
         return assetGrpc.query(request, data -> Flux.just(data.toJsonString()))
                 .collect(Collectors.joining(",", "[", "]"))
                 .onErrorResume(StatusRuntimeException.class, error -> {
-                    if (error.getStatus().getCode() == Status.Code.NOT_FOUND)
+                    if(error.getStatus().getCode() == Status.Code.NOT_FOUND)
                         return Mono.empty();
                     return Mono.error(error);
                 });
@@ -126,7 +126,7 @@ public class AssetUnframedService implements UnframedService {
                             {
                                 return Mono.just(Archive.parseFrom(bytes));
                             }
-                            catch (Exception e)
+                            catch(Exception e)
                             {
                                 return Mono.error(e);
                             }
@@ -145,7 +145,7 @@ public class AssetUnframedService implements UnframedService {
                                 .map(msg -> new AssetData(msg, codec.getFieldDescriptor())
                                         .toJsonString());
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         return Flux.error(e);
                     }

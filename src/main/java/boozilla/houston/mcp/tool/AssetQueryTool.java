@@ -81,7 +81,8 @@ public class AssetQueryTool implements McpToolProvider {
 
             final var container = assets.container();
 
-            return container.query(scope, sql, resultInfo -> {})
+            return container.query(scope, sql, resultInfo -> {
+                    })
                     .map(AssetData::toJsonString)
                     .collectList()
                     .map(results -> {

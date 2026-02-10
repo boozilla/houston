@@ -25,9 +25,9 @@ public class ConsoleGitLabBehavior implements GitBehavior<ConsoleClient> {
 
     @Override
     public Mono<UploadPayload> uploadPayload(final String projectId, final String assignee,
-                                              final String ref, final String beforeCommitId,
-                                              final String afterCommitId,
-                                              final Set<String> additionalFiles)
+                                             final String ref, final String beforeCommitId,
+                                             final String afterCommitId,
+                                             final Set<String> additionalFiles)
     {
         return Mono.empty();
     }
@@ -46,49 +46,49 @@ public class ConsoleGitLabBehavior implements GitBehavior<ConsoleClient> {
 
     @Override
     public Mono<Void> linkIssues(final String projectId, final String issueId,
-                                  final List<Issue> linkedIssue)
+                                 final List<Issue> linkedIssue)
     {
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> setState(final String projectId, final String issueId,
-                                final StateLabel newLabel)
+                               final StateLabel newLabel)
     {
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> addLabels(final String projectId, final String issueId,
-                                 final String... labels)
+                                final String... labels)
     {
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> commentMessage(final String projectId, final String issueIid,
-                                      final String message)
+                                     final String message)
     {
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> commentExceptions(final String projectId, final String issueId,
-                                         final Throwable exception)
+                                        final Throwable exception)
     {
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> commentExceptions(final String projectId, final String issueId,
-                                         final List<Throwable> exceptions)
+                                        final List<Throwable> exceptions)
     {
         return Mono.empty();
     }
 
     @Override
     public Mono<Void> commentUploadPayload(final String issueId,
-                                            final UploadPayload uploadPayload)
+                                           final UploadPayload uploadPayload)
     {
         return Mono.empty();
     }
@@ -124,7 +124,7 @@ public class ConsoleGitLabBehavior implements GitBehavior<ConsoleClient> {
 
     @Override
     public Mono<Void> addSpentTime(final String projectId, final String issueId,
-                                    final Period period)
+                                   final Period period)
     {
         return Mono.empty();
     }

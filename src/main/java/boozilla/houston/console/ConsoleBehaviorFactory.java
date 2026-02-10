@@ -23,8 +23,8 @@ public class ConsoleBehaviorFactory {
     private final GitHubClient gitHubClient;
 
     public ConsoleBehaviorFactory(final ObjectMapper objectMapper,
-                                   final GitLabProperties gitLabProperties,
-                                   @Nullable final GitHubClient gitHubClient)
+                                  final GitLabProperties gitLabProperties,
+                                  @Nullable final GitHubClient gitHubClient)
     {
         this.objectMapper = objectMapper;
         this.gitLabProperties = gitLabProperties;

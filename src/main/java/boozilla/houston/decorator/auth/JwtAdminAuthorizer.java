@@ -1,13 +1,12 @@
 package boozilla.houston.decorator.auth;
 
 import boozilla.houston.token.AdminApiKey;
-import com.linecorp.armeria.common.HttpHeaders;
+import com.linecorp.armeria.common.HttpHeadersBuilder;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.server.ServiceRequestContext;
-import com.linecorp.armeria.server.docs.DocServiceBuilder;
+import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
@@ -22,11 +21,11 @@ public class JwtAdminAuthorizer implements HttpAuthorizer {
 
     private final AdminApiKey adminApiKey;
 
-    public JwtAdminAuthorizer(@Nullable final DocServiceBuilder docServiceBuilder,
+    public JwtAdminAuthorizer(@Nullable final HttpHeadersBuilder exampleHeaders,
                               final AdminApiKey adminApiKey)
     {
-        if(Objects.nonNull(docServiceBuilder))
-            docServiceBuilder.exampleHeaders(HttpHeaders.of(TOKEN_HEADER_NAME, Strings.EMPTY));
+        if(Objects.nonNull(exampleHeaders) && !exampleHeaders.contains(TOKEN_HEADER_NAME))
+            exampleHeaders.add(TOKEN_HEADER_NAME, Strings.EMPTY);
 
         this.adminApiKey = adminApiKey;
     }

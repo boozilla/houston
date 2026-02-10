@@ -112,7 +112,7 @@ public class ConsoleRepl {
                         e.getValue().stream().map(Data::getSheetName)
                                 .distinct().collect(Collectors.joining(", "))
                                 + " (" + messageSourceAccessor.getMessage("CONSOLE_COMMIT_COUNT")
-                                        .formatted(e.getValue().size()) + ")"))
+                                .formatted(e.getValue().size()) + ")"))
                 .toList();
 
         if(items.isEmpty())

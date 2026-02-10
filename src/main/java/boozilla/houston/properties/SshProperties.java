@@ -11,6 +11,16 @@ public record SshProperties(
         String agentSock,
         Set<Tunnel> tunnels
 ) {
+    public String knownHosts()
+    {
+        return Objects.requireNonNullElse(knownHosts, "~/.ssh/known_hosts");
+    }
+
+    public Set<Tunnel> tunnels()
+    {
+        return Objects.requireNonNullElse(tunnels, Set.of());
+    }
+
     public record Tunnel(
             Ssh ssh,
             Local local,
@@ -48,16 +58,7 @@ public record SshProperties(
         public record Remote(
                 String hostname,
                 int port
-        ) {}
-    }
-
-    public String knownHosts()
-    {
-        return Objects.requireNonNullElse(knownHosts, "~/.ssh/known_hosts");
-    }
-
-    public Set<Tunnel> tunnels()
-    {
-        return Objects.requireNonNullElse(tunnels, Set.of());
+        ) {
+        }
     }
 }
