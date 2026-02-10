@@ -4,8 +4,8 @@ import boozilla.houston.asset.codec.AssetLinkCodec;
 import boozilla.houston.asset.codec.ProtobufRowCodec;
 import boozilla.houston.asset.constraints.AssetAccessor;
 import boozilla.houston.asset.sql.SqlStatement;
+import boozilla.houston.container.AssetIndex;
 import boozilla.houston.container.AssetQuery;
-import boozilla.houston.container.Query;
 import boozilla.houston.entity.Data;
 import boozilla.houston.repository.vaults.Vaults;
 import com.google.protobuf.*;
@@ -30,7 +30,7 @@ public class AssetContainer implements AssetAccessor {
     private final Map<AssetAccessor.Key, Data> data;
     private final Map<AssetAccessor.Key, Archive> archive;
     private final Map<AssetAccessor.Key, ProtobufRowCodec> codec;
-    private final Map<AssetAccessor.Key, AssetQuery> query;
+    private final Map<AssetAccessor.Key, AssetIndex> index;
     private final Map<String, Set<AssetLink>> links;
     private final Map<String, Set<String>> partitions;
     private final Set<AssetAccessor.Key> updated;
@@ -41,7 +41,7 @@ public class AssetContainer implements AssetAccessor {
         this.data = new ConcurrentHashMap<>();
         this.archive = new ConcurrentHashMap<>();
         this.codec = new ConcurrentHashMap<>();
-        this.query = new ConcurrentHashMap<>();
+        this.index = new ConcurrentHashMap<>();
         this.links = new ConcurrentHashMap<>();
         this.partitions = new ConcurrentHashMap<>();
         this.updated = new CopyOnWriteArraySet<>();
@@ -112,7 +112,7 @@ public class AssetContainer implements AssetAccessor {
         this.data.remove(key);
         this.archive.remove(key);
         this.codec.remove(key.toMergeKey());
-        this.query.remove(key.toMergeKey());
+        this.index.remove(key.toMergeKey());
         this.links.remove(key.sheetName());
         this.partitions.remove(key.sheetName());
         this.updated.remove(key);
@@ -124,7 +124,7 @@ public class AssetContainer implements AssetAccessor {
         copy.data.putAll(data);
         copy.archive.putAll(archive);
         copy.codec.putAll(codec);
-        copy.query.putAll(query);
+        copy.index.putAll(index);
         copy.links.putAll(links);
         copy.partitions.putAll(partitions);
 
@@ -225,13 +225,13 @@ public class AssetContainer implements AssetAccessor {
                 .filter(key -> include.isEmpty() || include.contains(key.sheetName()))
                 .map(key -> {
                     final var data = this.data.get(key);
-                    final var query = this.query.get(key.toMergeKey());
+                    final var index = this.index.get(key.toMergeKey());
                     final var codec = this.codec.get(key.toMergeKey());
 
                     final var fileDescriptor = codec.getFileDescriptor();
 
                     return AssetSheet.newBuilder()
-                            .setSize(query.size())
+                            .setSize(index.size())
                             .setCommitId(data.getCommitId())
                             .setName(data.getName())
                             .setStructure(fileDescriptor.toProto().toByteString())
@@ -251,7 +251,7 @@ public class AssetContainer implements AssetAccessor {
                     final var mergeKey = entry.getKey();
                     final var archives = entry.getValue();
 
-                    if(this.query.containsKey(mergeKey))
+                    if(this.index.containsKey(mergeKey))
                         return;
 
                     final var codec = this.codec.get(mergeKey);
@@ -261,9 +261,9 @@ public class AssetContainer implements AssetAccessor {
                             .map(Any::pack)
                             .toList();
 
-                    final var query = new AssetQuery(commitId, data, sheetDescriptor);
+                    final var index = new AssetIndex(commitId, data, sheetDescriptor);
 
-                    this.query.put(mergeKey, query);
+                    this.index.put(mergeKey, index);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .then(Mono.just(this));
@@ -345,15 +345,15 @@ public class AssetContainer implements AssetAccessor {
 
     public Flux<AssetData> query(final Scope scope, final String sql, final Consumer<QueryResultInfo> resultInfoConsumer)
     {
-        final var query = Query.of(sql);
+        final var query = AssetQuery.of(sql);
 
         final var mergeKey = new AssetAccessor.Key(query.from(), scope);
         final var codec = this.codec.get(mergeKey);
-        final var assetQuery = this.query.get(mergeKey);
+        final var assetIndex = this.index.get(mergeKey);
 
-        if(Objects.isNull(assetQuery) || Objects.isNull(codec))
+        if(Objects.isNull(assetIndex) || Objects.isNull(codec))
             return Flux.empty();
 
-        return query.result(assetQuery, codec.getFieldDescriptor(), resultInfoConsumer);
+        return query.result(assetIndex, codec.getFieldDescriptor(), resultInfoConsumer);
     }
 }

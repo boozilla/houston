@@ -19,14 +19,14 @@ import java.util.function.Consumer;
 @Slf4j
 public class HoustonContainer {
     private final Map<String, AssetSheet> sheets;
-    private final Map<String, AssetQuery> query;
+    private final Map<String, AssetIndex> index;
     private final Map<String, Descriptors.Descriptor> descriptors;
     private final Set<String> updatedSheets;
 
     HoustonContainer()
     {
         sheets = new ConcurrentHashMap<>();
-        query = new ConcurrentHashMap<>();
+        index = new ConcurrentHashMap<>();
         descriptors = new ConcurrentHashMap<>();
         updatedSheets = new ConcurrentSkipListSet<>();
     }
@@ -48,13 +48,13 @@ public class HoustonContainer {
 
     public Flux<AssetData> query(final String sql, final Consumer<QueryResultInfo> resultInfoConsumer)
     {
-        final var query = Query.of(sql);
+        final var query = AssetQuery.of(sql);
 
-        if(!this.query.containsKey(query.from()))
+        if(!this.index.containsKey(query.from()))
             return Flux.empty();
 
         return query.result(
-                this.query.get(query.from()),
+                this.index.get(query.from()),
                 descriptors.get(query.from()).getFields(),
                 resultInfoConsumer
         );
@@ -65,10 +65,10 @@ public class HoustonContainer {
         remove(sheet);
 
         final var sheetDescriptor = sheetDescriptor(sheet.getName(), sheet.getStructure());
-        final var query = new AssetQuery(sheet.getCommitId(), data, sheetDescriptor);
+        final var index = new AssetIndex(sheet.getCommitId(), data, sheetDescriptor);
 
         this.sheets.put(sheet.getName(), sheet);
-        this.query.put(sheet.getName(), query);
+        this.index.put(sheet.getName(), index);
         this.descriptors.put(sheet.getName(), sheetDescriptor);
         this.updatedSheets.add(sheet.getName());
 
@@ -82,7 +82,7 @@ public class HoustonContainer {
             return;
 
         this.sheets.remove(sheet.getName());
-        this.query.remove(sheet.getName());
+        this.index.remove(sheet.getName());
         this.descriptors.remove(sheet.getName());
         this.updatedSheets.remove(sheet.getName());
 
@@ -99,7 +99,7 @@ public class HoustonContainer {
     {
         final var newContainer = new HoustonContainer();
         newContainer.sheets.putAll(this.sheets);
-        newContainer.query.putAll(this.query);
+        newContainer.index.putAll(this.index);
         newContainer.descriptors.putAll(this.descriptors);
 
         return newContainer;

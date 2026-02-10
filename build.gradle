@@ -15,7 +15,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.0.13'
+version = '1.0.14'
 
 sourceSets {
     main {
@@ -66,12 +66,11 @@ protobuf {
     }
 
     generateProtoTasks {
-        ofSourceSet("main")*.plugins {
-            grpc {}
-            reactor {}
-        }
-
-        all().each { task ->
+        ofSourceSet("main")*.each { task ->
+            task.plugins {
+                grpc {}
+                reactor {}
+            }
             task.generateDescriptorSet = true
             task.descriptorSetOptions.includeSourceInfo = true
             task.descriptorSetOptions.includeImports = true
@@ -83,7 +82,7 @@ protobuf {
 
 jib {
     from {
-        image = "azul/zulu-openjdk:24-latest"
+        image = "azul/zulu-openjdk:25-latest"
 
         platforms {
             platform {
@@ -115,10 +114,6 @@ jib {
     }
 }
 
-bootJar {
-    launchScript()
-}
-
 repositories {
     mavenCentral()
 }
@@ -138,8 +133,8 @@ dependencies {
     implementation libs.armeria
     implementation libs.armeria.dropwizard2
     implementation libs.armeria.logback
-    implementation libs.armeria.spring.boot3.webflux.starter
-    implementation libs.armeria.spring.boot3.autoconfigure
+    implementation libs.armeria.spring.boot4.webflux.starter
+    implementation libs.armeria.spring.boot4.autoconfigure
     implementation libs.armeria.grpc
     implementation libs.armeria.grpc.protocol
     implementation libs.armeria.protobuf
@@ -147,6 +142,7 @@ dependencies {
     implementation libs.reactor.core
     implementation libs.reactor.tools
 
+    implementation libs.spring.boot.starter.jackson
     implementation libs.spring.boot.starter.actuator
     implementation libs.spring.boot.starter.data.r2dbc
 

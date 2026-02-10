@@ -5,8 +5,8 @@ import com.jcraft.jsch.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,28 +33,30 @@ public class SshTunnelConfig implements AutoCloseable {
         final var jSch = new JSch();
         jSch.setKnownHosts(sshProperties.knownHosts());
 
+        final var identity = tunnel.ssh().identity();
+
         if(Objects.nonNull(agentIdentityRepository))
         {
-            if(Objects.isNull(tunnel.sshIdentityName()) || tunnel.sshIdentityName().isBlank())
+            if(Objects.isNull(identity) || Objects.isNull(identity.name()) || identity.name().isBlank())
             {
                 jSch.setIdentityRepository(agentIdentityRepository);
             }
 
-            if(Objects.nonNull(tunnel.sshIdentityName()) && !tunnel.sshIdentityName().isBlank())
+            if(Objects.nonNull(identity) && Objects.nonNull(identity.name()) && !identity.name().isBlank())
             {
-                for(final var identity : agentIdentityRepository.getIdentities())
+                for(final var agentIdentity : agentIdentityRepository.getIdentities())
                 {
-                    if(identity.getName().contentEquals(tunnel.sshIdentityName()))
+                    if(agentIdentity.getName().contentEquals(identity.name()))
                     {
-                        jSch.addIdentity(identity, tunnel.sshIdentityPassphrase().getBytes());
+                        jSch.addIdentity(agentIdentity, identity.passphrase().getBytes());
                     }
                 }
             }
         }
 
-        if(Objects.nonNull(tunnel.sshIdentityPath()) && !tunnel.sshIdentityPath().isBlank())
+        if(Objects.nonNull(identity) && Objects.nonNull(identity.path()) && !identity.path().isBlank())
         {
-            jSch.addIdentity(tunnel.sshIdentityPath());
+            jSch.addIdentity(identity.path());
         }
 
         return jSch;
@@ -90,25 +92,25 @@ public class SshTunnelConfig implements AutoCloseable {
     private void establishTunnel(final Session session, final SshProperties.Tunnel tunnel) throws JSchException
     {
         final var localPort = session.setPortForwardingL(
-                tunnel.localHostname(), tunnel.localPort(),
-                tunnel.remoteHostname(), tunnel.remotePort()
+                tunnel.local().hostname(), tunnel.local().port(),
+                tunnel.remote().hostname(), tunnel.remote().port()
         );
 
-        if(localPort != tunnel.localPort())
+        if(localPort != tunnel.local().port())
             throw new RuntimeException("Failed to establish tunnel");
 
         log.info("Local port forwarding: {}:{} --[SSH {}@{}:{}]--> {}:{}",
-                tunnel.localHostname(), tunnel.localPort(),
+                tunnel.local().hostname(), tunnel.local().port(),
                 session.getUserName(), session.getHost(), session.getPort(),
-                tunnel.remoteHostname(), tunnel.remotePort());
+                tunnel.remote().hostname(), tunnel.remote().port());
     }
 
     private Session getSession(final SshProperties.Tunnel tunnel)
     {
-        final var username = tunnel.sshUsername();
-        final var hostname = tunnel.sshHostname();
-        final var port = tunnel.sshPort();
-        final var password = tunnel.sshPassword();
+        final var username = tunnel.ssh().username();
+        final var hostname = tunnel.ssh().hostname();
+        final var port = tunnel.ssh().port();
+        final var password = tunnel.ssh().password();
 
         try
         {

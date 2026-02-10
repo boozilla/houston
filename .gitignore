@@ -54,3 +54,4 @@ bin/
 /.idea/uiDesigner.xml
 /.idea/vcs.xml
 /gradle.properties
+/.env

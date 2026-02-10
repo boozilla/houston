@@ -1,210 +1,296 @@
 package boozilla.houston.container;
 
+import boozilla.houston.asset.AssetData;
 import boozilla.houston.asset.QueryResultInfo;
-import boozilla.houston.utils.MessageUtils;
-import com.google.protobuf.Any;
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.googlecode.cqengine.ConcurrentIndexedCollection;
-import com.googlecode.cqengine.attribute.Attribute;
-import com.googlecode.cqengine.attribute.MultiValueAttribute;
-import com.googlecode.cqengine.attribute.SimpleAttribute;
-import com.googlecode.cqengine.attribute.support.SimpleFunction;
-import com.googlecode.cqengine.index.Index;
-import com.googlecode.cqengine.index.hash.HashIndex;
-import com.googlecode.cqengine.index.navigable.NavigableIndex;
-import com.googlecode.cqengine.index.radixreversed.ReversedRadixTreeIndex;
-import com.googlecode.cqengine.persistence.onheap.OnHeapPersistence;
-import com.googlecode.cqengine.query.option.QueryOptions;
-import com.googlecode.cqengine.query.parser.sql.SQLParser;
+import com.googlecode.cqengine.query.parser.common.InvalidQueryException;
 import com.googlecode.cqengine.resultset.ResultSet;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import static com.googlecode.cqengine.query.QueryFactory.attribute;
-import static com.googlecode.cqengine.query.QueryFactory.nullableAttribute;
+public record AssetQuery(
+        Set<String> columns,
+        String from,
+        String where,
+        long offset,
+        long limit,
+        String sql
+) {
+    private static final char SINGLE_QUOTE = '\'';
+    private static final String OP_NOT_EQUAL = "<>";
+    private static final String OP_EQUAL = "=";
+    private static final String KW_IS = "IS";
+    private static final String KW_NOT = "NOT";
 
-public class AssetQuery {
-    private final String commitId;
-    private final ConcurrentIndexedCollection<DynamicMessage> indexedCollection;
-    private final SQLParser<DynamicMessage> sqlParser;
-
-    private SimpleAttribute<DynamicMessage, Long> primary;
-
-    public AssetQuery(final String commitId, final List<Any> data, final Descriptors.Descriptor sheetDescriptor)
+    public static AssetQuery of(final String value)
     {
-        final var attributes = attributes(sheetDescriptor.getFields());
-        final var indices = indices(sheetDescriptor.getFields(), attributes);
-
-        this.commitId = commitId;
-        this.indexedCollection = indexedCollection(sheetDescriptor, indices, data);
-        this.sqlParser = SQLParser.forPojoWithAttributes(DynamicMessage.class, attributes);
-    }
-
-    public ResultSet<DynamicMessage> query(final String sql, final Consumer<QueryResultInfo> resultInfoConsumer)
-    {
-        final var parseResult = this.sqlParser.parse(sql);
-        final var resultSet = indexedCollection.retrieve(parseResult.getQuery(), parseResult.getQueryOptions());
-
-        if(Objects.nonNull(resultInfoConsumer))
+        try
         {
-            final var resultInfo = new QueryResultInfo(
-                    commitId,
-                    resultSet.size(),
-                    resultSet.getMergeCost(),
-                    resultSet.getRetrievalCost());
-            resultInfoConsumer.accept(resultInfo);
+            final var parser = CCJSqlParserUtil.parse(normalizeWhereOperators(value));
+
+            if(parser instanceof Select select)
+                return of(select);
+        }
+        catch(JSQLParserException e)
+        {
+            throw Status.INVALID_ARGUMENT.withDescription(e.getLocalizedMessage())
+                    .withCause(e)
+                    .asRuntimeException();
         }
 
-        return resultSet;
+        throw Status.INVALID_ARGUMENT.withDescription("Support only 'select' query (%s)".formatted(value))
+                .asRuntimeException();
     }
 
-    public int size()
+    private static AssetQuery of(final Select parser)
     {
-        return indexedCollection.size();
+        return of(parser.getPlainSelect());
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Attribute<DynamicMessage, ?>> attributes(final List<Descriptors.FieldDescriptor> fieldDescriptors)
+    private static AssetQuery of(final PlainSelect parser)
     {
-        return fieldDescriptors.stream()
-                .<Attribute<DynamicMessage, ?>>map(fieldDescriptor -> {
-                    final var attributeName = fieldDescriptor.getName();
-                    final var typeClass = (Class<Object>) typeClass(fieldDescriptor);
+        final var columns = parser.getSelectItems().stream()
+                .map(Object::toString)
+                .collect(Collectors.toUnmodifiableSet());
+        final var from = parser.getFromItem().toString();
+        final var where = whereQuote(parser.getWhere());
+        final var orderBy = Objects.isNull(parser.getOrderByElements()) ? "" :
+                parser.getOrderByElements().stream()
+                        .map(item -> {
+                            final var columnName = item.getExpression().toString().replaceAll("\\b(\\w+)\\b", "'$1'");
+                            final var order = item.isAsc() ? "ASC" : "DESC";
 
-                    if(fieldDescriptor.isRepeated())
-                    {
-                        return new MultiValueAttribute<>(DynamicMessage.class, typeClass, attributeName) {
-                            @Override
-                            public Iterable<Object> getValues(final DynamicMessage dynamicMessage, final QueryOptions queryOptions)
-                            {
-                                return IntStream.range(0, dynamicMessage.getRepeatedFieldCount(fieldDescriptor))
-                                        .mapToObj(index -> dynamicMessage.getRepeatedField(fieldDescriptor, index))
-                                        .toList();
-                            }
-                        };
-                    }
-                    else if(fieldDescriptor.getName().contentEquals("code"))
-                    {
-                        primary = new SimpleAttribute<>(attributeName) {
-                            @Override
-                            public Long getValue(final DynamicMessage dynamicMessage, final QueryOptions queryOptions)
-                            {
-                                return (Long) dynamicMessage.getField(fieldDescriptor);
-                            }
-                        };
+                            return "%s %s".formatted(columnName, order);
+                        })
+                        .collect(Collectors.joining(", "));
+        final var groupBy = parser.getGroupBy();
+        final var limit = parser.getLimit();
+        final var offsetValue = Objects.isNull(limit) ? 0L : Objects.isNull(limit.getOffset()) ? 0L : ((LongValue) limit.getOffset()).getValue();
+        final var limitValue = Objects.isNull(limit) ? 0L : Objects.isNull(limit.getRowCount()) ? 0L : ((LongValue) limit.getRowCount()).getValue();
 
-                        return primary;
-                    }
+        var sql = "SELECT * FROM %s".formatted(from);
 
-                    final var valueFunc = new SimpleFunction<DynamicMessage, Object>() {
-                        @Override
-                        public Object apply(final DynamicMessage dynamicMessage)
-                        {
-                            if(!isNullable(fieldDescriptor) && !dynamicMessage.hasField(fieldDescriptor))
-                                return fieldDescriptor.getDefaultValue();
-                            else if(dynamicMessage.hasField(fieldDescriptor))
-                                return MessageUtils.extractValue(dynamicMessage.getField(fieldDescriptor))
-                                        .orElse(null);
+        if(!where.isEmpty())
+            sql = sql.concat(" WHERE (%s)".formatted(where));
 
-                            return null;
-                        }
-                    };
+        if(!orderBy.isEmpty())
+            sql = sql.concat(" ORDER BY %s".formatted(orderBy));
+        else
+            sql = sql.concat(" ORDER BY code ASC");
 
-                    return isNullable(fieldDescriptor) ? nullableAttribute(DynamicMessage.class, typeClass, attributeName, valueFunc) :
-                            attribute(DynamicMessage.class, typeClass, attributeName, valueFunc);
-                })
-                .collect(Collectors.toMap(Attribute::getAttributeName, Function.identity()));
+        if(Objects.nonNull(groupBy))
+            throw new RuntimeException("GROUP BY is not supported");
+
+        return new AssetQuery(columns.contains("*") ? Set.of() : columns,
+                from, where, offsetValue, limitValue, sql);
     }
 
-    private boolean isNullable(final Descriptors.FieldDescriptor fieldDescriptor)
+    private static String whereQuote(final Expression expression)
     {
-        return fieldDescriptor.getType() == Descriptors.FieldDescriptor.Type.MESSAGE;
-    }
+        if(Objects.isNull(expression))
+            return "";
 
-    private Class<?> typeClass(final Descriptors.FieldDescriptor fieldDescriptor)
-    {
-        return switch(fieldDescriptor.getJavaType())
+        if(expression instanceof BinaryExpression binary)
         {
-            case LONG -> Long.class;
-            case INT -> Integer.class;
-            case DOUBLE -> Double.class;
-            case STRING -> String.class;
-            case BOOLEAN -> Boolean.class;
-            case MESSAGE -> switch(fieldDescriptor.toProto().getTypeName())
+            final var left = binary.getLeftExpression();
+            final var right = binary.getRightExpression();
+            final var operator = binary.getStringExpression();
+
+            final var leftValue = whereQuote(left);
+            final var rightValue = whereQuote(right);
+
+            return "%s %s %s".formatted(leftValue, operator, rightValue);
+        }
+        else if(expression instanceof Column column)
+            return column.getColumnName().replaceAll("\\b(\\w+)\\b", "'$1'");
+
+        return expression.toString();
+    }
+
+    private static int skipWhitespace(final String s, int idx, final int len)
+    {
+        while(idx < len && Character.isWhitespace(s.charAt(idx)))
+        {
+            idx++;
+        }
+
+        return idx;
+    }
+
+    private static int scanLetters(final String s, int idx, final int len)
+    {
+        while(idx < len && Character.isLetter(s.charAt(idx)))
+        {
+            idx++;
+        }
+
+        return idx;
+    }
+
+    private static String normalizeWhereOperators(final String whereClause)
+    {
+        if(Objects.isNull(whereClause) || whereClause.isBlank())
+            return whereClause;
+
+        final var length = whereClause.length();
+        final var builder = new StringBuilder(length);
+        var inSingleQuote = false;
+
+        for(var i = 0; i < length; i++)
+        {
+            final var ch = whereClause.charAt(i);
+
+            // 문자열 리터럴 처리: '' 이스케이프 지원
+            if(ch == SINGLE_QUOTE)
             {
-                case "Int64Value" -> Long.class;
-                case "Int32Value" -> Integer.class;
-                case "DoubleValue" -> Double.class;
-                case "StringValue" -> String.class;
-                case "BoolValue" -> Boolean.class;
-                default -> throw new RuntimeException("Unknown type");
-            };
-            default -> throw new RuntimeException("Unknown type");
-        };
+                if(inSingleQuote)
+                {
+                    if(i + 1 < length && whereClause.charAt(i + 1) == SINGLE_QUOTE)
+                    {
+                        builder.append("''");
+                        i++;
+                        continue;
+                    }
+                    else
+                    {
+                        inSingleQuote = false;
+                        builder.append(ch);
+                        continue;
+                    }
+                }
+                else
+                {
+                    inSingleQuote = true;
+                    builder.append(ch);
+                    continue;
+                }
+            }
+
+            if(!inSingleQuote)
+            {
+                // != -> <>
+                if(ch == '!' && i + 1 < length && whereClause.charAt(i + 1) == '=')
+                {
+                    builder.append(OP_NOT_EQUAL);
+                    i++;
+                    continue;
+                }
+
+                // == -> =
+                if(ch == '=' && i + 1 < length && whereClause.charAt(i + 1) == '=')
+                {
+                    builder.append(OP_EQUAL);
+                    i++;
+                    continue;
+                }
+
+                // IS / IS NOT (토큰 경계에서만)
+                if(Character.isLetter(ch))
+                {
+                    final var start = i;
+                    var j = scanLetters(whereClause, i, length);
+                    final var word1 = whereClause.substring(start, j);
+
+                    if(word1.equalsIgnoreCase(KW_IS))
+                    {
+                        final var leftBoundary = start == 0 || !Character.isLetterOrDigit(whereClause.charAt(start - 1));
+                        final var rightBoundaryAfterIS = j == length || !Character.isLetterOrDigit(whereClause.charAt(j));
+                        if(leftBoundary)
+                        {
+                            // 공백 스킵
+                            var k = skipWhitespace(whereClause, j, length);
+
+                            // IS NOT 인지 확인
+                            if(k < length && Character.isLetter(whereClause.charAt(k)))
+                            {
+                                final var n = scanLetters(whereClause, k, length);
+                                final var word2 = whereClause.substring(k, n);
+                                final var rightBoundaryAfterNOT = n == length || !Character.isLetterOrDigit(whereClause.charAt(n));
+
+                                if(word2.equalsIgnoreCase(KW_NOT) && rightBoundaryAfterNOT)
+                                {
+                                    builder.append(OP_NOT_EQUAL);
+                                    i = n - 1;
+                                    continue;
+                                }
+                            }
+
+                            // 단독 IS 인 경우: = 로 정규화
+                            if(rightBoundaryAfterIS)
+                            {
+                                builder.append(OP_EQUAL);
+                                i = j - 1;
+                                continue;
+                            }
+                        }
+                    }
+
+                    // 다른 식별자/단어는 그대로 출력
+                    builder.append(whereClause, start, j);
+                    i = j - 1;
+                    continue;
+                }
+            }
+
+            // 기본 문자 출력
+            builder.append(ch);
+        }
+
+        return builder.toString();
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private List<Index<DynamicMessage>> indices(final List<Descriptors.FieldDescriptor> fieldDescriptors,
-                                                final Map<String, Attribute<DynamicMessage, ?>> attributes)
+    public boolean allColumns()
     {
-        return fieldDescriptors.stream()
-                .<Index<DynamicMessage>>map(fieldDescriptor -> {
-                    final var attributeName = fieldDescriptor.getName();
-                    final var attribute = attributes.get(attributeName);
-
-                    if(fieldDescriptor.isRepeated())
-                    {
-                        return HashIndex.onAttribute((Attribute<DynamicMessage, List<?>>) attribute);
-                    }
-
-                    if(isNullable(fieldDescriptor))
-                    {
-                        return HashIndex.onAttribute((Attribute<DynamicMessage, ?>) attribute);
-                    }
-
-                    return switch(fieldDescriptor.getJavaType())
-                    {
-                        case INT, LONG, BOOLEAN, FLOAT, DOUBLE ->
-                                NavigableIndex.onAttribute((Attribute<DynamicMessage, ? extends Comparable>) attribute);
-                        case STRING ->
-                                ReversedRadixTreeIndex.onAttribute((Attribute<DynamicMessage, String>) attribute);
-                        default -> HashIndex.onAttribute((Attribute<DynamicMessage, ?>) attribute);
-                    };
-                })
-                .toList();
+        return columns.isEmpty();
     }
 
-    private ConcurrentIndexedCollection<DynamicMessage> indexedCollection(final Descriptors.Descriptor sheetDescriptor,
-                                                                          final List<Index<DynamicMessage>> indices,
-                                                                          final List<Any> data)
+    public Flux<AssetData> result(final AssetIndex assetIndex,
+                                  final List<Descriptors.FieldDescriptor> fieldDescriptor,
+                                  final Consumer<QueryResultInfo> resultInfoConsumer)
     {
-        final var persistence = OnHeapPersistence.onPrimaryKey(primary);
-        final var indexedCollection = new ConcurrentIndexedCollection<>(persistence);
-        indices.forEach(indexedCollection::addIndex);
+        return Flux.using(() -> assetIndex.query(sql(), resultInfoConsumer),
+                        result -> Flux.fromStream(() -> {
+                                    var stream = result.stream();
 
-        final var rows = data.stream()
-                .map(any -> {
-                    try
-                    {
-                        return any.unpackSameTypeAs(DynamicMessage.getDefaultInstance(sheetDescriptor));
-                    }
-                    catch(InvalidProtocolBufferException e)
-                    {
-                        throw new RuntimeException("An error occurred while indexing asset data", e);
-                    }
-                })
-                .toList();
+                                    if(offset() > 0)
+                                        stream = stream.skip(offset());
 
-        indexedCollection.addAll(rows);
+                                    if(limit() > 0)
+                                        stream = stream.limit(limit());
 
-        return indexedCollection;
+                                    return stream;
+                                })
+                                .parallel()
+                                .map(message -> {
+                                    if(allColumns())
+                                        return new AssetData(message, fieldDescriptor);
+
+                                    final var builder = message.toBuilder();
+
+                                    message.getAllFields().entrySet().stream()
+                                            .filter(entry -> !columns().contains(entry.getKey().getName()))
+                                            .forEach(entry -> builder.clearField(entry.getKey()));
+
+                                    return new AssetData(builder, fieldDescriptor);
+                                }),
+                        ResultSet::close)
+                .onErrorMap(InvalidQueryException.class, error -> new StatusRuntimeException(Status.ABORTED
+                        .withDescription(error.getMessage())
+                        .withCause(error)));
     }
 }

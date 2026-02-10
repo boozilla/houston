@@ -4,7 +4,6 @@ import boozilla.houston.container.ManifestLoader;
 import boozilla.houston.repository.ManifestRepository;
 import com.google.protobuf.InvalidProtocolBufferException;
 import houston.grpc.service.Manifest;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -23,7 +22,7 @@ public class ManifestRepositoryLoader implements ManifestLoader {
     }
 
     @Override
-    public @NonNull CompletableFuture<Manifest> asyncLoad(@NonNull final String key, @NonNull final Executor executor)
+    public CompletableFuture<? extends Manifest> asyncLoad(final String key, final Executor executor)
     {
         return load(key).toFuture();
     }

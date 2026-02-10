@@ -1,6 +1,5 @@
 package boozilla.houston.properties;
 
-import org.apache.logging.log4j.util.Strings;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Objects;
@@ -13,27 +12,43 @@ public record SshProperties(
         Set<Tunnel> tunnels
 ) {
     public record Tunnel(
-            String sshHostname,
-            int sshPort,
-            String sshUsername,
-            String sshPassword,
-            String sshIdentityName,
-            String sshIdentityPassphrase,
-            String sshIdentityPath,
-            String localHostname,
-            int localPort,
-            String remoteHostname,
-            int remotePort
+            Ssh ssh,
+            Local local,
+            Remote remote
     ) {
-        public String localHostname()
-        {
-            return Objects.requireNonNullElse(localHostname, "127.0.0.1");
+        public record Ssh(
+                String hostname,
+                int port,
+                String username,
+                String password,
+                Identity identity
+        ) {
+            public record Identity(
+                    String name,
+                    String passphrase,
+                    String path
+            ) {
+                public String passphrase()
+                {
+                    return Objects.requireNonNullElse(passphrase, "");
+                }
+            }
         }
 
-        public String sshIdentityPassphrase()
-        {
-            return Objects.requireNonNullElse(sshIdentityPassphrase, Strings.EMPTY);
+        public record Local(
+                String hostname,
+                int port
+        ) {
+            public String hostname()
+            {
+                return Objects.requireNonNullElse(hostname, "127.0.0.1");
+            }
         }
+
+        public record Remote(
+                String hostname,
+                int port
+        ) {}
     }
 
     public String knownHosts()
