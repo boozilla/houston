@@ -30,15 +30,13 @@ public class AssetCatalogResource implements McpResourceProvider {
     @Override
     public List<McpServerFeatures.AsyncResourceSpecification> resources()
     {
-        final var resource = new McpSchema.Resource(
-                RESOURCE_URI,
-                "Asset Catalog",
-                "Asset Catalog",
-                "List of all available asset sheets with name, size, and commit ID",
-                "application/json",
-                null,
-                null
-        );
+        final var resource = McpSchema.Resource.builder()
+                .uri(RESOURCE_URI)
+                .name("Asset Catalog")
+                .title("Asset Catalog")
+                .description("List of all available asset sheets with name, size, and commit ID")
+                .mimeType("application/json")
+                .build();
 
         return List.of(new McpServerFeatures.AsyncResourceSpecification(
                 resource,
@@ -47,10 +45,10 @@ public class AssetCatalogResource implements McpResourceProvider {
 
                     return container.list(Scope.CLIENT, Set.of())
                             .map(sheet -> Map.of(
-                                    "name", (Object) sheet.getName(),
-                                    "size", (Object) sheet.getSize(),
-                                    "commitId", (Object) sheet.getCommitId(),
-                                    "partitions", (Object) sheet.getPartitionList()
+                                    "name", sheet.getName(),
+                                    "size", sheet.getSize(),
+                                    "commitId", sheet.getCommitId(),
+                                    "partitions", sheet.getPartitionList()
                             ))
                             .collectList()
                             .map(sheets -> {

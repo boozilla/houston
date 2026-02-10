@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 @Slf4j
@@ -44,8 +43,8 @@ public class AdminAuthDecorator implements ServiceDecorator {
     {
         log.error("Authentication failed", error);
 
-        final var status = Objects.nonNull(error) && error instanceof StatusException ?
-                ((StatusException) error).getStatus() :
+        final var status = error instanceof StatusException statusException ?
+                statusException.getStatus() :
                 Status.UNAUTHENTICATED.withDescription("Something went wrong");
 
         final var headerBuilder = ResponseHeaders.builder()

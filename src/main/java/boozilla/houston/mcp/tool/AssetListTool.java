@@ -78,11 +78,11 @@ public class AssetListTool implements McpToolProvider {
             final var container = assets.container();
 
             return container.list(scope, includeSet)
-                    .map(sheet -> Map.of(
-                            "name", (Object) sheet.getName(),
-                            "size", (Object) sheet.getSize(),
-                            "commitId", (Object) sheet.getCommitId(),
-                            "partitions", (Object) sheet.getPartitionList()
+                    .map(sheet -> Map.<String, Object>of(
+                            "name", sheet.getName(),
+                            "size", sheet.getSize(),
+                            "commitId", sheet.getCommitId(),
+                            "partitions", sheet.getPartitionList()
                     ))
                     .collectList()
                     .map(sheets -> {

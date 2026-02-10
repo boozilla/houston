@@ -99,22 +99,25 @@ public class McpToolUtils {
     public McpSchema.CallToolResult errorResult(final String prefix, final Throwable e)
     {
         log.error("{}: {}", prefix, e.getMessage(), e);
-        return new McpSchema.CallToolResult(List.of(
-                new McpSchema.TextContent(prefix)
-        ), true);
+        return McpSchema.CallToolResult.builder()
+                .content(List.of(new McpSchema.TextContent(prefix)))
+                .isError(true)
+                .build();
     }
 
     public McpSchema.CallToolResult notFoundResult(final String message)
     {
-        return new McpSchema.CallToolResult(List.of(
-                new McpSchema.TextContent(message)
-        ), true);
+        return McpSchema.CallToolResult.builder()
+                .content(List.of(new McpSchema.TextContent(message)))
+                .isError(true)
+                .build();
     }
 
     public McpSchema.CallToolResult successResult(final String json)
     {
-        return new McpSchema.CallToolResult(List.of(
-                new McpSchema.TextContent(json)
-        ), false);
+        return McpSchema.CallToolResult.builder()
+                .content(List.of(new McpSchema.TextContent(json)))
+                .isError(false)
+                .build();
     }
 }

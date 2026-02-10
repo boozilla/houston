@@ -56,9 +56,9 @@ public class AssetSchemaTool implements McpToolProvider {
             final var container = assets.container();
 
             return container.schemas(scope)
-                    .map(schema -> Map.of(
-                            "name", (Object) schema.getName(),
-                            "schema", (Object) schema.getSchema()
+                    .map(schema -> Map.<String, Object>of(
+                            "name", schema.getName(),
+                            "schema", schema.getSchema()
                     ))
                     .collectList()
                     .map(schemas -> {
