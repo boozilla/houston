@@ -42,6 +42,12 @@ public interface DataRepository extends ReactiveCrudRepository<Data, Long> {
     Mono<Boolean> existsByCommitIdAndScopeAndNameAndChecksum(String commitId, Scope scope, String name, String checksum);
 
     @Query(value = """
+            SELECT * FROM data WHERE commit_id = :commitId AND scope = :scope
+            AND (name = :name OR name LIKE CONCAT(:name, '#', '%'))
+            """)
+    Flux<Data> findByCommitIdAndScopeAndSheetName(String commitId, String scope, String name);
+
+    @Query(value = """
             SELECT * FROM data WHERE apply_at IS NULL ORDER BY id DESC
             """)
     Flux<Data> findByApplyAtIsNull();
