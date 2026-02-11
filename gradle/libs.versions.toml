@@ -39,6 +39,7 @@ reactor-bom = { group = "io.projectreactor", name = "reactor-bom", version.ref =
 spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
 awssdk-bom = { group = "software.amazon.awssdk", name = "bom", version.ref = "awssdk" }
 grpc-bom = { group = "io.grpc", name = "grpc-bom", version.ref = "grpc" }
+
 # Armeria
 armeria-logback = { group = "com.linecorp.armeria", name = "armeria-logback" }
 armeria-spring-boot4-webflux-starter = { group = "com.linecorp.armeria", name = "armeria-spring-boot4-webflux-starter" }
