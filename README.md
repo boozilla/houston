@@ -1,5 +1,5 @@
 <h1>
-  <img src="https://github.com/user-attachments/assets/7052baba-18be-438f-ab90-196844f514bd" width="96" height="52" align="absmiddle">
+  <img src="https://github.com/user-attachments/assets/d4a5720c-cda2-46a4-8927-6a7396686a56" width="82" height="auto" align="absmiddle">
   <font size="6"><b>houston</b></font>
 </h1>
 
