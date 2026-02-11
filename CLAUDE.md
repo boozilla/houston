@@ -73,7 +73,7 @@ houston/
 
 ## 주요 기술 스택
 
-- Java 21, Spring Boot 3.5, Armeria 1.33
+- Java 24, Spring Boot 4.0, Armeria 1.36
 - gRPC 1.71, Protobuf 4.30
 - Project Reactor (비동기 리액티브)
 - R2DBC + jasync-mysql (리액티브 DB)

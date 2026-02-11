@@ -69,7 +69,7 @@ houston/
 
 | 영역              | 기술                                                |
 |-----------------|---------------------------------------------------|
-| Language        | Java 21                                           |
+| Language        | Java 24                                           |
 | Build           | Gradle 8.11                                       |
 | Framework       | Spring Boot 4.0, Armeria 1.36                     |
 | RPC             | gRPC 1.79, Protocol Buffers 4.33                  |
@@ -85,7 +85,7 @@ houston/
 
 ### 요구 사항
 
-- Java 21+
+- Java 24+
 - MySQL (R2DBC 호환)
 - GitHub 또는 GitLab 저장소 (Excel 파일 관리용)
 
