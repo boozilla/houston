@@ -1,6 +1,7 @@
-<img src="https://github.com/user-attachments/assets/7052baba-18be-438f-ab90-196844f514bd" width="96" height="52" align="absmiddle">
-
-# houston
+<h1>
+  <img src="https://github.com/user-attachments/assets/7052baba-18be-438f-ab90-196844f514bd" width="96" height="52" align="absmiddle">
+  <font size="6"><b>houston</b></font>
+</h1>
 
 ##### Your Mission Control Center
 
