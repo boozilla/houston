@@ -7,8 +7,8 @@ import io.grpc.stub.MetadataUtils;
 import java.util.Objects;
 
 public class HoustonChannel extends Channel implements AutoCloseable {
-    private static final Metadata.Key<String> HOUSTON_TOKEN_KEY = Metadata.Key.of("x-houston-token", Metadata.ASCII_STRING_MARSHALLER);
-    private static final Metadata.Key<String> HOUSTON_SCOPE_KEY = Metadata.Key.of("x-houston-scope", Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> HOUSTON_TOKEN_KEY = Metadata.Key.of(HoustonHeaders.TOKEN, Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> HOUSTON_SCOPE_KEY = Metadata.Key.of(HoustonHeaders.SCOPE, Metadata.ASCII_STRING_MARSHALLER);
 
     private final ManagedChannel channel;
 

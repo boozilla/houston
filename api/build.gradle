@@ -37,6 +37,10 @@ publishing {
 }
 
 dependencies {
+    // BOM
+    implementation platform(libs.reactor.bom)
+    implementation platform(libs.grpc.bom)
+
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
 

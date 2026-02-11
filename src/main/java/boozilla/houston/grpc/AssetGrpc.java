@@ -1,5 +1,6 @@
 package boozilla.houston.grpc;
 
+import boozilla.houston.HoustonHeaders;
 import boozilla.houston.annotation.ScopeService;
 import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.AssetData;
@@ -38,7 +39,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
 
         return assets.container()
                 .list(scope, include)
-                .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
+                .doOnNext(_ -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT));
     }
 
     @Override
@@ -65,10 +66,10 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
 
         final var response = assets.container()
                 .query(scope, request.getQuery(), resultInfo -> {
-                    requestContext.addAdditionalResponseHeader("x-houston-commit-id", resultInfo.commitId());
-                    requestContext.addAdditionalResponseHeader("x-houston-query-size", resultInfo.size());
-                    requestContext.addAdditionalResponseHeader("x-houston-query-merge-cost", resultInfo.mergeCost());
-                    requestContext.addAdditionalResponseHeader("x-houston-query-retrieval-cost", resultInfo.retrievalCost());
+                    requestContext.addAdditionalResponseHeader(HoustonHeaders.COMMIT_ID, resultInfo.commitId());
+                    requestContext.addAdditionalResponseHeader(HoustonHeaders.QUERY_SIZE, resultInfo.size());
+                    requestContext.addAdditionalResponseHeader(HoustonHeaders.QUERY_MERGE_COST, resultInfo.mergeCost());
+                    requestContext.addAdditionalResponseHeader(HoustonHeaders.QUERY_RETRIEVAL_COST, resultInfo.retrievalCost());
                 });
 
         if(request.getHeadersOnly())
@@ -77,7 +78,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
         }
 
         return response.flatMapSequential(func)
-                .doOnNext(any -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT))
+                .doOnNext(_ -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT))
                 .onErrorMap(AssetQueryException.class, error -> new StatusRuntimeException(Status.NOT_FOUND
                         .withDescription(error.getMessage())
                         .withCause(error)));

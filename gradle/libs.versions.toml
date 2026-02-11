@@ -1,18 +1,15 @@
 [versions]
 armeria = "1.36.0"
 spring-boot = "4.0.2"
-spring = "7.0.3"
-spring-data = "4.0.2"
 protobuf-plugin = "0.9.6"
-protobuf = "4.33.5"
+protobuf = "3.25.8"
 grpc = "1.79.0"
 reactor-grpc = "1.2.4"
-reactor = "3.8.2"
+reactor-bom = "2025.0.3"
 lombok = "1.18.42"
-micrometer = "1.16.2"
 jasync = "2.2.4"
 fastexcel = "0.19.0"
-awssdk = "2.41.24"
+awssdk = "2.41.25"
 java-jwt = "4.5.0"
 picocli = "4.7.7"
 cqengine = "3.6.0"
@@ -36,44 +33,44 @@ publish = { id = "com.gradle.plugin-publish", version.ref = "publish" }
 nexus = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexus" }
 
 [libraries]
+# BOM
+armeria-bom = { group = "com.linecorp.armeria", name = "armeria-bom", version.ref = "armeria" }
+reactor-bom = { group = "io.projectreactor", name = "reactor-bom", version.ref = "reactor-bom" }
+spring-boot-dependencies = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+awssdk-bom = { group = "software.amazon.awssdk", name = "bom", version.ref = "awssdk" }
+grpc-bom = { group = "io.grpc", name = "grpc-bom", version.ref = "grpc" }
 # Armeria
-armeria = { group = "com.linecorp.armeria", name = "armeria", version.ref = "armeria" }
-armeria-dropwizard2 = { group = "com.linecorp.armeria", name = "armeria-dropwizard2", version.ref = "armeria" }
-armeria-logback = { group = "com.linecorp.armeria", name = "armeria-logback", version.ref = "armeria" }
-armeria-spring-boot4-webflux-starter = { group = "com.linecorp.armeria", name = "armeria-spring-boot4-webflux-starter", version.ref = "armeria" }
-armeria-spring-boot4-autoconfigure = { group = "com.linecorp.armeria", name = "armeria-spring-boot4-autoconfigure", version.ref = "armeria" }
-armeria-grpc = { group = "com.linecorp.armeria", name = "armeria-grpc", version.ref = "armeria" }
-armeria-grpc-protocol = { group = "com.linecorp.armeria", name = "armeria-grpc-protocol", version.ref = "armeria" }
-armeria-protobuf = { group = "com.linecorp.armeria", name = "armeria-protobuf", version.ref = "armeria" }
-armeria-ai-mcp = { group = "com.linecorp.armeria", name = "armeria-ai-mcp", version.ref = "armeria" }
+armeria-logback = { group = "com.linecorp.armeria", name = "armeria-logback" }
+armeria-spring-boot4-webflux-starter = { group = "com.linecorp.armeria", name = "armeria-spring-boot4-webflux-starter" }
+armeria-grpc = { group = "com.linecorp.armeria", name = "armeria-grpc" }
+armeria-grpc-protocol = { group = "com.linecorp.armeria", name = "armeria-grpc-protocol" }
+armeria-ai-mcp = { group = "com.linecorp.armeria", name = "armeria-ai-mcp" }
 
 # Reactor
-reactor-core = { group = "io.projectreactor", name = "reactor-core", version.ref = "reactor" }
-reactor-tools = { group = "io.projectreactor", name = "reactor-tools", version.ref = "reactor" }
+reactor-core = { group = "io.projectreactor", name = "reactor-core" }
+reactor-tools = { group = "io.projectreactor", name = "reactor-tools" }
 
 # Spring
-spring-core = { group = "org.springframework", name = "spring-core", version.ref = "spring" }
-spring-context = { group = "org.springframework", name = "spring-context", version.ref = "spring" }
+spring-core = { group = "org.springframework", name = "spring-core" }
+spring-context = { group = "org.springframework", name = "spring-context" }
 
 # Spring Boot
-spring-data-relational = { group = "org.springframework.data", name = "spring-data-relational", version.ref = "spring-data" }
-spring-boot-auto-configure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure", version.ref = "spring-boot" }
-spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator", version.ref = "spring-boot" }
-spring-boot-starter-jackson = { group = "org.springframework.boot", name = "spring-boot-starter-jackson", version.ref = "spring-boot" }
-spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc", version.ref = "spring-boot" }
+spring-data-relational = { group = "org.springframework.data", name = "spring-data-relational" }
+spring-boot-auto-configure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
+spring-boot-starter-actuator = { group = "org.springframework.boot", name = "spring-boot-starter-actuator" }
+spring-boot-starter-jackson = { group = "org.springframework.boot", name = "spring-boot-starter-jackson" }
+spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc" }
 
 # Micrometer
-micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
-micrometer-registry-cloudwatch2 = { group = "io.micrometer", name = "micrometer-registry-cloudwatch2", version.ref = "micrometer" }
+micrometer-registry-cloudwatch2 = { group = "io.micrometer", name = "micrometer-registry-cloudwatch2" }
 
 # Protobuf / gRPC
-protobuf-java = { group = "com.google.protobuf", name = "protobuf-java", version.ref = "protobuf" }
 protobuf-java-util = { group = "com.google.protobuf", name = "protobuf-java-util", version.ref = "protobuf" }
 reactor-grpc-stub = { group = "com.salesforce.servicelibs", name = "reactor-grpc-stub", version.ref = "reactor-grpc" }
-grpc-stub = { group = "io.grpc", name = "grpc-stub", version.ref = "grpc" }
-grpc-netty-shaded = { group = "io.grpc", name = "grpc-netty-shaded", version.ref = "grpc" }
-grpc-api = { group = "io.grpc", name = "grpc-api", version.ref = "grpc" }
-grpc-protobuf = { group = "io.grpc", name = "grpc-protobuf", version.ref = "grpc" }
+grpc-stub = { group = "io.grpc", name = "grpc-stub" }
+grpc-netty-shaded = { group = "io.grpc", name = "grpc-netty-shaded" }
+grpc-api = { group = "io.grpc", name = "grpc-api" }
+grpc-protobuf = { group = "io.grpc", name = "grpc-protobuf" }
 
 # jasync, CQEngine, JSQLParser
 jasync-mysql = { group = "com.github.jasync-sql", name = "jasync-mysql", version.ref = "jasync" }
@@ -86,12 +83,12 @@ fastexcel = { group = "org.dhatim", name = "fastexcel", version.ref = "fastexcel
 fastexcel-reader = { group = "org.dhatim", name = "fastexcel-reader", version.ref = "fastexcel" }
 
 # AWS SDK
-aws-secretsmanager = { group = "software.amazon.awssdk", name = "secretsmanager", version.ref = "awssdk" }
-aws-kms = { group = "software.amazon.awssdk", name = "kms", version.ref = "awssdk" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version.ref = "awssdk" }
-aws-sso = { group = "software.amazon.awssdk", name = "sso", version.ref = "awssdk" }
-aws-ssooidc = { group = "software.amazon.awssdk", name = "ssooidc", version.ref = "awssdk" }
-aws-auth = { group = "software.amazon.awssdk", name = "auth", version.ref = "awssdk" }
+aws-secretsmanager = { group = "software.amazon.awssdk", name = "secretsmanager" }
+aws-kms = { group = "software.amazon.awssdk", name = "kms" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3" }
+aws-sso = { group = "software.amazon.awssdk", name = "sso" }
+aws-ssooidc = { group = "software.amazon.awssdk", name = "ssooidc" }
+aws-auth = { group = "software.amazon.awssdk", name = "auth" }
 
 # java-jwt
 java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "java-jwt" }
@@ -104,7 +101,7 @@ lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" 
 
 # JUnit
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
-junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
 
 # SLF4J
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }

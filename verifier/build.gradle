@@ -6,9 +6,11 @@ group = rootProject.group
 version = rootProject.version
 
 dependencies {
+    // BOM
+    implementation platform(libs.reactor.bom)
+
     implementation project(':api')
 
-    implementation libs.reactor.core
     implementation libs.reactor.tools
 }
 

@@ -9,13 +9,11 @@ import boozilla.houston.decorator.factory.ScopeDecoratorFactory;
 import boozilla.houston.decorator.factory.SecureDecoratorFactory;
 import boozilla.houston.properties.GrpcProperties;
 import boozilla.houston.unframed.UnframedService;
-import com.linecorp.armeria.common.HttpHeadersBuilder;
 import com.linecorp.armeria.server.HttpServiceWithRoutes;
 import com.linecorp.armeria.server.grpc.GrpcService;
 import com.linecorp.armeria.spring.ArmeriaServerConfigurator;
 import io.grpc.BindableService;
-import io.grpc.protobuf.services.ProtoReflectionService;
-import jakarta.annotation.Nullable;
+import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,7 +34,7 @@ public class RouteConfig {
                 .addServices(services);
 
         if(grpcProperties.enableReflection())
-            builder.addService(ProtoReflectionService.newInstance());
+            builder.addService(ProtoReflectionServiceV1.newInstance());
 
         return builder.build();
     }
@@ -62,9 +60,8 @@ public class RouteConfig {
     }
 
     @Bean
-    public ScopeDecoratorFactory scopeDecoratorFactory(@Nullable final HttpHeadersBuilder exampleHeaders,
-                                                       final JwtAdminAuthorizer adminAuthorizer)
+    public ScopeDecoratorFactory scopeDecoratorFactory(final JwtAdminAuthorizer adminAuthorizer)
     {
-        return new ScopeDecoratorFactory(exampleHeaders, adminAuthorizer);
+        return new ScopeDecoratorFactory(adminAuthorizer);
     }
 }

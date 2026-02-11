@@ -15,7 +15,7 @@ subprojects {
 }
 
 group = 'boozilla.houston'
-version = '1.1.0'
+version = '1.1.1'
 
 sourceSets {
     main {
@@ -122,6 +122,12 @@ dependencies {
     implementation project(':api')
     implementation project(':container')
 
+    // BOM
+    implementation platform(libs.armeria.bom)
+    implementation platform(libs.spring.boot.dependencies)
+    implementation platform(libs.grpc.bom)
+    implementation platform(libs.awssdk.bom)
+
     compileOnly libs.lombok
     annotationProcessor libs.lombok
     testCompileOnly libs.lombok
@@ -130,37 +136,43 @@ dependencies {
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
 
-    implementation libs.armeria
-    implementation libs.armeria.dropwizard2
-    implementation libs.armeria.logback
+    // Armeria
     implementation libs.armeria.spring.boot4.webflux.starter
-    implementation libs.armeria.spring.boot4.autoconfigure
+    implementation libs.armeria.logback
     implementation libs.armeria.grpc
     implementation libs.armeria.grpc.protocol
-    implementation libs.armeria.protobuf
     implementation libs.armeria.ai.mcp
 
-    implementation libs.reactor.core
+    // Protobuf
+    implementation libs.protobuf.java.util
+
+    // Reactor
     implementation libs.reactor.tools
 
+    // Spring Boot
     implementation libs.spring.boot.starter.jackson
     implementation libs.spring.boot.starter.actuator
     implementation libs.spring.boot.starter.data.r2dbc
 
-    implementation libs.micrometer.core
+    // Micrometer
     implementation libs.micrometer.registry.cloudwatch2
 
-    implementation libs.protobuf.java
+    // gRPC
     implementation libs.reactor.grpc.stub
 
+    // DB / Query
     implementation libs.jasync.mysql
     implementation libs.jasync.r2dbc.mysql
-    implementation libs.cqengine
+    implementation(libs.cqengine) {
+        exclude group: 'org.xerial', module: 'sqlite-jdbc'
+    }
     implementation libs.jsqlparser
 
+    // Excel
     implementation libs.fastexcel
     implementation libs.fastexcel.reader
 
+    // AWS SDK
     implementation libs.aws.secretsmanager
     implementation libs.aws.kms
     implementation libs.aws.s3
@@ -168,14 +180,11 @@ dependencies {
     runtimeOnly libs.aws.ssooidc
     runtimeOnly libs.aws.auth
 
+    // 기타
     implementation libs.java.jwt
-
     implementation libs.picocli
-
     implementation libs.jsch
-
     implementation libs.jsoup
-
     implementation libs.jline
 }
 

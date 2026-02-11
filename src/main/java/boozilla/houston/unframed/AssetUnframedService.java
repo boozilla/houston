@@ -1,5 +1,6 @@
 package boozilla.houston.unframed;
 
+import boozilla.houston.HoustonHeaders;
 import boozilla.houston.annotation.ScopeService;
 import boozilla.houston.asset.AssetContainers;
 import boozilla.houston.asset.AssetData;
@@ -27,12 +28,15 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @AllArgsConstructor
 public class AssetUnframedService implements UnframedService {
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("[a-zA-Z0-9_\\-]+");
+
     private final AssetGrpc assetGrpc;
     private final AssetContainers assetContainers;
     private final DataRepository dataRepository;
@@ -50,6 +54,9 @@ public class AssetUnframedService implements UnframedService {
     @Get("/asset/{tableName}")
     public Mono<HttpResponse> redirect(@Param("tableName") final String tableName)
     {
+        if(!SAFE_IDENTIFIER.matcher(tableName).matches())
+            return Mono.just(HttpResponse.of(HttpStatus.BAD_REQUEST));
+
         final var request = AssetListRequest.newBuilder()
                 .addInclude(tableName)
                 .build();
@@ -75,6 +82,9 @@ public class AssetUnframedService implements UnframedService {
     public Mono<HttpResponse> getData(@Param("tableName") final String tableName,
                                       @Param("commitId") final String commitId)
     {
+        if(!SAFE_IDENTIFIER.matcher(tableName).matches() || !SAFE_IDENTIFIER.matcher(commitId).matches())
+            return Mono.just(HttpResponse.of(HttpStatus.BAD_REQUEST));
+
         final var scope = ScopeContext.get();
         final var container = assetContainers.container();
 
@@ -95,7 +105,7 @@ public class AssetUnframedService implements UnframedService {
                         ResponseHeaders.builder(HttpStatus.OK)
                                 .contentType(MediaType.JSON_UTF_8)
                                 .add(HttpHeaderNames.CACHE_CONTROL, "public, max-age=31536000, immutable")
-                                .add(HttpHeaderNames.VARY, "x-houston-scope")
+                                .add(HttpHeaderNames.VARY, HoustonHeaders.SCOPE)
                                 .build(),
                         HttpData.ofUtf8(json)))
                 .switchIfEmpty(Mono.just(HttpResponse.of(HttpStatus.NOT_FOUND)));

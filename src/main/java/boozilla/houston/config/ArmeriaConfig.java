@@ -4,8 +4,6 @@ import com.linecorp.armeria.common.HttpHeaderNames;
 import com.linecorp.armeria.common.TlsKeyPair;
 import com.linecorp.armeria.common.util.InetAddressPredicates;
 import com.linecorp.armeria.server.ClientAddressSource;
-import com.linecorp.armeria.common.HttpHeadersBuilder;
-import com.linecorp.armeria.common.HttpHeaders;
 import com.linecorp.armeria.server.docs.DocService;
 import com.linecorp.armeria.server.docs.DocServiceBuilder;
 import com.linecorp.armeria.server.healthcheck.HealthCheckService;
@@ -76,13 +74,6 @@ public class ArmeriaConfig {
     public AccessLogWriter accessLogWriter()
     {
         return AccessLogWriter.common();
-    }
-
-    @Bean
-    @Profile("docs")
-    public HttpHeadersBuilder exampleHeaders()
-    {
-        return HttpHeaders.builder();
     }
 
     @Bean

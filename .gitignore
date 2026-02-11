@@ -41,18 +41,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-/.idea/.gitignore
-/.idea/.name
-/.idea/aws.xml
-/.idea/dataSources.xml
-/.idea/encodings.xml
-/.idea/gradle.xml
-/.idea/misc.xml
-/.idea/sqldialects.xml
-/.idea/uiDesigner.xml
-/.idea/vcs.xml
-/.idea/inspectionProfiles/Project_Default.xml
 /gradle.properties
 /gradlew.bat
 /gradlew
 /.env
+/.idea

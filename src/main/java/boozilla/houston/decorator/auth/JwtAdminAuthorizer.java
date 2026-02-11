@@ -1,40 +1,28 @@
 package boozilla.houston.decorator.auth;
 
+import boozilla.houston.HoustonHeaders;
 import boozilla.houston.token.AdminApiKey;
-import com.linecorp.armeria.common.HttpHeadersBuilder;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.server.ServiceRequestContext;
-import jakarta.annotation.Nullable;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 @Slf4j
 @Component
+@AllArgsConstructor
 public class JwtAdminAuthorizer implements HttpAuthorizer {
-    private static final String TOKEN_HEADER_NAME = "x-houston-token";
-
     private final AdminApiKey adminApiKey;
-
-    public JwtAdminAuthorizer(@Nullable final HttpHeadersBuilder exampleHeaders,
-                              final AdminApiKey adminApiKey)
-    {
-        if(Objects.nonNull(exampleHeaders) && !exampleHeaders.contains(TOKEN_HEADER_NAME))
-            exampleHeaders.add(TOKEN_HEADER_NAME, Strings.EMPTY);
-
-        this.adminApiKey = adminApiKey;
-    }
 
     @Override
     public @Nonnull CompletionStage<Boolean> authorize(@Nonnull final ServiceRequestContext ctx,
                                                        @Nonnull final HttpRequest httpRequest)
     {
-        final var token = Optional.ofNullable(httpRequest.headers().get(TOKEN_HEADER_NAME));
+        final var token = Optional.ofNullable(httpRequest.headers().get(HoustonHeaders.TOKEN));
 
         return adminApiKey.verify(token)
                 .toFuture();
