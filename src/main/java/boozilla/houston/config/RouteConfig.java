@@ -31,6 +31,7 @@ public class RouteConfig {
                 .useBlockingTaskExecutor(grpcProperties.useBlockingTaskExecutor())
                 .jsonMarshallerFactory(serviceDescriptor -> DynamicJsonMarshaller.of(serviceDescriptor, assets))
                 .enableUnframedRequests(grpcProperties.enableUnframedRequests())
+                .enableHealthCheckService(true)
                 .addServices(services);
 
         if(grpcProperties.enableReflection())
