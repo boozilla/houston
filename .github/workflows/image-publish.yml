@@ -4,16 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       ref_type:
-        description: '빌드 기준 선택'
+        description: '이미지 태그 기준 선택'
         required: true
         type: choice
         options:
           - version
           - commit
-      commit_sha:
-        description: '커밋 SHA (commit 선택 시 필수)'
-        required: false
-        type: string
   release:
     types: [ published ]
 
@@ -31,8 +27,6 @@ jobs:
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           submodules: true
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref_type == 'commit' && inputs.commit_sha || '' }}
-
       - name: 이미지 태그 결정
         id: image-tag
         run: |
@@ -41,7 +35,7 @@ jobs:
               VERSION=$(grep -oP "^version\s*=\s*'\K[^']+" build.gradle)
               echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
             else
-              echo "tag=${{ inputs.commit_sha }}" >> "$GITHUB_OUTPUT"
+              echo "tag=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
