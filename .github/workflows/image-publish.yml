@@ -27,6 +27,7 @@ jobs:
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           submodules: true
+
       - name: 이미지 태그 결정
         id: image-tag
         run: |
@@ -34,11 +35,14 @@ jobs:
             if [ "${{ inputs.ref_type }}" = "version" ]; then
               VERSION=$(grep -oP "^version\s*=\s*'\K[^']+" build.gradle)
               echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+              echo "extra_tags=latest" >> "$GITHUB_OUTPUT"
             else
               echo "tag=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              echo "extra_tags=" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+            echo "extra_tags=latest" >> "$GITHUB_OUTPUT"
           fi
 
       - name: JDK 24 설정
@@ -51,4 +55,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: 이미지 배포
-        run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.image-tag.outputs.tag }} -Djib.to.auth.username=${{ github.actor }} -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXTRA_TAGS="${{ steps.image-tag.outputs.extra_tags }}"
+          if [ -n "$EXTRA_TAGS" ]; then
+            TAGS_OPT="-Pjib.tags=${EXTRA_TAGS}"
+          else
+            TAGS_OPT="-Pjib.tags="
+          fi
+          ./gradlew jib \
+            -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.image-tag.outputs.tag }} \
+            ${TAGS_OPT} \
+            -Djib.to.auth.username=${{ github.actor }} \
+            -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
