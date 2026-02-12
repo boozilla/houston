@@ -8,8 +8,8 @@ on:
         required: true
         type: choice
         options:
-          - version
           - commit
+          - version
   release:
     types: [ published ]
 
