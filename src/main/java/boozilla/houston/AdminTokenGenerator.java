@@ -17,12 +17,24 @@ import java.util.function.Supplier;
 @Setter(AccessLevel.NONE)
 @CommandLine.Command
 public class AdminTokenGenerator implements Runnable {
-    @CommandLine.ArgGroup(multiplicity = "1")
-    KeyOrKmsOption keyOrKmsOption;
-    @CommandLine.Option(names = {"--issuer", "--iss"}, required = true, description = "Token issuer")
+    @CommandLine.Option(names = {"--issuer", "--iss"}, required = true, defaultValue = "${env:ISSUER}", description = "Token issuer")
     private String issuer;
-    @CommandLine.Option(names = {"--username", "--user"}, interactive = true, description = "Username")
+    @CommandLine.Option(names = {"--username", "--user"}, interactive = true, defaultValue = "${env:USERNAME}", description = "Username")
     private String username;
+
+    // KMS options
+    @CommandLine.Option(names = {"--kms-key-id", "--kms"}, defaultValue = "${env:KMS_KEY_ID}", description = "KMS key ID")
+    private String kmsKeyId;
+    @CommandLine.Option(names = {"--kms-algo"}, defaultValue = "${env:KMS_ALGORITHM}", description = "KMS algorithm")
+    private String kmsAlgorithm;
+
+    // Key options
+    @CommandLine.Option(names = {"--key-algo", "--algo"}, defaultValue = "${env:KEY_ALGORITHM}", description = "Key algorithm")
+    private String keyAlgorithm;
+    @CommandLine.Option(names = {"--key-file", "--key"}, defaultValue = "${env:KEY_FILE}", description = "Key file")
+    private String keyFile;
+    @CommandLine.Option(names = {"--key-pkcs8", "--pkcs8"}, defaultValue = "${env:KEY_PKCS8}", description = "Key PKCS#8 text")
+    private String keyPkcs8;
 
     public static void main(final String... args)
     {
@@ -43,25 +55,25 @@ public class AdminTokenGenerator implements Runnable {
 
     private Algorithm algorithm()
     {
-        if(Objects.nonNull(keyOrKmsOption.kmsOption))
+        if(Objects.nonNull(kmsKeyId) && Objects.nonNull(kmsAlgorithm))
         {
-            return kmsAlgorithm(keyOrKmsOption.kmsOption.id, keyOrKmsOption.kmsOption.algorithm);
+            return kmsAlgorithm(kmsKeyId, kmsAlgorithm);
         }
 
-        if(Objects.nonNull(keyOrKmsOption.keyOption))
+        if(Objects.nonNull(keyAlgorithm))
         {
-            if(Objects.nonNull(keyOrKmsOption.keyOption.keyProvideOption.keyFile))
+            if(Objects.nonNull(keyFile))
             {
-                return keyAlgorithmFromFile(keyOrKmsOption.keyOption.keyProvideOption.keyFile, keyOrKmsOption.keyOption.algorithm);
+                return keyAlgorithmFromFile(keyFile, keyAlgorithm);
             }
 
-            if(Objects.nonNull(keyOrKmsOption.keyOption.keyProvideOption.keyPkcs8))
+            if(Objects.nonNull(keyPkcs8))
             {
-                return keyAlgorithmFromPkcs8(keyOrKmsOption.keyOption.keyProvideOption.keyPkcs8, keyOrKmsOption.keyOption.algorithm);
+                return keyAlgorithmFromPkcs8(keyPkcs8, keyAlgorithm);
             }
         }
 
-        throw new IllegalArgumentException("No key option");
+        throw new IllegalArgumentException("No key option: specify --kms/--kms-algo or --algo with --key/--pkcs8");
     }
 
     private KmsAlgorithmProvider kmsAlgorithmProvider()
@@ -118,35 +130,5 @@ public class AdminTokenGenerator implements Runnable {
 
         System.out.print("> Input username: ");
         return new Scanner(System.in).nextLine();
-    }
-
-    static class KeyOrKmsOption {
-        @CommandLine.ArgGroup(exclusive = false)
-        private KmsOption kmsOption;
-        @CommandLine.ArgGroup(exclusive = false)
-        private KeyOption keyOption;
-
-        static class KmsOption {
-            @CommandLine.Option(names = {"--kms-key-id", "--kms"}, description = "KMS key ID")
-            private String id;
-
-            @CommandLine.Option(names = {"--kms-algo", "--kms-algo"}, required = true, description = "KMS algorithm")
-            private String algorithm;
-        }
-    }
-
-    static class KeyOption {
-        @CommandLine.ArgGroup(multiplicity = "1")
-        KeyProvideOption keyProvideOption;
-        @CommandLine.Option(names = {"--key-algo", "--algo"}, required = true, description = "Key algorithm")
-        private String algorithm;
-
-        static class KeyProvideOption {
-            @CommandLine.Option(names = {"--key-file", "--key"}, description = "Key file")
-            private String keyFile;
-
-            @CommandLine.Option(names = {"--key-pkcs8", "--pkcs8"}, description = "Key PKCS#8 text")
-            private String keyPkcs8;
-        }
     }
 }
