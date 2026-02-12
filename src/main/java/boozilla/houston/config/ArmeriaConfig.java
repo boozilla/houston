@@ -73,7 +73,16 @@ public class ArmeriaConfig {
     @Bean
     public AccessLogWriter accessLogWriter()
     {
-        return AccessLogWriter.common();
+        final var delegate = AccessLogWriter.common();
+
+        return log -> {
+            final var path = log.requestHeaders().path();
+
+            if(path.startsWith("/grpc.health.v1.Health/"))
+                return;
+
+            delegate.log(log);
+        };
     }
 
     @Bean
