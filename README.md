@@ -1,5 +1,5 @@
 <h1>
-  <img src="https://github.com/user-attachments/assets/d4a5720c-cda2-46a4-8927-6a7396686a56" width="82" height="auto" align="absmiddle">
+  <img src="./examples/logo-strip.png" width="82" height="auto" align="absmiddle">
   <font size="6"><b>houston</b></font>
 </h1>
 
