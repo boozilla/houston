@@ -96,7 +96,7 @@ public class UploadCommand implements Command {
 
                                             return handler.add(commitFile, bytes)
                                                     .doFinally(signal -> log.info("Complete data handling [name={}, handler={}]", commitFile, handler.getClass().getSimpleName()));
-                                        })
+                                        }, Runtime.getRuntime().availableProcessors())
                                         .reduce(new HashSet<GitFileHandler>(), (set, handler) -> {
                                             set.add(handler);
                                             return set;
@@ -191,7 +191,7 @@ public class UploadCommand implements Command {
                                             final GitBehavior<?> behavior)
     {
         return Flux.fromIterable(commitFiles)
-                .doOnRequest(sequence -> {
+                .doOnSubscribe(_ -> {
                     // 파일 다운로드 시작
                     behavior.commentMessage(projectId, issueId, messageSourceAccessor.getMessage("GIT_DATA_DOWNLOADING")
                                     .formatted(commitFiles.size()))
@@ -200,12 +200,12 @@ public class UploadCommand implements Command {
                 })
                 .doOnNext(commitFile -> log.info("Start downloading files from git [name={}]", commitFile))
                 .flatMap(commitFile -> behavior.openFile(projectId, commitId, commitFile)
-                        .doOnNext(result -> log.info("Finished downloading files from git [name={}]", commitFile))
+                        .doOnNext(_ -> log.info("Finished downloading files from git [name={}]", commitFile))
                         .onErrorMap(Exceptions::isRetryExhausted, Throwable::getCause)
                         .onErrorResume(error -> behavior.commentExceptions(projectId, issueId, error)
                                 .then(Mono.error(new RuntimeException(messageSourceAccessor.getMessage("EXCEPTION_STEP_DOWNLOAD_GIT_ERROR")
                                         .formatted(commitId, commitFile)))))
-                        .map(bytes -> Tuples.of(commitFile, bytes)))
+                        .map(bytes -> Tuples.of(commitFile, bytes)), 8)
                 .collectMap(Tuple2::getT1, Tuple2::getT2);
     }
 

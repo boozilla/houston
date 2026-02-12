@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.unit.DataSize;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -23,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class XlsxWorkbookHandler extends GitFileHandler {
+    private static final Scheduler CPU_SCHEDULER = Schedulers.newBoundedElastic(
+            Runtime.getRuntime().availableProcessors(), Schedulers.DEFAULT_BOUNDED_ELASTIC_QUEUESIZE, "xlsx-cpu");
+
     private final AssetContainer container;
     private final List<Throwable> sheetExceptions;
 
@@ -46,7 +50,8 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                                         .flatMap(sheet -> toData(commitId, packageName, sheet, scope, sheetExceptions))))
                         // Sandbox 컨테이너 구성
                         .doOnNext(tuple -> container.add(tuple.getT1(), tuple.getT2()))
-                        .then(Mono.just(this)),
+                        .then(Mono.just(this))
+                        .subscribeOn(CPU_SCHEDULER),
                 in -> Mono.fromRunnable(() -> {
                     try
                     {
@@ -56,7 +61,7 @@ public class XlsxWorkbookHandler extends GitFileHandler {
                     {
                         throw new RuntimeException(e);
                     }
-                }).subscribeOn(Schedulers.boundedElastic()));
+                }).subscribeOn(CPU_SCHEDULER));
     }
 
     @Override

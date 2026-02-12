@@ -18,8 +18,6 @@ import com.linecorp.armeria.client.RestClient;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreaker;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerClient;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerRule;
-import com.linecorp.armeria.client.retry.Backoff;
-import com.linecorp.armeria.client.retry.RetryRule;
 import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.common.HttpEntity;
 import com.linecorp.armeria.common.ResponseEntity;
@@ -28,7 +26,6 @@ import com.linecorp.armeria.server.ServiceRequestContext;
 import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -41,7 +38,6 @@ import java.util.function.Function;
 public class GitLabClient implements GitClient {
     private static final String GITLAB_ACCESS_TOKEN_KEY = "x-gitlab-token";
     private static final String GITLAB_URL_KEY = "x-gitlab-instance";
-    private static final Function<? super HttpClient, RetryingClient> retryStrategy = retry();
     private static final Function<? super HttpClient, CircuitBreakerClient> circuitBreaker = circuitBreaker();
 
     private final RestClient restClient;
@@ -50,14 +46,15 @@ public class GitLabClient implements GitClient {
     public GitLabClient(final String url,
                         final String token,
                         final ObjectMapper objectMapper,
-                        final ClientFactory clientFactory)
+                        final ClientFactory clientFactory,
+                        final Function<? super HttpClient, RetryingClient> retryDecorator)
     {
         this.restClient = RestClient.builder("%s/api/v4".formatted(url))
                 .factory(clientFactory)
                 .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(token))
                 .followRedirects()
-                .decorator(retryStrategy)
+                .decorator(retryDecorator)
                 .decorator(circuitBreaker)
                 .build();
         this.objectMapper = objectMapper;
@@ -65,12 +62,13 @@ public class GitLabClient implements GitClient {
 
     public static GitLabClient of(final ServiceRequestContext context,
                                   final ObjectMapper objectMapper,
-                                  final ClientFactory clientFactory)
+                                  final ClientFactory clientFactory,
+                                  final Function<? super HttpClient, RetryingClient> retryDecorator)
     {
         final var token = header(context, GITLAB_ACCESS_TOKEN_KEY, "Access token is null");
         final var url = header(context, GITLAB_URL_KEY, "GitLab URL is null");
 
-        return new GitLabClient(url, token, objectMapper, clientFactory);
+        return new GitLabClient(url, token, objectMapper, clientFactory, retryDecorator);
     }
 
     private static String header(final ServiceRequestContext context, final String key, final String message)
@@ -80,11 +78,6 @@ public class GitLabClient implements GitClient {
                 .get(key);
 
         return Objects.requireNonNull(value, message);
-    }
-
-    private static Function<? super HttpClient, RetryingClient> retry()
-    {
-        return RetryingClient.newDecorator(RetryRule.failsafe(Backoff.ofDefault()));
     }
 
     private static Function<? super HttpClient, CircuitBreakerClient> circuitBreaker()
@@ -285,8 +278,7 @@ public class GitLabClient implements GitClient {
 
     private <T> Mono<T> fromFuture(final java.util.concurrent.CompletableFuture<T> future)
     {
-        return Mono.fromFuture(future)
-                .publishOn(Schedulers.boundedElastic());
+        return Mono.fromFuture(future);
     }
 
     private <T> Flux<T> pagination(final ResponseEntity<List<T>> response, final int currentPage, final Function<Integer, Flux<T>> next)

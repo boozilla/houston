@@ -10,6 +10,8 @@ import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.linecorp.armeria.client.ClientFactory;
+import com.linecorp.armeria.client.HttpClient;
+import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.vo.webhook.Contributor;
 import houston.vo.webhook.UploadPayload;
@@ -22,6 +24,7 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -31,9 +34,10 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
 
     public GitLabBehavior(final ServiceRequestContext context,
                           final ObjectMapper objectMapper,
-                          final ClientFactory clientFactory)
+                          final ClientFactory clientFactory,
+                          final Function<? super HttpClient, RetryingClient> retryDecorator)
     {
-        client = GitLabClient.of(context, objectMapper, clientFactory);
+        client = GitLabClient.of(context, objectMapper, clientFactory, retryDecorator);
     }
 
     @Override

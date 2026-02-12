@@ -6,8 +6,6 @@ import boozilla.houston.exception.AssetSheetException;
 import org.dhatim.fastexcel.reader.Cell;
 import org.dhatim.fastexcel.reader.Row;
 import org.dhatim.fastexcel.reader.Sheet;
-import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.util.*;
@@ -280,22 +278,25 @@ public class AssetSheet implements AutoCloseable {
         {
             headers = new HashMap<>();
 
-            Flux.fromStream(rows)
-                    .skip(COMMENT_HEADER_POSITION - 1)
-                    .takeUntil(row -> foundAll())
-                    .doOnNext(row -> {
-                        if(row.getRowNum() == COMMENT_HEADER_POSITION)
-                        {
-                            headers.put(Category.COMMENT, row);
-                            return;
-                        }
+            final var iterator = rows.skip(COMMENT_HEADER_POSITION - 1).iterator();
 
-                        findCategory(row)
-                                .ifPresent(category -> headers.computeIfAbsent(category, key -> row));
-                    })
-                    .then()
-                    .subscribeOn(Schedulers.boundedElastic())
-                    .block();
+            while(iterator.hasNext())
+            {
+                final var row = iterator.next();
+
+                if(row.getRowNum() == COMMENT_HEADER_POSITION)
+                {
+                    headers.put(Category.COMMENT, row);
+                }
+                else
+                {
+                    findCategory(row)
+                            .ifPresent(category -> headers.computeIfAbsent(category, _ -> row));
+                }
+
+                if(foundAll())
+                    break;
+            }
 
             startOfData = calcStartOfData();
         }

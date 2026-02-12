@@ -74,7 +74,6 @@ public class AdminApiKey {
                         return false;
                     }
                 })
-                .defaultIfEmpty(false)
-                .subscribeOn(Schedulers.boundedElastic());
+                .defaultIfEmpty(false);
     }
 }

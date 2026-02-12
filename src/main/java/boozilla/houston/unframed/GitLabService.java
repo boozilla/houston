@@ -9,6 +9,8 @@ import boozilla.houston.unframed.request.gitlab.NoteEvent;
 import boozilla.houston.unframed.request.gitlab.PushEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linecorp.armeria.client.ClientFactory;
+import com.linecorp.armeria.client.HttpClient;
+import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
 import com.linecorp.armeria.server.annotation.PathPrefix;
@@ -20,6 +22,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,25 +35,28 @@ public class GitLabService implements UnframedService {
     private final String packageName;
     private final ObjectMapper objectMapper;
     private final ClientFactory clientFactory;
+    private final Function<? super HttpClient, RetryingClient> retryDecorator;
 
     public GitLabService(final Commands commands,
                          @Value("${branch}") final String targetBranch,
                          @Value("${package-name}") final String packageName,
                          final ObjectMapper objectMapper,
-                         final ClientFactory clientFactory)
+                         final ClientFactory clientFactory,
+                         final Function<? super HttpClient, RetryingClient> retryDecorator)
     {
         this.commands = commands;
         this.targetBranch = targetBranch;
         this.packageName = packageName;
         this.objectMapper = objectMapper;
         this.clientFactory = clientFactory;
+        this.retryDecorator = retryDecorator;
     }
 
     @Post("/webhook")
     @MatchesHeader("x-gitlab-event=Push Hook")
     public Mono<Void> push(final PushEvent request)
     {
-        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper, clientFactory);
+        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper, clientFactory, retryDecorator);
         final var requestBranch = behavior.branchFromRef(request.ref());
 
         if(targetBranch.equalsIgnoreCase(requestBranch))
@@ -84,7 +90,7 @@ public class GitLabService implements UnframedService {
     @MatchesHeader("x-gitlab-event=Note Hook")
     public Mono<Void> note(final NoteEvent request)
     {
-        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper, clientFactory);
+        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper, clientFactory, retryDecorator);
 
         Mono.just(request)
                 .filter(req -> req.issue().labels()

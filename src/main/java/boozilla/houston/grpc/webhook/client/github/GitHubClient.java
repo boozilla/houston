@@ -15,8 +15,6 @@ import com.linecorp.armeria.client.*;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreaker;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerClient;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerRule;
-import com.linecorp.armeria.client.retry.Backoff;
-import com.linecorp.armeria.client.retry.RetryRule;
 import com.linecorp.armeria.client.retry.RetryingClient;
 import com.linecorp.armeria.common.HttpEntity;
 import com.linecorp.armeria.common.ResponseEntity;
@@ -25,7 +23,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -40,7 +37,6 @@ import java.util.function.Supplier;
 public class GitHubClient implements GitClient {
     private static final int DEFAULT_PER_PAGE = 100;
     private static final String GITHUB_API_URL = "https://api.github.com";
-    private static final Function<? super HttpClient, RetryingClient> retryStrategy = retry();
     private static final Function<? super HttpClient, CircuitBreakerClient> circuitBreaker = circuitBreaker();
 
     private final RestClient restClient;
@@ -48,22 +44,18 @@ public class GitHubClient implements GitClient {
 
     public GitHubClient(final GitHubProperties properties,
                         final ObjectMapper objectMapper,
-                        final ClientFactory clientFactory)
+                        final ClientFactory clientFactory,
+                        final Function<? super HttpClient, RetryingClient> retryDecorator)
     {
         this.restClient = RestClient.builder(GITHUB_API_URL)
                 .factory(clientFactory)
                 .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(properties.accessToken()))
                 .followRedirects()
-                .decorator(retryStrategy)
+                .decorator(retryDecorator)
                 .decorator(circuitBreaker)
                 .build();
         this.objectMapper = objectMapper;
-    }
-
-    private static Function<? super HttpClient, RetryingClient> retry()
-    {
-        return RetryingClient.newDecorator(RetryRule.failsafe(Backoff.ofDefault()));
     }
 
     private static Function<? super HttpClient, CircuitBreakerClient> circuitBreaker()
@@ -251,8 +243,7 @@ public class GitHubClient implements GitClient {
 
     private <T> Mono<T> fromFuture(final CompletableFuture<T> future)
     {
-        return Mono.fromFuture(future)
-                .publishOn(Schedulers.boundedElastic());
+        return Mono.fromFuture(future);
     }
 
     private <T extends CollectableResponse<T>> Mono<T> collect(
