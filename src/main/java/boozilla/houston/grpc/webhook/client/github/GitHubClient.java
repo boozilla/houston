@@ -11,10 +11,7 @@ import boozilla.houston.properties.GitHubProperties;
 import boozilla.houston.repository.vaults.Vaults;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.linecorp.armeria.client.HttpClient;
-import com.linecorp.armeria.client.ResponseAs;
-import com.linecorp.armeria.client.RestClient;
-import com.linecorp.armeria.client.RestClientPreparation;
+import com.linecorp.armeria.client.*;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreaker;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerClient;
 import com.linecorp.armeria.client.circuitbreaker.CircuitBreakerRule;
@@ -28,6 +25,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -49,9 +47,11 @@ public class GitHubClient implements GitClient {
     private final ObjectMapper objectMapper;
 
     public GitHubClient(final GitHubProperties properties,
-                        final ObjectMapper objectMapper)
+                        final ObjectMapper objectMapper,
+                        final ClientFactory clientFactory)
     {
         this.restClient = RestClient.builder(GITHUB_API_URL)
+                .factory(clientFactory)
                 .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(properties.accessToken()))
                 .followRedirects()
@@ -98,20 +98,7 @@ public class GitHubClient implements GitClient {
                 .queryParam("recursive", recursive)
                 .execute(RepositoryTreesResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
-                .map(HttpEntity::content);
-    }
-
-    public Mono<byte[]> contents(final String repo, final String path, final String ref)
-    {
-        final var request = restClient.get("/repos/{repo}/contents/{path}")
-                .header("Accept", "application/vnd.github.raw+json")
-                .pathParam("repo", repo)
-                .pathParam("path", path)
-                .queryParam("ref", ref)
-                .execute(ResponseAs.bytes());
-
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -122,7 +109,7 @@ public class GitHubClient implements GitClient {
                 .pathParam("branch", branch)
                 .execute(RepositoryBranchesResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content)
                 .onErrorReturn(new RepositoryBranchesResponse(branch));
     }
@@ -143,7 +130,7 @@ public class GitHubClient implements GitClient {
                 ))
                 .execute(IssueGetResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -155,7 +142,7 @@ public class GitHubClient implements GitClient {
                 .contentJson(Map.of("sub_issue_id", subIssueId))
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -166,21 +153,8 @@ public class GitHubClient implements GitClient {
                 .pathParam("issue_number", issueNumber)
                 .execute(IssueGetResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
-    }
-
-    public Flux<IssueGetResponse> findIssue(final String repo, final Set<String> labels)
-    {
-        return paginate(() -> restClient.get("/repos/{repo}/issues")
-                        .pathParam("repo", repo)
-                        .queryParam("state", "all")
-                        .queryParam("labels", String.join(",", labels))
-                        .queryParam("sort", "created")
-                        .queryParam("direction", "desc"),
-                request -> request.execute(new TypeReference<>() {
-                }, objectMapper),
-                IssueGetResponse.class);
     }
 
     public Flux<IssueGetResponse> findOpenedIssue(final String repo)
@@ -203,7 +177,7 @@ public class GitHubClient implements GitClient {
                 .contentJson(payload)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -225,7 +199,7 @@ public class GitHubClient implements GitClient {
                 .contentJson(Map.of("body", body))
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -238,7 +212,7 @@ public class GitHubClient implements GitClient {
                 .queryParam("ref", ref)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -259,7 +233,7 @@ public class GitHubClient implements GitClient {
                 .contentJson(Map.of("content", content, "encoding", "base64"))
                 .execute(Vaults.UploadResult.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -271,8 +245,14 @@ public class GitHubClient implements GitClient {
                 .pathParam("file_sha", sha)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
+    }
+
+    private <T> Mono<T> fromFuture(final CompletableFuture<T> future)
+    {
+        return Mono.fromFuture(future)
+                .publishOn(Schedulers.boundedElastic());
     }
 
     private <T extends CollectableResponse<T>> Mono<T> collect(
@@ -292,7 +272,7 @@ public class GitHubClient implements GitClient {
         request.queryParam("page", currentPage);
         request.queryParam("per_page", perPage);
 
-        return Mono.fromFuture(request.execute(resultClass, objectMapper))
+        return fromFuture(request.execute(resultClass, objectMapper))
                 .flatMap(response -> {
                     final var linkHeader = response.headers().get("link");
                     final var nextPage = Objects.isNull(linkHeader) || !linkHeader.contains("rel=\"next\"") ?
@@ -330,7 +310,7 @@ public class GitHubClient implements GitClient {
         request.queryParam("page", currentPage);
         request.queryParam("per_page", perPage);
 
-        return Mono.fromFuture(requestConsumer.apply(request))
+        return fromFuture(requestConsumer.apply(request))
                 .flatMapMany(response -> {
                     final var linkHeader = response.headers().get("link");
                     final var nextPage = Objects.isNull(linkHeader) || !linkHeader.contains("rel=\"next\"") ?

@@ -1,7 +1,19 @@
-name: Image publish
+name: 이미지 배포
 
 on:
   workflow_dispatch:
+    inputs:
+      ref_type:
+        description: '빌드 기준 선택'
+        required: true
+        type: choice
+        options:
+          - version
+          - commit
+      commit_sha:
+        description: '커밋 SHA (commit 선택 시 필수)'
+        required: false
+        type: string
   release:
     types: [ published ]
 
@@ -14,20 +26,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: 소스 체크아웃
         uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           submodules: true
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref_type == 'commit' && inputs.commit_sha || '' }}
 
-      - name: Set up JDK 24
+      - name: 이미지 태그 결정
+        id: image-tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.ref_type }}" = "version" ]; then
+              VERSION=$(grep -oP "^version\s*=\s*'\K[^']+" build.gradle)
+              echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+            else
+              echo "tag=${{ inputs.commit_sha }}" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: JDK 24 설정
         uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: 24
 
-      - name: Setup Gradle
+      - name: Gradle 설정
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Publish
-        run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=ghcr.io/${{ github.repository }} -Djib.to.auth.username=${{ github.actor }} -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
+      - name: 이미지 배포
+        run: ./gradlew jib -Parchitecture=${{ inputs.architecture }} -Djib.to.image=ghcr.io/${{ github.repository }}:${{ steps.image-tag.outputs.tag }} -Djib.to.auth.username=${{ github.actor }} -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}

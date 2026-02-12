@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -152,8 +151,7 @@ public class GitHubBehavior implements GitBehavior<GitHubClient> {
     public Mono<Void> commentMessage(final String repo, final String issueId, final String message)
     {
         return client.writeIssueComment(repo, issueId, message)
-                .doOnRequest(consumer -> log.info("{} [projectId={}, issueNumber={}]", message, repo, issueId))
-                .publishOn(Schedulers.newSingle("github-comment-sender", true));
+                .doOnRequest(_ -> log.info("{} [projectId={}, issueNumber={}]", message, repo, issueId));
     }
 
     @Override

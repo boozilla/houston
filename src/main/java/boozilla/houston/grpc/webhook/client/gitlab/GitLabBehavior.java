@@ -9,6 +9,7 @@ import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryTreeResp
 import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.linecorp.armeria.client.ClientFactory;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import houston.vo.webhook.Contributor;
 import houston.vo.webhook.UploadPayload;
@@ -16,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -30,9 +30,10 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     private final GitLabClient client;
 
     public GitLabBehavior(final ServiceRequestContext context,
-                          final ObjectMapper objectMapper)
+                          final ObjectMapper objectMapper,
+                          final ClientFactory clientFactory)
     {
-        client = GitLabClient.of(context, objectMapper);
+        client = GitLabClient.of(context, objectMapper, clientFactory);
     }
 
     @Override
@@ -157,8 +158,7 @@ public class GitLabBehavior implements GitBehavior<GitLabClient> {
     public Mono<Void> commentMessage(final String projectId, final String issueIid, final String message)
     {
         return client.createIssueNote(projectId, issueIid, message)
-                .doOnRequest(consumer -> log.info("{} [projectId={}, issueIid={}]", message, projectId, issueIid))
-                .publishOn(Schedulers.newSingle("gitlab-comment-sender", true));
+                .doOnRequest(_ -> log.info("{} [projectId={}, issueIid={}]", message, projectId, issueIid));
     }
 
     @Override

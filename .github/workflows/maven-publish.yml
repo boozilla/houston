@@ -1,4 +1,4 @@
-name: Maven publish
+name: Maven 배포
 
 on:
   workflow_dispatch:
@@ -19,21 +19,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: 소스 체크아웃
         uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           submodules: true
 
-      - name: Set up JDK 24
+      - name: JDK 24 설정
         uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: 24
 
-      - name: Setup Gradle
+      - name: Gradle 설정
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Publish all
+      - name: 전체 모듈 배포
         run: ./gradlew :api:publishToSonatype :container:publishToSonatype closeAndReleaseSonatypeStagingRepository

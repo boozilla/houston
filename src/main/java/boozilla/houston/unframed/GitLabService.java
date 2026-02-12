@@ -8,11 +8,13 @@ import boozilla.houston.grpc.webhook.command.PayloadCommand;
 import boozilla.houston.unframed.request.gitlab.NoteEvent;
 import boozilla.houston.unframed.request.gitlab.PushEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linecorp.armeria.client.ClientFactory;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import com.linecorp.armeria.server.annotation.MatchesHeader;
 import com.linecorp.armeria.server.annotation.PathPrefix;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,6 +22,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.stream.Collectors;
 
+@Slf4j
 @PathPrefix("/gitlab")
 @ProducesJson
 @SecuredService(JwtAdminAuthorizer.class)
@@ -28,23 +31,26 @@ public class GitLabService implements UnframedService {
     private final String targetBranch;
     private final String packageName;
     private final ObjectMapper objectMapper;
+    private final ClientFactory clientFactory;
 
     public GitLabService(final Commands commands,
                          @Value("${branch}") final String targetBranch,
                          @Value("${package-name}") final String packageName,
-                         final ObjectMapper objectMapper)
+                         final ObjectMapper objectMapper,
+                         final ClientFactory clientFactory)
     {
         this.commands = commands;
         this.targetBranch = targetBranch;
         this.packageName = packageName;
         this.objectMapper = objectMapper;
+        this.clientFactory = clientFactory;
     }
 
     @Post("/webhook")
     @MatchesHeader("x-gitlab-event=Push Hook")
     public Mono<Void> push(final PushEvent request)
     {
-        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
+        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper, clientFactory);
         final var requestBranch = behavior.branchFromRef(request.ref());
 
         if(targetBranch.equalsIgnoreCase(requestBranch))
@@ -68,7 +74,7 @@ public class GitLabService implements UnframedService {
                                                     .then(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
                             ))
                     .subscribeOn(Schedulers.boundedElastic())
-                    .subscribe();
+                    .subscribe(_ -> {}, error -> log.error("GitLab push webhook processing failed", error));
         }
 
         return Mono.empty();
@@ -78,7 +84,7 @@ public class GitLabService implements UnframedService {
     @MatchesHeader("x-gitlab-event=Note Hook")
     public Mono<Void> note(final NoteEvent request)
     {
-        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper);
+        final var behavior = new GitLabBehavior(ServiceRequestContext.current(), objectMapper, clientFactory);
 
         Mono.just(request)
                 .filter(req -> req.issue().labels()
@@ -98,7 +104,7 @@ public class GitLabService implements UnframedService {
                     return Mono.empty();
                 })
                 .subscribeOn(Schedulers.boundedElastic())
-                .subscribe();
+                .subscribe(_ -> {}, error -> log.error("GitLab note webhook processing failed", error));
 
         return Mono.empty();
     }

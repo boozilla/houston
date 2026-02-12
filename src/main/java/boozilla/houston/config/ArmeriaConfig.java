@@ -1,7 +1,9 @@
 package boozilla.houston.config;
 
+import com.linecorp.armeria.client.ClientFactory;
 import com.linecorp.armeria.common.HttpHeaderNames;
 import com.linecorp.armeria.common.TlsKeyPair;
+import com.linecorp.armeria.common.util.EventLoopGroups;
 import com.linecorp.armeria.common.util.InetAddressPredicates;
 import com.linecorp.armeria.server.ClientAddressSource;
 import com.linecorp.armeria.server.docs.DocService;
@@ -83,6 +85,14 @@ public class ArmeriaConfig {
 
             delegate.log(log);
         };
+    }
+
+    @Bean(destroyMethod = "closeAsync")
+    public ClientFactory clientFactory()
+    {
+        return ClientFactory.builder()
+                .workerGroup(EventLoopGroups.newEventLoopGroup(Runtime.getRuntime().availableProcessors()), true)
+                .build();
     }
 
     @Bean

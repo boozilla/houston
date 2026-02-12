@@ -12,6 +12,7 @@ import com.linecorp.armeria.server.annotation.MatchesHeader;
 import com.linecorp.armeria.server.annotation.PathPrefix;
 import com.linecorp.armeria.server.annotation.Post;
 import com.linecorp.armeria.server.annotation.ProducesJson;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -22,6 +23,7 @@ import reactor.core.scheduler.Schedulers;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 @PathPrefix("/github")
 @ProducesJson
 @SecuredService(GitHubAuthorizer.class)
@@ -70,7 +72,7 @@ public class GitHubService implements UnframedService {
                                                     .then(behavior.commentUploadPayload(issue.getId(), uploadPayload))))
                             ))
                     .subscribeOn(Schedulers.boundedElastic())
-                    .subscribe();
+                    .subscribe(_ -> {}, error -> log.error("GitHub push webhook processing failed", error));
         }
 
         return Mono.empty();
@@ -98,7 +100,7 @@ public class GitHubService implements UnframedService {
                     return Mono.empty();
                 })
                 .subscribeOn(Schedulers.boundedElastic())
-                .subscribe();
+                .subscribe(_ -> {}, error -> log.error("GitHub issue webhook processing failed", error));
 
         return Mono.empty();
     }

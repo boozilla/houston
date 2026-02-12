@@ -11,6 +11,7 @@ import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryCompareR
 import boozilla.houston.grpc.webhook.client.gitlab.repository.RepositoryTreeResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linecorp.armeria.client.ClientFactory;
 import com.linecorp.armeria.client.HttpClient;
 import com.linecorp.armeria.client.ResponseAs;
 import com.linecorp.armeria.client.RestClient;
@@ -27,6 +28,7 @@ import com.linecorp.armeria.server.ServiceRequestContext;
 import org.joda.time.Period;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -47,9 +49,11 @@ public class GitLabClient implements GitClient {
 
     public GitLabClient(final String url,
                         final String token,
-                        final ObjectMapper objectMapper)
+                        final ObjectMapper objectMapper,
+                        final ClientFactory clientFactory)
     {
         this.restClient = RestClient.builder("%s/api/v4".formatted(url))
+                .factory(clientFactory)
                 .maxResponseLength(Long.MAX_VALUE)
                 .auth(AuthToken.ofOAuth2(token))
                 .followRedirects()
@@ -60,12 +64,13 @@ public class GitLabClient implements GitClient {
     }
 
     public static GitLabClient of(final ServiceRequestContext context,
-                                  final ObjectMapper objectMapper)
+                                  final ObjectMapper objectMapper,
+                                  final ClientFactory clientFactory)
     {
         final var token = header(context, GITLAB_ACCESS_TOKEN_KEY, "Access token is null");
         final var url = header(context, GITLAB_URL_KEY, "GitLab URL is null");
 
-        return new GitLabClient(url, token, objectMapper);
+        return new GitLabClient(url, token, objectMapper, clientFactory);
     }
 
     private static String header(final ServiceRequestContext context, final String key, final String message)
@@ -102,7 +107,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("to", to)
                 .execute(RepositoryCompareResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -125,7 +130,7 @@ public class GitLabClient implements GitClient {
                 .execute(ResponseAs.json(new TypeReference<List<RepositoryTreeResponse.Node>>() {
                 }, objectMapper));
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .flatMapMany(response -> pagination(response, page, nextPage -> tree(projectId, path, ref, recursive, nextPage)));
     }
 
@@ -138,7 +143,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("lfs", lfs)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -150,7 +155,7 @@ public class GitLabClient implements GitClient {
                 .execute(new TypeReference<List<RepositoryBranchResponse.Branch>>() {
                 }, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .flatMap(response -> {
                     final var optBranch = response.content().stream()
                             .findAny();
@@ -167,7 +172,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("duration", PeriodFormatter.print(period))
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -183,7 +188,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("created_at", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(createdAt))
                 .execute(IssueCreateResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
     }
 
@@ -196,7 +201,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("target_issue_iid", targetIssueIid)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -207,21 +212,8 @@ public class GitLabClient implements GitClient {
                 .pathParam("issueIid", issueIid)
                 .execute(IssueGetResponse.class, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .map(HttpEntity::content);
-    }
-
-    public Flux<IssueGetResponse> findIssue(final String projectId, final List<String> labels)
-    {
-        final var request = restClient.get("/projects/{id}/issues")
-                .pathParam("id", projectId)
-                .pathParam("state", "all")
-                .queryParam("labels", String.join(",", labels))
-                .execute(new TypeReference<List<IssueGetResponse>>() {
-                }, objectMapper);
-
-        return Mono.fromFuture(request)
-                .flatMapMany(response -> Flux.fromIterable(response.content()));
     }
 
     public Flux<IssueGetResponse> findOpenedIssue(final String repo)
@@ -232,7 +224,7 @@ public class GitLabClient implements GitClient {
                 .execute(new TypeReference<List<IssueGetResponse>>() {
                 }, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .flatMapMany(response -> Flux.fromIterable(response.content()));
     }
 
@@ -244,7 +236,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("labels", labels)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -256,7 +248,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("state_event", "close")
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -268,7 +260,7 @@ public class GitLabClient implements GitClient {
                 .queryParam("body", message)
                 .execute(ResponseAs.bytes());
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .then();
     }
 
@@ -287,8 +279,14 @@ public class GitLabClient implements GitClient {
                 .execute(new TypeReference<List<NotesGetResponse.Note>>() {
                 }, objectMapper);
 
-        return Mono.fromFuture(request)
+        return fromFuture(request)
                 .flatMapMany(response -> pagination(response, page, nextPage -> notes(projectId, issueIid, nextPage)));
+    }
+
+    private <T> Mono<T> fromFuture(final java.util.concurrent.CompletableFuture<T> future)
+    {
+        return Mono.fromFuture(future)
+                .publishOn(Schedulers.boundedElastic());
     }
 
     private <T> Flux<T> pagination(final ResponseEntity<List<T>> response, final int currentPage, final Function<Integer, Flux<T>> next)
