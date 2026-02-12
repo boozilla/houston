@@ -129,7 +129,7 @@ public class UploadCommand implements Command {
                                 .thenReturn(Tuples.of(commit, handlers))))
                 .flatMap(tuple -> behavior.addLabels(projectId, issueId, tuple.getT1().substring(0, 8))
                         // 라벨 달기
-                        .and(Mono.defer(() -> {
+                        .then(Mono.defer(() -> {
                             final var manifestOnly = tuple.getT2().stream()
                                     .allMatch(handler -> handler instanceof JsonManifestHandler);
                             final var state = manifestOnly ? StateLabel.ACTIVE : StateLabel.INACTIVE;
