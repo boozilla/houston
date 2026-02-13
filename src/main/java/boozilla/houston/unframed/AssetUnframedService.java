@@ -50,7 +50,7 @@ public class AssetUnframedService implements UnframedService {
     @Post("/api/query")
     public Mono<String> query(final AssetQueryRequest request)
     {
-        return assetGrpc.query(request, data -> Flux.just(data.toJsonString()))
+        return assetGrpc.queryMap(request, AssetData::toJsonString)
                 .collect(Collectors.joining(",", "[", "]"));
     }
 
@@ -58,7 +58,7 @@ public class AssetUnframedService implements UnframedService {
     @Post("/api/search")
     public Mono<String> search(final AssetSearchRequest request)
     {
-        return assetGrpc.search(request, data -> Flux.just(data.toJsonString()))
+        return assetGrpc.searchMap(request, AssetData::toJsonString)
                 .collect(Collectors.joining(",", "[", "]"));
     }
 
@@ -161,7 +161,7 @@ public class AssetUnframedService implements UnframedService {
                 .setQuery("SELECT * FROM " + tableName)
                 .build();
 
-        return assetGrpc.query(request, data -> Flux.just(data.toJsonString()))
+        return assetGrpc.queryMap(request, AssetData::toJsonString)
                 .collect(Collectors.joining(",", "[", "]"))
                 .onErrorResume(StatusRuntimeException.class, error -> {
                     if(error.getStatus().getCode() == Status.Code.NOT_FOUND)
@@ -176,7 +176,7 @@ public class AssetUnframedService implements UnframedService {
                 .setQuery("SELECT * FROM " + tableName)
                 .build();
 
-        return assetGrpc.query(request, data -> Flux.just(data))
+        return assetGrpc.queryMap(request, data -> data)
                 .collectList()
                 .flatMap(dataList -> {
                     try(final var output = new FastByteArrayOutputStream())

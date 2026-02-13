@@ -2,6 +2,7 @@ package boozilla.houston.decorator.auth;
 
 import boozilla.houston.HoustonHeaders;
 import boozilla.houston.token.AdminApiKey;
+import boozilla.houston.token.allowlist.AdminTokenAllowlist;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.server.ServiceRequestContext;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 @AllArgsConstructor
 public class JwtAdminAuthorizer implements HttpAuthorizer {
     private final AdminApiKey adminApiKey;
+    private final AdminTokenAllowlist allowlist;
 
     @Override
     public @Nonnull CompletionStage<Boolean> authorize(@Nonnull final ServiceRequestContext ctx,
@@ -25,6 +27,7 @@ public class JwtAdminAuthorizer implements HttpAuthorizer {
         final var token = Optional.ofNullable(httpRequest.headers().get(HoustonHeaders.TOKEN));
 
         return adminApiKey.verify(token)
+                .map(verified -> verified && token.filter(allowlist::contains).isPresent())
                 .toFuture();
     }
 }

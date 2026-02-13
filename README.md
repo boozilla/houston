@@ -119,20 +119,25 @@ Azul Zulu OpenJDK 25 기반의 멀티 아키텍처(ARM64/AMD64) Docker 이미지
 
 주요 설정 항목입니다. 전체 예시는 [`examples/environment-variables.env`](examples/environment-variables.env)를 참조하세요.
 
-| 환경 변수                   | 설명                       |
-|-------------------------|--------------------------|
-| `PROJECT_NAME`          | 프로젝트 이름                  |
-| `PACKAGE_NAME`          | 패키지 이름                   |
-| `ARMERIA_PORTS_0_PORT`  | 서버 포트 (기본값: 8080)        |
-| `BRANCH`                | 웹훅 트리거 대상 Git 브랜치        |
-| `GITHUB_ACCESS_TOKEN`   | GitHub 액세스 토큰            |
-| `GITHUB_REPO`           | GitHub 저장소 경로            |
-| `GITHUB_WEBHOOK_SECRET` | GitHub 웹훅 시크릿            |
-| `KEY_ALGORITHM`         | JWT 키 알고리즘 (예: ECDSA256) |
-| `KEY_KMS_ID`            | AWS KMS 키 ID (KMS 사용 시)  |
-| `SPRING_R2DBC_URL`      | MySQL R2DBC 연결 URL       |
-| `SPRING_R2DBC_USERNAME` | DB 사용자명                  |
-| `SPRING_R2DBC_PASSWORD` | DB 비밀번호                  |
+| 환경 변수                                             | 설명                                                    |
+|---------------------------------------------------|-------------------------------------------------------|
+| `PROJECT_NAME`                                    | 프로젝트 이름                                               |
+| `PACKAGE_NAME`                                    | 패키지 이름                                                |
+| `ARMERIA_PORTS_0_PORT`                            | 서버 포트 (기본값: 8080)                                     |
+| `BRANCH`                                          | 웹훅 트리거 대상 Git 브랜치                                     |
+| `GITHUB_ACCESS_TOKEN`                             | GitHub 액세스 토큰                                         |
+| `GITHUB_REPO`                                     | GitHub 저장소 경로                                         |
+| `GITHUB_WEBHOOK_SECRET`                           | GitHub 웹훅 시크릿                                         |
+| `KEY_ALGORITHM`                                   | JWT 키 알고리즘 (예: ECDSA256)                              |
+| `KEY_KMS_ID`                                      | AWS KMS 키 ID (KMS 사용 시)                               |
+| `ADMIN_TOKEN_ALLOWLIST_INLINE`                    | Spring 설정 기반 Admin allowlist (`개행/쉼표` 구분 JWT 목록)      |
+| `ADMIN_TOKEN_ALLOWLIST_TOKENS`                    | Spring 설정 기반 Admin allowlist (콤마 구분 문자열 또는 YML 배열 입력) |
+| `ADMIN_TOKEN_ALLOWLIST_SOURCES_SECRETS_MANAGER_*` | AWS Secrets Manager 기반 allowlist 소스 설정                |
+| `ADMIN_TOKEN_ALLOWLIST_SOURCES_S3_*`              | AWS S3 기반 allowlist 소스 설정                             |
+| `ADMIN_TOKEN_ALLOWLIST_SOURCES_SPRING_CONFIG_*`   | Spring 설정 기반 allowlist 소스 사용 여부                       |
+| `SPRING_R2DBC_URL`                                | MySQL R2DBC 연결 URL                                    |
+| `SPRING_R2DBC_USERNAME`                           | DB 사용자명                                               |
+| `SPRING_R2DBC_PASSWORD`                           | DB 비밀번호                                               |
 
 ## gRPC 서비스
 

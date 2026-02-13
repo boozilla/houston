@@ -19,13 +19,28 @@ public class AssetData {
 
     public AssetData(final DynamicMessage.Builder builder, final List<Descriptors.FieldDescriptor> fieldDescriptors)
     {
-        this(builder.build(), fieldDescriptors);
+        this(builder.build(), toFieldDescriptorMap(fieldDescriptors));
     }
 
     public AssetData(final DynamicMessage message, final List<Descriptors.FieldDescriptor> fieldDescriptors)
     {
+        this(message, toFieldDescriptorMap(fieldDescriptors));
+    }
+
+    public AssetData(final DynamicMessage.Builder builder, final Map<String, Descriptors.FieldDescriptor> fieldDescriptors)
+    {
+        this(builder.build(), fieldDescriptors);
+    }
+
+    public AssetData(final DynamicMessage message, final Map<String, Descriptors.FieldDescriptor> fieldDescriptors)
+    {
         this.message = message;
-        this.fieldDescriptors = fieldDescriptors.stream().collect(Collectors.toUnmodifiableMap(
+        this.fieldDescriptors = fieldDescriptors;
+    }
+
+    public static Map<String, Descriptors.FieldDescriptor> toFieldDescriptorMap(final List<Descriptors.FieldDescriptor> fieldDescriptors)
+    {
+        return fieldDescriptors.stream().collect(Collectors.toUnmodifiableMap(
                 Descriptors.FieldDescriptor::getName,
                 Function.identity()
         ));

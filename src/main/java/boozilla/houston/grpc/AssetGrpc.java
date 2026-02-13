@@ -60,10 +60,23 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     @Override
     public Flux<Any> query(final AssetQueryRequest request)
     {
-        return query(request, data -> Flux.just(data.any()));
+        return queryData(request)
+                .map(AssetData::any);
     }
 
     public <T> Flux<T> query(final AssetQueryRequest request, final Function<AssetData, Flux<T>> func)
+    {
+        return queryData(request)
+                .flatMapSequential(func);
+    }
+
+    public <T> Flux<T> queryMap(final AssetQueryRequest request, final Function<AssetData, T> mapper)
+    {
+        return queryData(request)
+                .map(mapper);
+    }
+
+    private Flux<AssetData> queryData(final AssetQueryRequest request)
     {
         final var requestContext = ServiceRequestContext.current();
         final var scope = ScopeContext.get();
@@ -81,7 +94,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
             return response.thenMany(Flux.empty());
         }
 
-        return response.flatMapSequential(func)
+        return response
                 .doOnNext(_ -> requestContext.setRequestTimeout(TimeoutMode.SET_FROM_NOW, STREAM_EXTEND_TIMEOUT))
                 .onErrorMap(AssetQueryException.class, error -> new StatusRuntimeException(Status.NOT_FOUND
                         .withDescription(error.getMessage())
@@ -102,7 +115,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     @Override
     public Flux<Any> search(final AssetSearchRequest request)
     {
-        return search(request, data -> Flux.just(data.any()));
+        return searchMap(request, AssetData::any);
     }
 
     public <T> Flux<T> search(final AssetSearchRequest request, final Function<AssetData, Flux<T>> func)
@@ -115,6 +128,18 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
                 .build();
 
         return query(queryRequest, func);
+    }
+
+    public <T> Flux<T> searchMap(final AssetSearchRequest request, final Function<AssetData, T> mapper)
+    {
+        validateSearchRequest(request);
+
+        final var queryRequest = AssetQueryRequest.newBuilder()
+                .setQuery(buildSql(request))
+                .setHeadersOnly(request.getHeadersOnly())
+                .build();
+
+        return queryMap(queryRequest, mapper);
     }
 
     @Override

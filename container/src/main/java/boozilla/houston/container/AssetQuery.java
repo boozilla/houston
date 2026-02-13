@@ -263,6 +263,8 @@ public record AssetQuery(
                                   final List<Descriptors.FieldDescriptor> fieldDescriptor,
                                   final Consumer<QueryResultInfo> resultInfoConsumer)
     {
+        final var fieldDescriptorsByName = AssetData.toFieldDescriptorMap(fieldDescriptor);
+
         return Flux.using(() -> assetIndex.query(sql(), resultInfoConsumer),
                         result -> Flux.fromStream(() -> {
                                     var stream = result.stream();
@@ -275,10 +277,9 @@ public record AssetQuery(
 
                                     return stream;
                                 })
-                                .parallel()
                                 .map(message -> {
                                     if(allColumns())
-                                        return new AssetData(message, fieldDescriptor);
+                                        return new AssetData(message, fieldDescriptorsByName);
 
                                     final var builder = message.toBuilder();
 
@@ -286,7 +287,7 @@ public record AssetQuery(
                                             .filter(entry -> !columns().contains(entry.getKey().getName()))
                                             .forEach(entry -> builder.clearField(entry.getKey()));
 
-                                    return new AssetData(builder, fieldDescriptor);
+                                    return new AssetData(builder, fieldDescriptorsByName);
                                 }),
                         ResultSet::close)
                 .onErrorMap(InvalidQueryException.class, error -> new StatusRuntimeException(Status.ABORTED
