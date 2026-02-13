@@ -43,19 +43,11 @@ management:
 admin:
   token:
     allowlist:
-      inline: ""
       tokens: [ ]
       sources:
         secrets-manager:
           enabled: false
-          secret-id:
-          region:
-          sync-interval-ms:
         s3:
           enabled: false
-          bucket:
-          key:
-          region:
-          sync-interval-ms:
         spring-config:
-          enabled: false
+          enabled: true

@@ -12,7 +12,7 @@ public final class AllowlistParser {
     {
     }
 
-    public static Set<String> parseAndHash(final String rawTokens)
+    public static Set<String> parse(final String rawTokens)
     {
         if(Objects.isNull(rawTokens) || rawTokens.isBlank())
         {
@@ -32,21 +32,20 @@ public final class AllowlistParser {
             }
 
             validateJwt(token, i);
-            result.add(TokenHashing.sha256(token));
+            result.add(token);
         }
 
         return Set.copyOf(result);
     }
 
-    public static Set<String> parseAndHash(final Iterable<String> rawTokens)
+    public static Set<String> parse(final Iterable<String> rawTokens)
     {
         if(Objects.isNull(rawTokens))
         {
             return Set.of();
         }
 
-        final var result = new LinkedHashSet<String>();
-        int index = 0;
+        final var joined = new StringBuilder();
 
         for(final var raw : rawTokens)
         {
@@ -54,16 +53,17 @@ public final class AllowlistParser {
 
             if(token.isBlank())
             {
-                index++;
                 continue;
             }
 
-            validateJwt(token, index);
-            result.add(TokenHashing.sha256(token));
-            index++;
+            if(!joined.isEmpty())
+            {
+                joined.append('\n');
+            }
+            joined.append(token);
         }
 
-        return Set.copyOf(result);
+        return parse(joined.toString());
     }
 
     private static void validateJwt(final String token, final int index)

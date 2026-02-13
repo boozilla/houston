@@ -5,6 +5,7 @@ import boozilla.houston.token.allowlist.AllowlistParser;
 import boozilla.houston.token.allowlist.AllowlistSnapshot;
 import boozilla.houston.token.allowlist.AllowlistSource;
 import org.apache.logging.log4j.util.Strings;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.regions.Region;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
+@ConditionalOnProperty(prefix = "admin.token.allowlist.sources.secrets-manager", name = "enabled", havingValue = "true")
 public class SecretsManagerAllowlistSource implements AllowlistSource {
     private static final String VERSION_STAGE = "AWSCURRENT";
 
@@ -25,7 +27,8 @@ public class SecretsManagerAllowlistSource implements AllowlistSource {
 
     public SecretsManagerAllowlistSource(final AdminTokenAllowlistProperties allowlistProperties)
     {
-        this.properties = allowlistProperties.sources().secretsManager();
+        this.properties = allowlistProperties.sources()
+                .secretsManager();
         this.client = client();
     }
 
@@ -33,12 +36,6 @@ public class SecretsManagerAllowlistSource implements AllowlistSource {
     public String name()
     {
         return "secrets-manager";
-    }
-
-    @Override
-    public boolean enabled()
-    {
-        return properties.enabled();
     }
 
     @Override
@@ -101,10 +98,10 @@ public class SecretsManagerAllowlistSource implements AllowlistSource {
                 .map(response -> {
                     final var raw = rawValue(response.secretString(), response.secretBinary() != null ?
                             response.secretBinary().asByteArray() : null);
-                    final var hashes = AllowlistParser.parseAndHash(raw);
+                    final var tokens = AllowlistParser.parse(raw);
                     final var cursor = response.versionId();
 
-                    return new AllowlistSnapshot(hashes, cursor);
+                    return new AllowlistSnapshot(tokens, cursor);
                 });
     }
 

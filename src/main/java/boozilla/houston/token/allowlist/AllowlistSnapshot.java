@@ -4,11 +4,11 @@ import java.util.Objects;
 import java.util.Set;
 
 public record AllowlistSnapshot(
-        Set<String> tokenHashes,
+        Set<String> tokens,
         String cursor
 ) {
     public AllowlistSnapshot
     {
-        tokenHashes = Set.copyOf(Objects.requireNonNullElse(tokenHashes, Set.<String>of()));
+        tokens = Set.copyOf(Objects.requireNonNullElse(tokens, Set.<String>of()));
     }
 }

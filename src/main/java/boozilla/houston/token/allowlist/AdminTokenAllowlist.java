@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
 public class AdminTokenAllowlist implements SmartLifecycle {
     private final List<AllowlistSource> sources;
     private final Map<String, SourceState> states = new ConcurrentHashMap<>();
-    private final AtomicReference<Set<String>> mergedHashes = new AtomicReference<>(Set.of());
+    private final AtomicReference<Set<String>> mergedTokens = new AtomicReference<>(Set.of());
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean polling = new AtomicBoolean(false);
     private final AtomicBoolean failClosed = new AtomicBoolean(true);
 
-    private List<AllowlistSource> enabledSources = List.of();
+    private List<AllowlistSource> activeSources = List.of();
     private List<AllowlistSource> pollingSources = List.of();
 
     public AdminTokenAllowlist(final List<AllowlistSource> sources)
@@ -36,16 +36,14 @@ public class AdminTokenAllowlist implements SmartLifecycle {
     @PostConstruct
     void validateConfiguration()
     {
-        enabledSources = sources.stream()
-                .filter(AllowlistSource::enabled)
-                .toList();
+        activeSources = List.copyOf(sources);
 
-        pollingSources = enabledSources.stream()
+        pollingSources = activeSources.stream()
                 .filter(AllowlistSource::isPollingSource)
                 .toList();
 
-        enabledSources.forEach(AllowlistSource::validateConfiguration);
-        enabledSources.forEach(source -> states.put(source.name(), new SourceState()));
+        activeSources.forEach(AllowlistSource::validateConfiguration);
+        activeSources.forEach(source -> states.put(source.name(), new SourceState()));
     }
 
     public boolean contains(final String token)
@@ -55,8 +53,8 @@ public class AdminTokenAllowlist implements SmartLifecycle {
             return false;
         }
 
-        return mergedHashes.get()
-                .contains(TokenHashing.sha256(token));
+        return mergedTokens.get()
+                .contains(token);
     }
 
     public boolean failClosed()
@@ -122,7 +120,7 @@ public class AdminTokenAllowlist implements SmartLifecycle {
 
     private void loadInitialSources()
     {
-        for(final var source : enabledSources)
+        for(final var source : activeSources)
         {
             try
             {
@@ -130,7 +128,7 @@ public class AdminTokenAllowlist implements SmartLifecycle {
                         .block());
                 final var state = states.get(source.name());
 
-                state.hashes.set(snapshot.tokenHashes());
+                state.tokens.set(snapshot.tokens());
                 state.healthy.set(true);
                 state.nextSyncAt.set(System.currentTimeMillis() + source.syncIntervalMs());
             }
@@ -138,11 +136,11 @@ public class AdminTokenAllowlist implements SmartLifecycle {
             {
                 final var state = states.get(source.name());
                 state.healthy.set(false);
-                throw new IllegalStateException("Failed to initialize enabled allowlist source [%s]".formatted(source.name()), e);
+                throw new IllegalStateException("Failed to initialize allowlist source [%s]".formatted(source.name()), e);
             }
         }
 
-        refreshMergedHashes();
+        refreshMergedTokens();
         refreshFailClosed();
     }
 
@@ -163,7 +161,7 @@ public class AdminTokenAllowlist implements SmartLifecycle {
             {
                 final var updated = source.reloadIfChanged()
                         .block();
-                updated.ifPresent(snapshot -> state.hashes.set(snapshot.tokenHashes()));
+                updated.ifPresent(snapshot -> state.tokens.set(snapshot.tokens()));
                 state.healthy.set(true);
             }
             catch(final Exception e)
@@ -177,21 +175,21 @@ public class AdminTokenAllowlist implements SmartLifecycle {
             }
         }
 
-        refreshMergedHashes();
+        refreshMergedTokens();
         refreshFailClosed();
     }
 
-    private void refreshMergedHashes()
+    private void refreshMergedTokens()
     {
         final var merged = states.values().stream()
-                .flatMap(state -> state.hashes.get().stream())
+                .flatMap(state -> state.tokens.get().stream())
                 .collect(Collectors.toUnmodifiableSet());
-        mergedHashes.set(merged);
+        mergedTokens.set(merged);
     }
 
     private void refreshFailClosed()
     {
-        final var shouldClose = enabledSources.stream()
+        final var shouldClose = activeSources.stream()
                 .map(AllowlistSource::name)
                 .map(states::get)
                 .anyMatch(state -> !state.healthy.get());
@@ -199,7 +197,7 @@ public class AdminTokenAllowlist implements SmartLifecycle {
     }
 
     private static class SourceState {
-        private final AtomicReference<Set<String>> hashes = new AtomicReference<>(Set.of());
+        private final AtomicReference<Set<String>> tokens = new AtomicReference<>(Set.of());
         private final AtomicBoolean healthy = new AtomicBoolean(false);
         private final AtomicReference<Long> nextSyncAt = new AtomicReference<>(0L);
     }

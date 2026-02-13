@@ -5,6 +5,7 @@ import boozilla.houston.token.allowlist.AllowlistParser;
 import boozilla.houston.token.allowlist.AllowlistSnapshot;
 import boozilla.houston.token.allowlist.AllowlistSource;
 import org.apache.logging.log4j.util.Strings;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
+@ConditionalOnProperty(prefix = "admin.token.allowlist.sources.s3", name = "enabled", havingValue = "true")
 public class S3AllowlistSource implements AllowlistSource {
     private final AdminTokenAllowlistProperties.S3 properties;
     private final S3AsyncClient client;
@@ -26,7 +28,8 @@ public class S3AllowlistSource implements AllowlistSource {
 
     public S3AllowlistSource(final AdminTokenAllowlistProperties allowlistProperties)
     {
-        this.properties = allowlistProperties.sources().s3();
+        this.properties = allowlistProperties.sources()
+                .s3();
         this.client = client();
     }
 
@@ -34,12 +37,6 @@ public class S3AllowlistSource implements AllowlistSource {
     public String name()
     {
         return "s3";
-    }
-
-    @Override
-    public boolean enabled()
-    {
-        return properties.enabled();
     }
 
     @Override
@@ -106,11 +103,11 @@ public class S3AllowlistSource implements AllowlistSource {
     private AllowlistSnapshot toSnapshot(final ResponseBytes<GetObjectResponse> responseBytes)
     {
         final var payload = new String(responseBytes.asByteArray(), StandardCharsets.UTF_8);
-        final var hashes = AllowlistParser.parseAndHash(payload);
+        final var tokens = AllowlistParser.parse(payload);
         final var eTag = responseBytes.response().eTag();
         final var cursor = Objects.isNull(eTag) ? Integer.toString(payload.hashCode()) : eTag;
 
-        return new AllowlistSnapshot(hashes, cursor);
+        return new AllowlistSnapshot(tokens, cursor);
     }
 
     private S3AsyncClient client()

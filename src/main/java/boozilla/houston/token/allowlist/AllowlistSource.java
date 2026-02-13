@@ -7,8 +7,6 @@ import java.util.Optional;
 public interface AllowlistSource {
     String name();
 
-    boolean enabled();
-
     boolean isPollingSource();
 
     long syncIntervalMs();
