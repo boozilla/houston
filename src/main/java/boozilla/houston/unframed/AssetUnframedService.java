@@ -13,6 +13,7 @@ import boozilla.houston.repository.vaults.Vaults;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.linecorp.armeria.common.*;
+import com.linecorp.armeria.server.ServiceRequestContext;
 import com.linecorp.armeria.server.annotation.Get;
 import com.linecorp.armeria.server.annotation.Param;
 import com.linecorp.armeria.server.annotation.Post;
@@ -23,6 +24,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -36,6 +38,8 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class AssetUnframedService implements UnframedService {
     private static final Pattern SAFE_IDENTIFIER = Pattern.compile("[a-zA-Z0-9_\\-]+");
+    private static final MediaType PROTOBUF = MediaType.PROTOBUF;
+    private static final String ACCEPT_PROTOBUF = "application/x-protobuf";
 
     private final AssetGrpc assetGrpc;
     private final AssetContainers assetContainers;
@@ -77,6 +81,35 @@ public class AssetUnframedService implements UnframedService {
                 });
     }
 
+    private static boolean wantsProtobuf()
+    {
+        final var ctx = ServiceRequestContext.current();
+        final var accept = ctx.request().headers().get(HttpHeaderNames.ACCEPT);
+        return accept != null && accept.contains(ACCEPT_PROTOBUF);
+    }
+
+    private static HttpResponse jsonResponse(final String json)
+    {
+        return HttpResponse.of(
+                ResponseHeaders.builder(HttpStatus.OK)
+                        .contentType(MediaType.JSON_UTF_8)
+                        .add(HttpHeaderNames.CACHE_CONTROL, "public, max-age=31536000, immutable")
+                        .add(HttpHeaderNames.VARY, HoustonHeaders.SCOPE + ", accept")
+                        .build(),
+                HttpData.ofUtf8(json));
+    }
+
+    private static HttpResponse protobufResponse(final byte[] data)
+    {
+        return HttpResponse.of(
+                ResponseHeaders.builder(HttpStatus.OK)
+                        .contentType(PROTOBUF)
+                        .add(HttpHeaderNames.CACHE_CONTROL, "public, max-age=31536000, immutable")
+                        .add(HttpHeaderNames.VARY, HoustonHeaders.SCOPE + ", accept")
+                        .build(),
+                HttpData.wrap(data));
+    }
+
     @ScopeService
     @Get("/asset/{tableName}/{commitId}")
     public Mono<HttpResponse> getData(@Param("tableName") final String tableName,
@@ -87,6 +120,7 @@ public class AssetUnframedService implements UnframedService {
 
         final var scope = ScopeContext.get();
         final var container = assetContainers.container();
+        final var acceptProtobuf = wantsProtobuf();
 
         return container.list(scope, Set.of(tableName))
                 .next()
@@ -94,24 +128,25 @@ public class AssetUnframedService implements UnframedService {
                     if(sheet.getCommitId().equals(commitId))
                     {
                         // Fast path: 인메모리 쿼리
-                        return queryFromContainer(tableName);
+                        if(acceptProtobuf)
+                            return protobufFromContainer(tableName).map(AssetUnframedService::protobufResponse);
+
+                        return jsonFromContainer(tableName).map(AssetUnframedService::jsonResponse);
                     }
 
-                    // Slow path: Vault에서 로드
-                    return queryFromVault(commitId, tableName, scope);
+                    return Mono.empty();
                 })
-                .switchIfEmpty(Mono.defer(() -> queryFromVault(commitId, tableName, scope)))
-                .map(json -> HttpResponse.of(
-                        ResponseHeaders.builder(HttpStatus.OK)
-                                .contentType(MediaType.JSON_UTF_8)
-                                .add(HttpHeaderNames.CACHE_CONTROL, "public, max-age=31536000, immutable")
-                                .add(HttpHeaderNames.VARY, HoustonHeaders.SCOPE)
-                                .build(),
-                        HttpData.ofUtf8(json)))
+                .switchIfEmpty(Mono.defer(() -> {
+                    // Slow path: Vault에서 로드
+                    if(acceptProtobuf)
+                        return protobufFromVault(commitId, tableName, scope).map(AssetUnframedService::protobufResponse);
+
+                    return jsonFromVault(commitId, tableName, scope).map(AssetUnframedService::jsonResponse);
+                }))
                 .switchIfEmpty(Mono.just(HttpResponse.of(HttpStatus.NOT_FOUND)));
     }
 
-    private Mono<String> queryFromContainer(final String tableName)
+    private Mono<String> jsonFromContainer(final String tableName)
     {
         final var request = AssetQueryRequest.newBuilder()
                 .setQuery("SELECT * FROM " + tableName)
@@ -126,21 +161,40 @@ public class AssetUnframedService implements UnframedService {
                 });
     }
 
-    private Mono<String> queryFromVault(final String commitId, final String tableName,
-                                        final Scope scope)
+    private Mono<byte[]> protobufFromContainer(final String tableName)
     {
-        return dataRepository.findByCommitIdAndScopeAndSheetName(commitId, scope.name(), tableName)
-                .flatMap(data -> vaults.download(data)
-                        .flatMap(bytes -> {
-                            try
-                            {
-                                return Mono.just(Archive.parseFrom(bytes));
-                            }
-                            catch(Exception e)
-                            {
-                                return Mono.error(e);
-                            }
-                        }))
+        final var request = AssetQueryRequest.newBuilder()
+                .setQuery("SELECT * FROM " + tableName)
+                .build();
+
+        return assetGrpc.query(request, data -> Flux.just(data))
+                .collectList()
+                .flatMap(dataList -> {
+                    try(final var output = new FastByteArrayOutputStream())
+                    {
+                        for(final var data : dataList)
+                        {
+                            data.writeDelimitedTo(output);
+                        }
+                        return Mono.just(output.toByteArray());
+                    }
+                    catch(Exception e)
+                    {
+                        return Mono.error(e);
+                    }
+                })
+                .filter(bytes -> bytes.length > 0)
+                .onErrorResume(StatusRuntimeException.class, error -> {
+                    if(error.getStatus().getCode() == Status.Code.NOT_FOUND)
+                        return Mono.empty();
+                    return Mono.error(error);
+                });
+    }
+
+    private Mono<String> jsonFromVault(final String commitId, final String tableName,
+                                       final Scope scope)
+    {
+        return loadArchives(commitId, tableName, scope)
                 .flatMap(archive -> {
                     try
                     {
@@ -166,5 +220,49 @@ public class AssetUnframedService implements UnframedService {
                     log.error("Failed to load asset from vault (commitId={}, table={})", commitId, tableName, e);
                     return Mono.empty();
                 });
+    }
+
+    private Mono<byte[]> protobufFromVault(final String commitId, final String tableName,
+                                           final Scope scope)
+    {
+        return loadArchives(commitId, tableName, scope)
+                .map(archive -> archive.getDataBytes().toByteArray())
+                .collectList()
+                .flatMap(bytesList -> {
+                    try(final var output = new FastByteArrayOutputStream())
+                    {
+                        for(final var bytes : bytesList)
+                        {
+                            output.write(bytes);
+                        }
+                        return Mono.just(output.toByteArray());
+                    }
+                    catch(Exception e)
+                    {
+                        return Mono.error(e);
+                    }
+                })
+                .filter(bytes -> bytes.length > 0)
+                .onErrorResume(e -> {
+                    log.error("Failed to load asset from vault (commitId={}, table={})", commitId, tableName, e);
+                    return Mono.empty();
+                });
+    }
+
+    private Flux<Archive> loadArchives(final String commitId, final String tableName,
+                                       final Scope scope)
+    {
+        return dataRepository.findByCommitIdAndScopeAndSheetName(commitId, scope.name(), tableName)
+                .flatMap(data -> vaults.download(data)
+                        .flatMap(bytes -> {
+                            try
+                            {
+                                return Mono.just(Archive.parseFrom(bytes));
+                            }
+                            catch(Exception e)
+                            {
+                                return Mono.error(e);
+                            }
+                        }));
     }
 }

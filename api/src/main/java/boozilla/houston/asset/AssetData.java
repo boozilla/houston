@@ -3,6 +3,8 @@ package boozilla.houston.asset;
 import com.google.protobuf.*;
 import com.google.protobuf.util.JsonFormat;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -105,6 +107,11 @@ public class AssetData {
     public byte[] toByteArray()
     {
         return this.message.toByteArray();
+    }
+
+    public void writeDelimitedTo(final OutputStream output) throws IOException
+    {
+        this.message.writeDelimitedTo(output);
     }
 
     @Override
