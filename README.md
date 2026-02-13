@@ -70,9 +70,9 @@ houston/
 | 영역              | 기술                                                |
 |-----------------|---------------------------------------------------|
 | Language        | Java 24                                           |
-| Build           | Gradle 8.11                                       |
-| Framework       | Spring Boot 4.0, Armeria 1.36                     |
-| RPC             | gRPC 1.79, Protocol Buffers 4.33                  |
+| Build           | Gradle 9.1                                        |
+| Framework       | Spring Boot 4.0.2, Armeria 1.36.0                 |
+| RPC             | gRPC 1.79.0, Protocol Buffers 3.25.8              |
 | Reactive        | Project Reactor 3.8                               |
 | Database        | R2DBC (jasync-mysql)                              |
 | In-Memory Query | CQEngine, JSQLParser                              |
@@ -150,6 +150,8 @@ Azul Zulu OpenJDK 25 기반의 멀티 아키텍처(ARM64/AMD64) Docker 이미지
 | `fetchList`  | 전체 시트 목록 일괄 조회          |
 | `query`      | SQL 스타일 쿼리를 통한 데이터 스트리밍 |
 | `fetchQuery` | 쿼리 결과 일괄 조회             |
+| `search`     | 구조화된 파라미터 기반 검색 스트리밍   |
+| `fetchSearch` | 구조화된 검색 결과 일괄 조회      |
 
 ### ManifestService
 
