@@ -141,6 +141,7 @@ dependencies {
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // Armeria
     implementation libs.armeria.spring.boot4.webflux.starter
@@ -192,6 +193,10 @@ dependencies {
     implementation libs.jsch
     implementation libs.jsoup
     implementation libs.jline
+}
+
+test {
+    useJUnitPlatform()
 }
 
 tasks.register('generateAdminToken', JavaExec) {

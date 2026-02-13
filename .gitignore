@@ -46,3 +46,4 @@ bin/
 /gradlew
 /.env
 /.idea
+/.run

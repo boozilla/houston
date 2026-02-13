@@ -158,6 +158,8 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
                 throw new StatusRuntimeException(Status.INVALID_ARGUMENT
                         .withDescription("invalid sort column name: " + sort.getColumn()));
             }
+
+            sortOrderToken(sort);
         }
 
         if(request.getOffset() < 0)
@@ -210,7 +212,7 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
             final var sortJoiner = new StringJoiner(", ");
             for(final var sort : request.getSortList())
             {
-                sortJoiner.add(sort.getColumn() + " " + sort.getOrder().name());
+                sortJoiner.add(sort.getColumn() + " " + sortOrderToken(sort));
             }
             sql.append(sortJoiner);
         }
@@ -234,5 +236,17 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
         }
 
         return sql.toString();
+    }
+
+    private static String sortOrderToken(final AssetSearchRequest.SortCriteria sort)
+    {
+        return switch(sort.getOrder())
+        {
+            case ASC -> "ASC";
+            case DESC -> "DESC";
+            case UNRECOGNIZED -> throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                    .withDescription("invalid sort order for column '" + sort.getColumn()
+                            + "' (orderValue=" + sort.getOrderValue() + ")"));
+        };
     }
 }
