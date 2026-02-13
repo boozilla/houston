@@ -18,7 +18,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.StringJoiner;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
     private static final Duration STREAM_EXTEND_TIMEOUT = Duration.ofSeconds(10);
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("[a-zA-Z0-9_]+");
+    private static final int MAX_FILTER_LENGTH = 4096;
 
     private final AssetContainers assets;
 
@@ -93,5 +97,142 @@ public class AssetGrpc extends ReactorAssetServiceGrpc.AssetServiceImplBase {
                     return builder;
                 })
                 .map(AssetQueryResponse.Builder::build);
+    }
+
+    @Override
+    public Flux<Any> search(final AssetSearchRequest request)
+    {
+        return search(request, data -> Flux.just(data.any()));
+    }
+
+    public <T> Flux<T> search(final AssetSearchRequest request, final Function<AssetData, Flux<T>> func)
+    {
+        validateSearchRequest(request);
+
+        final var queryRequest = AssetQueryRequest.newBuilder()
+                .setQuery(buildSql(request))
+                .setHeadersOnly(request.getHeadersOnly())
+                .build();
+
+        return query(queryRequest, func);
+    }
+
+    @Override
+    public Mono<AssetQueryResponse> fetchSearch(final AssetSearchRequest request)
+    {
+        return search(request)
+                .reduce(AssetQueryResponse.newBuilder(), (builder, any) -> {
+                    builder.addResult(any);
+                    return builder;
+                })
+                .map(AssetQueryResponse.Builder::build);
+    }
+
+    private void validateSearchRequest(final AssetSearchRequest request)
+    {
+        if(request.getTable().isEmpty())
+        {
+            throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                    .withDescription("table is required"));
+        }
+
+        if(!SAFE_IDENTIFIER.matcher(request.getTable()).matches())
+        {
+            throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                    .withDescription("invalid table name: " + request.getTable()));
+        }
+
+        for(final var col : request.getColumnList())
+        {
+            if(!SAFE_IDENTIFIER.matcher(col).matches())
+            {
+                throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                        .withDescription("invalid column name: " + col));
+            }
+        }
+
+        for(final var sort : request.getSortList())
+        {
+            if(!SAFE_IDENTIFIER.matcher(sort.getColumn()).matches())
+            {
+                throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                        .withDescription("invalid sort column name: " + sort.getColumn()));
+            }
+        }
+
+        if(request.getOffset() < 0)
+        {
+            throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                    .withDescription("offset must not be negative"));
+        }
+
+        if(request.getLimit() < 0)
+        {
+            throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                    .withDescription("limit must not be negative"));
+        }
+
+        if(request.getFilter().length() > MAX_FILTER_LENGTH)
+        {
+            throw new StatusRuntimeException(Status.INVALID_ARGUMENT
+                    .withDescription("filter exceeds maximum length of " + MAX_FILTER_LENGTH));
+        }
+    }
+
+    private String buildSql(final AssetSearchRequest request)
+    {
+        final var sql = new StringBuilder();
+
+        // SELECT
+        if(request.getColumnList().isEmpty())
+        {
+            sql.append("SELECT *");
+        }
+        else
+        {
+            sql.append("SELECT ");
+            sql.append(String.join(", ", request.getColumnList()));
+        }
+
+        // FROM
+        sql.append(" FROM ").append(request.getTable());
+
+        // WHERE
+        if(!request.getFilter().isEmpty())
+        {
+            sql.append(" WHERE ").append(request.getFilter());
+        }
+
+        // ORDER BY
+        if(!request.getSortList().isEmpty())
+        {
+            sql.append(" ORDER BY ");
+            final var sortJoiner = new StringJoiner(", ");
+            for(final var sort : request.getSortList())
+            {
+                sortJoiner.add(sort.getColumn() + " " + sort.getOrder().name());
+            }
+            sql.append(sortJoiner);
+        }
+
+        // LIMIT
+        if(request.getLimit() > 0)
+        {
+            if(request.getOffset() > 0)
+            {
+                sql.append(" LIMIT ").append(request.getOffset()).append(", ").append(request.getLimit());
+            }
+            else
+            {
+                sql.append(" LIMIT ").append(request.getLimit());
+            }
+        }
+        else if(request.getOffset() > 0)
+        {
+            // offset만 있는 경우: LIMIT offset, MAX_VALUE 형태로 처리
+            sql.append(" LIMIT ").append(request.getOffset()).append(", ").append(Long.MAX_VALUE);
+        }
+
+        return sql.toString();
     }
 }

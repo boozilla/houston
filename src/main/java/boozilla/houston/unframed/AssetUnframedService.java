@@ -18,6 +18,7 @@ import com.linecorp.armeria.server.annotation.Param;
 import com.linecorp.armeria.server.annotation.Post;
 import houston.grpc.service.AssetListRequest;
 import houston.grpc.service.AssetQueryRequest;
+import houston.grpc.service.AssetSearchRequest;
 import houston.vo.asset.Archive;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -46,10 +47,18 @@ public class AssetUnframedService implements UnframedService {
     private final Vaults vaults;
 
     @ScopeService
-    @Post("/asset/query")
+    @Post("/api/query")
     public Mono<String> query(final AssetQueryRequest request)
     {
         return assetGrpc.query(request, data -> Flux.just(data.toJsonString()))
+                .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @ScopeService
+    @Post("/api/search")
+    public Mono<String> search(final AssetSearchRequest request)
+    {
+        return assetGrpc.search(request, data -> Flux.just(data.toJsonString()))
                 .collect(Collectors.joining(",", "[", "]"));
     }
 
